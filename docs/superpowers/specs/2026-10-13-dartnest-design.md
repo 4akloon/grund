@@ -48,9 +48,10 @@ NestJS: модулі, DI, контролери, GraphQL-резолвери (v2),
 
 ### Поза межами v1
 
-Request-scoped провайдери, lifecycle-хуки, GraphQL, WebSockets/SSE, OpenAPI,
+Request-scoped провайдери, lifecycle-хуки, GraphQL (v2), WebSockets/SSE,
 мікросервісний транспорт, scaffolding-CLI (`nest g`), hot reload,
-адаптер `relic`.
+адаптер `relic`. Генерація OpenAPI — v1.1; v1 лише закладає для неї
+архітектуру (див. розділ 6.5).
 
 ## 2. Структура пакетів і шари
 
@@ -65,6 +66,7 @@ Request-scoped провайдери, lifecycle-хуки, GraphQL, WebSockets/SSE
 | `dartnest_generator` | Логіка генерації: analyzer `LibraryElement` → код явного API; набір `Construct` | `analyzer`, `code_builder`, `dart_style` |
 | `dartnest_cli` | `dart run dartnest_cli gen [--watch]` | `dartnest_generator`, `watcher` |
 | `dartnest_build` | Builder для build_runner (агрегуючий, вхід `lib/$lib$`) | `dartnest_generator`, `build` |
+| `dartnest_openapi` (v1.1) | `OpenApiConstruct` (статичний `openapi.json` + код документа), модуль `openApiModule` з `/openapi.json` і UI (Scalar/Swagger) | `dartnest`, `dartnest_generator` |
 | `dartnest_graphql` (v2) | Виконавець схеми, `Resolver`, `Construct` для резолверів | `dartnest` |
 
 Правила шарування:
@@ -321,10 +323,17 @@ PackageModel (зібрані анотовані елементи) → [Construct
 
 - `Collector`: обходить `LibraryElement` пакета, будує `PackageModel`
   (модулі, injectable-класи, контролери, їхні конструктори та методи).
+  Для кожного елемента зберігає `documentationComment` і повний
+  `DartType`; для типів, що зустрічаються як тіло запиту або результат
+  хендлера, збирає `DtoModel`: поля (ім'я, тип, nullable, значення за
+  замовчуванням), `@JsonKey(name:)` з json_serializable/freezed, якщо є.
 - `Construct` — інтерфейс: `validate(PackageModel) → Iterable<Diagnostic>`,
-  `generate(PackageModel) → Iterable<Spec>` (code_builder). У v1: `ModuleConstruct`,
-  `ProviderConstruct`, `ControllerConstruct`. У v2 `dartnest_graphql` додає
-  `ResolverConstruct`.
+  `generate(PackageModel) → Iterable<GeneratedUnit>`. `GeneratedUnit` — це
+  або Dart-код (code_builder `Spec`, зливається в один файл пакета), або
+  довільний файл (`path`, `contentType: json | yaml | text`), який драйвер
+  записує як є. У v1: `ModuleConstruct`, `ProviderConstruct`,
+  `ControllerConstruct`. У v1.1 `dartnest_openapi` додає `OpenApiConstruct`,
+  у v2 `dartnest_graphql` — `ResolverConstruct`.
 - Набір конструктів компілюється в CLI статично (Dart не завантажує код
   динамічно). `dartnest_cli` містить основні; для розширень користувач має
   `tool/dartnest.dart` з трьох рядків (`DartnestGen([core, graphql]).run(args)`),
@@ -337,6 +346,20 @@ PackageModel (зібрані анотовані елементи) → [Construct
 інжектовані за типом/токеном (іменовані — лише `required`), повнота анотацій
 параметрів хендлера, наявність `fromJson`, дублікати роутів. Діагностика у
 форматі `path:line:col: error: message`, ненульовий код виходу.
+
+### Заділ під генерацію документації (реалізація у v1.1)
+
+`OpenApiConstruct` з `PackageModel` будує документ OpenAPI 3.1 без додаткових
+анотацій: шлях і метод з `@Controller`/`@Get`, параметри з `@Param/@Query/
+@Header` з типами, схема тіла з `DtoModel` `@Body`-параметра, схема
+відповіді з типу повернення (`Future<T>`, `List<T>` розгортаються),
+описи з `///`-коментарів. Анотації `@ApiTags`, `@ApiResponse(status,
+description)`, `@ApiProperty(...)` з `dartnest_annotations` лише доповнюють
+те, чого з коду не вивести. Два виходи: статичний `openapi.json` (CI,
+клієнт-кодген) і Dart-код `ApiDocument`, який `openApiModule(ui: ...)`
+віддає в рантаймі разом зі сторінкою Scalar або Swagger UI. GraphQL у v2
+документується власною інтроспекцією. Для v1 обов'язкові лише вимоги до
+`Collector` і `GeneratedUnit`, описані вище.
 
 ### Драйвери
 
@@ -387,3 +410,4 @@ PackageModel (зібрані анотовані елементи) → [Construct
 5. `dartnest_cli` (`gen`, `--watch`, `init`), бенчмарк.
 6. `dartnest_build`.
 7. `example/` у двох стилях, документація.
+8. (v1.1) `dartnest_openapi`: `OpenApiConstruct`, `openApiModule`, UI.
