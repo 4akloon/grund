@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:analyzer/dart/analysis/analysis_context_collection.dart';
 import 'package:analyzer/dart/analysis/results.dart';
 import 'package:analyzer/dart/element/element.dart';
+import 'package:dartnest_generator/src/collector/package_collector.dart';
+import 'package:dartnest_generator/src/model/package_model.dart';
 import 'package:path/path.dart' as p;
 
 /// A fixture package under `test/fixtures/<name>`, resolved with the
@@ -41,6 +43,10 @@ final class FixturePackage {
         : [for (final path in paths) p.join(root, path)];
     return [for (final file in files) await _resolve(file)];
   }
+
+  /// The [PackageModel] of [paths], as [libraries] reads them.
+  Future<PackageModel> collect([List<String>? paths]) async =>
+      PackageCollector(name, root).collect(await libraries(paths));
 
   /// The source of [path] (relative to [root]).
   String read(String path) => File(p.join(root, path)).readAsStringSync();
