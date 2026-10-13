@@ -30,10 +30,15 @@ final class RequestDispatcher {
     HttpRequest request,
     Router<Endpoint> router,
   ) async {
-    final segments = [
-      for (final segment in request.uri.pathSegments)
-        if (segment.isNotEmpty) segment,
-    ];
+    final segments = _segments(request);
+    if (segments == null) {
+      return errors.respond(
+        const BadRequestException(
+          message: 'Malformed percent-encoding in path',
+        ),
+        StackTrace.current,
+      );
+    }
     return switch (router.match(request.method, segments)) {
       RouteFound(:final value, :final parameters) => _run(
         request,
@@ -51,6 +56,19 @@ final class RequestDispatcher {
         StackTrace.current,
       ),
     };
+  }
+
+  /// The decoded non-empty path segments, or null when the path holds an
+  /// invalid percent-encoded UTF-8 sequence (`Uri.pathSegments` throws).
+  static List<String>? _segments(HttpRequest request) {
+    try {
+      return [
+        for (final segment in request.uri.pathSegments)
+          if (segment.isNotEmpty) segment,
+      ];
+    } on FormatException {
+      return null;
+    }
   }
 
   Future<HttpResponse> _run(

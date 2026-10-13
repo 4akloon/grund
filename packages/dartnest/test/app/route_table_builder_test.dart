@@ -61,6 +61,18 @@ void main() {
       );
     });
 
+    test('parameter names do not distinguish routes', () {
+      final root = Module(
+        id: 'app',
+        controllers: [ping('/u/:id'), ping('/u/:name')],
+      );
+
+      expect(
+        () => RouteTableBuilder.validate(ModuleGraph.build(root)),
+        throwsA(isA<DuplicateRouteError>()),
+      );
+    });
+
     test('an invalid pattern is reported', () {
       final root = Module(id: 'app', controllers: [ping('/files/*/x')]);
 

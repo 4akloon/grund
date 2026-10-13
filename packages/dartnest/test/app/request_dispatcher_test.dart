@@ -25,13 +25,49 @@ final filesController = Controller<FilesController>(
   ],
 );
 
-Future<(RequestDispatcher, Router<Endpoint>)> dispatcherFor(Module root) async {
+final class HeaderThenFailGuard implements Guard {
+  const HeaderThenFailGuard();
+
+  @override
+  bool canActivate(ExecutionContext context) {
+    context.switchToHttp().response.headers.set('x-trace', 'abc');
+    throw StateError('boom');
+  }
+}
+
+final class RecordingFilter extends ExceptionFilter<Object> {
+  RecordingFilter(this.seen);
+  final List<Object> seen;
+
+  @override
+  Object? handle(Object error, ExecutionContext context) {
+    seen.add(error);
+    return 'handled';
+  }
+}
+
+final boomController = Controller<FilesController>(
+  path: '/boom',
+  create: (i) => FilesController(),
+  routes: [
+    Route.get(
+      '/',
+      (c, ctx) => c.read('x'),
+      enhancers: const Enhancers(guards: [HeaderThenFailGuard()]),
+    ),
+  ],
+);
+
+Future<(RequestDispatcher, Router<Endpoint>)> dispatcherFor(
+  Module root, [
+  Enhancers enhancers = Enhancers.none,
+]) async {
   final container = await Container.create(root);
   final dispatcher = RequestDispatcher(
     serializer: ResponseSerializer(SerializerRegistry()),
     errors: HttpErrorResponder(debug: false, log: (_, _) {}),
   );
-  return (dispatcher, RouteTableBuilder.build(container, Enhancers.none));
+  return (dispatcher, RouteTableBuilder.build(container, enhancers));
 }
 
 Future<Object?> jsonOf(HttpResponse response) async =>
@@ -56,7 +92,7 @@ void main() {
       Module(
         id: 'app',
         imports: [usersModule()],
-        controllers: [filesController],
+        controllers: [filesController, boomController],
       ),
     );
   });
@@ -142,6 +178,47 @@ void main() {
         ),
         'file x/y/z',
       );
+    });
+
+    test('invalid percent-encoded UTF-8 is 400', () async {
+      for (final target in ['/files/%FF', '/files/%C3']) {
+        final response = await send('GET', target);
+
+        expect(response.status, 400, reason: target);
+        expect(
+          (await jsonOf(response) as Map)['message'],
+          'Malformed percent-encoding in path',
+        );
+      }
+    });
+
+    test('an invalid escape sequence stays a literal segment', () async {
+      final response = await send('GET', '/files/%zz');
+
+      expect(response.status, 200);
+      expect(utf8.decode(await response.body.readAll()), 'file %zz');
+    });
+
+    test('a non-HttpException keeps head headers on the 500', () async {
+      final response = await send('GET', '/boom');
+
+      expect(response.status, 500);
+      expect(response.headers['x-trace'], 'abc');
+    });
+
+    test('404 and 405 bypass user exception filters', () async {
+      final seen = <Object>[];
+      final (d, r) = await dispatcherFor(
+        Module(id: 'app', imports: [usersModule()]),
+        Enhancers(filters: [RecordingFilter(seen)]),
+      );
+
+      final notFound = await d.dispatch(requestFor('GET', '/nope'), r);
+      final wrongMethod = await d.dispatch(requestFor('DELETE', '/users/1'), r);
+
+      expect(notFound.status, 404);
+      expect(wrongMethod.status, 405);
+      expect(seen, isEmpty);
     });
 
     test('HEAD is routed to GET', () async {
