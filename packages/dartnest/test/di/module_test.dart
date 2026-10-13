@@ -3,6 +3,21 @@ import 'package:test/test.dart';
 
 class Clock {}
 
+class Clock2 {}
+
+class Db {}
+
+abstract interface class Ticker {}
+
+class SystemTicker implements Ticker {}
+
+final class ExternalError extends DartnestError {
+  const ExternalError();
+
+  @override
+  String get message => 'boom';
+}
+
 void main() {
   group('Module', () {
     test('has sensible defaults', () {
@@ -17,13 +32,41 @@ void main() {
     test('dynamic modules are plain functions returning a Module', () {
       Module database({required String url}) => Module(
         id: 'database',
-        providers: [
-          Provider<String>.value(url, token: const Token<String>('db.url')),
-        ],
+        providers: [Provider.value(url, token: const Token<String>('db.url'))],
         exports: [const Token<String>('db.url')],
       );
       final m = database(url: 'postgres://x');
       expect(m.providers.single.key, const Token<String>('db.url'));
+    });
+
+    test('providers written in a Module list infer their own types', () {
+      final m = Module(
+        id: 'a',
+        providers: [
+          Provider((i) => Clock()),
+          Provider.value('x', token: const Token<String>('s')),
+          Provider.value(5, token: const Token<int>('n')),
+          Provider.async((i) async => Db()),
+          Provider((i) async => Clock2()),
+          Provider<Ticker>((i) => SystemTicker()),
+        ],
+      );
+      expect(m.providers.map((p) => p.key).toList(), [
+        Clock,
+        const Token<String>('s'),
+        const Token<int>('n'),
+        Db,
+        Clock2,
+        Ticker,
+      ]);
+      expect(m.providers.map((p) => p.isAsync).toList(), [
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+      ]);
     });
 
     test('toString shows the id', () {
@@ -59,6 +102,17 @@ void main() {
       expect(const DuplicateModuleIdError('x'), isA<InjectionError>());
       expect(const DuplicateModuleIdError('x'), isA<DartnestError>());
       expect(const DuplicateModuleIdError('x'), isA<Exception>());
+    });
+
+    test('DartnestError can be extended from another library', () {
+      Object caught = '';
+      try {
+        throw const ExternalError();
+      } on DartnestError catch (e) {
+        caught = e;
+      }
+      expect(caught, isA<ExternalError>());
+      expect(caught.toString(), 'ExternalError: boom');
     });
   });
 }

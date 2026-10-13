@@ -1,7 +1,7 @@
 import 'module.dart';
 
 /// Root of every error raised by dartnest itself.
-sealed class DartnestError implements Exception {
+abstract base class DartnestError implements Exception {
   /// Creates an error.
   const DartnestError();
 

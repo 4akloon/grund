@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'injector.dart';
+import 'provider_spec.dart';
 import 'token.dart';
 
 /// Builds a provider instance. Receives the injector of the module that
@@ -17,7 +18,7 @@ typedef ProviderFactory<T extends Object> =
 /// Provider.async((i) async => Db.connect());  // awaited at startup
 /// Provider.value(url, token: dbUrl);          // keyed by a Token
 /// ```
-final class Provider<T extends Object> {
+final class Provider<T extends Object> implements ProviderSpec {
   /// Synchronous (or implicitly async) factory provider.
   Provider(ProviderFactory<T> create, {Token<T>? token})
     : this._(create, token: token, isAsync: false);
@@ -45,17 +46,21 @@ final class Provider<T extends Object> {
   }
 
   /// Lookup key: the [Type] `T`, or the [Token] when one was given.
+  @override
   final Object key;
 
   /// Whether this provider was declared with [Provider.async].
+  @override
   final bool isAsync;
 
   final ProviderFactory<T> _create;
 
   /// The provided type.
+  @override
   Type get type => T;
 
   /// Invokes the factory. Callers must handle a returned [Future].
+  @override
   FutureOr<T> create(Injector injector) => _create(injector);
 
   @override

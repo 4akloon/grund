@@ -1,4 +1,4 @@
-import 'provider.dart';
+import 'provider_spec.dart';
 import 'token.dart';
 
 /// Declarative description of a module: what it provides, what it imports,
@@ -39,7 +39,7 @@ final class Module {
   /// Providers declared by this module. Within one module, declaration order
   /// matters only for async providers: a provider may only use an async
   /// provider that is declared before it (or in an imported module).
-  final List<Provider<Object>> providers;
+  final List<ProviderSpec> providers;
 
   /// What importers of this module can see: a [Type] or [Token] of one of
   /// [providers], or a [Module] from [imports] (re-export).
