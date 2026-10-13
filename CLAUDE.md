@@ -141,7 +141,10 @@ producing a response):
   error logger throws) to its `onError` and answers 500 without a body, and
   reports a failure while writing the response (a failing body stream, a
   client that went away) to its `onError`; the connection is already
-  dropped, and the adapter keeps serving.
+  dropped, and the adapter keeps serving;
+- the `IoAdapter` reporter boundary (added by the adapters work) catches a
+  failure of its own `onError` and writes it to stderr, so reporting never
+  stops the 500 or the server.
 `rethrow` keeps the stack trace. Never silence a lint: no `// ignore:`
 without a comment on why, and no rule removed from `analysis_options.yaml`
 to make a change pass.

@@ -47,6 +47,7 @@ final class IoAdapter implements HttpAdapter {
 
   final InFlightRequests _inFlight = InFlightRequests();
   io.HttpServer? _server;
+  final Completer<void> _forced = Completer<void>();
   Future<void>? _binding;
   Future<void>? _closing;
 
@@ -63,7 +64,8 @@ final class IoAdapter implements HttpAdapter {
     required Object address,
     required int port,
   }) async {
-    if (_binding != null || _closing != null) {
+    if (_closing != null) throw StateError('IoAdapter is closed.');
+    if (_binding != null) {
       throw StateError('IoAdapter.listen can be called only once.');
     }
     // Claimed before the await: a second listen or a close that arrives
@@ -87,8 +89,16 @@ final class IoAdapter implements HttpAdapter {
   }
 
   @override
-  Future<void> close({bool force = false}) =>
-      _closing ??= _shutdown(force: force);
+  Future<void> close({bool force = false}) {
+    final closing = _closing;
+    if (closing == null) return _closing = _shutdown(force: force);
+    // A forced close escalates a graceful one that is still waiting.
+    if (force && !_forced.isCompleted) {
+      _forced.complete();
+      unawaited(_server?.close(force: true));
+    }
+    return closing;
+  }
 
   Future<void> _shutdown({required bool force}) async {
     // A pending bind closes its own server once it sees the close.
@@ -97,14 +107,13 @@ final class IoAdapter implements HttpAdapter {
     if (server == null) return;
     await server.close(force: force);
     if (force) return;
+    // A later close(force: true) ends the wait; it drops the connections.
+    final wait = Future.any([_inFlight.idle, _forced.future]);
     final limit = closeTimeout;
-    if (limit == null) return _inFlight.idle;
+    if (limit == null) return wait;
     // Past the limit, drop the remaining connections as force does; their
     // requests stay counted, but nothing waits for them any more.
-    return _inFlight.idle.timeout(
-      limit,
-      onTimeout: () => server.close(force: true),
-    );
+    return wait.timeout(limit, onTimeout: () => server.close(force: true));
   }
 
   Future<void> _serve(io.HttpRequest native, RequestHandler handler) async {
@@ -118,7 +127,7 @@ final class IoAdapter implements HttpAdapter {
         isHead: native.method == 'HEAD',
       );
     } on Object catch (error, stackTrace) {
-      onError(error, stackTrace);
+      _report(error, stackTrace);
     }
   }
 
@@ -132,8 +141,18 @@ final class IoAdapter implements HttpAdapter {
     try {
       return await handler(IoRequestMapper.map(native));
     } on Object catch (error, stackTrace) {
-      onError(error, stackTrace);
+      _report(error, stackTrace);
       return HttpResponse(StatusCode.internalServerError);
+    }
+  }
+
+  void _report(Object error, StackTrace stackTrace) {
+    // Reporter boundary: onError is user code; a failing reporter must not
+    // stop the 500 or crash the server, so its failure goes to stderr.
+    try {
+      onError(error, stackTrace);
+    } on Object catch (reporterError) {
+      io.stderr.writeln('dartnest_io: onError failed: $reporterError');
     }
   }
 }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io' as io;
 
 import 'package:dartnest/dartnest.dart';
@@ -78,7 +79,13 @@ void main() {
           address: io.InternetAddress.loopbackIPv4,
           port: 0,
         ),
-        throwsStateError,
+        throwsA(
+          isA<StateError>().having(
+            (e) => e.message,
+            'message',
+            contains('closed'),
+          ),
+        ),
       );
     });
 
@@ -142,6 +149,61 @@ void main() {
 
       await listenResult;
       await expectPortFree(port);
+    });
+
+    test('answers 500 and keeps serving when onError throws', () async {
+      var fail = true;
+      final adapter = IoAdapter(onError: (_, _) => throw StateError('log'));
+      await adapter.listen(
+        (request) async {
+          if (fail) throw StateError('handler failed');
+          return HttpResponse.text('ok');
+        },
+        address: loopback,
+        port: 0,
+      );
+      addTearDown(adapter.close);
+      final client = io.HttpClient();
+      addTearDown(client.close);
+      Future<int> status() async => (await (await client.get(
+        '127.0.0.1',
+        adapter.port,
+        '/',
+      )).close()).statusCode;
+
+      final failed = await status();
+      fail = false;
+      final next = await status();
+
+      expect((failed, next), (500, 200));
+    });
+
+    test('close(force: true) escalates a pending graceful close', () async {
+      final release = Completer<void>();
+      final entered = Completer<void>();
+      addTearDown(() => release.isCompleted ? null : release.complete());
+      final adapter = IoAdapter(closeTimeout: null);
+      await adapter.listen(
+        (request) async {
+          entered.complete();
+          await release.future;
+          return HttpResponse.text('late');
+        },
+        address: loopback,
+        port: 0,
+      );
+      final client = io.HttpClient();
+      addTearDown(() => client.close(force: true));
+      final pending = client
+          .get('127.0.0.1', adapter.port, '/')
+          .then((request) => request.close());
+      unawaited(pending.then((_) {}, onError: (Object _) {}));
+      await entered.future;
+      final graceful = adapter.close();
+
+      await adapter.close(force: true).timeout(const Duration(seconds: 5));
+
+      await graceful.timeout(const Duration(seconds: 5));
     });
   });
 }
