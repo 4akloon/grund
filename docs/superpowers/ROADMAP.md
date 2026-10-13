@@ -14,8 +14,15 @@
 | 3 | **Адаптери** | `dartnest_io`, `dartnest_shelf` | Обидва проходять спільний conformance-набір на реальних сокетах; `shelfHandler(app)` вбудовується в shelf-пайплайн |
 | 4 | **Анотації та генератор** | `dartnest_annotations`, `dartnest_generator` | `Collector` → `PackageModel` (з doc-коментарями, типами, `DtoModel`); `ModuleConstruct`, `ProviderConstruct`, `ControllerConstruct`; статична валідація з `path:line:col`; golden-тести; згенерований код проходить ті самі e2e, що явний |
 | 5 | **CLI** | `dartnest_cli` | `gen`, `gen --watch`, `init`; analyzer-контекст у пам'яті; бенчмарк: інкремент < 1 с на 200 файлах, холодний старт < 10 с |
+| 5b | **Hot reload / hot restart** | `dartnest` (`Container.reassemble`, extension), `dartnest_cli` (`dev`) | `dartnest_cli dev` перезбирає генерований код і робить hot reload зі збереженням стану провайдерів або hot restart; інтеграційний тест: PID не змінюється при reload, змінюється при restart (спека, розділ 10) |
 | 6 | **build_runner-драйвер** | `dartnest_build` | Агрегуючий builder на `lib/$lib$` видає байт-у-байт той самий файл, що CLI |
 | 7 | **Приклад і документація** | `example/`, README, pub.dev | Один застосунок у двох стилях, e2e на обох адаптерах у CI; README з quick start для обох стилів; публікація `0.1.0` |
+
+Вимоги до ядра заради hot reload (спека, 10.1) діють з етапу 2: `Application.create`
+приймає `Module Function()`, `close()` повторюваний, таблиця роутів
+підміняється атомарно; `Container.reassemble` додається в етапі 5b, але
+етап 1 не повинен ускладнювати його (екземпляри зберігаються за
+`(moduleId, key)`).
 
 Ризики v1 та де їх знімаємо:
 
@@ -43,4 +50,4 @@
 ## Пізніше (без терміну)
 
 Request-scoped провайдери, адаптер `relic`, мікросервісний транспорт,
-scaffolding-CLI, hot reload у `dartnest_cli dev`.
+scaffolding-CLI.
