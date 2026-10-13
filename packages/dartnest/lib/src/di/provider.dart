@@ -31,6 +31,9 @@ sealed class ProviderSpec {
 
 /// Declares how a module creates one singleton of type [T].
 ///
+/// [T] must not be a [Future]; a value that is a [Future] belongs in
+/// [Provider.async].
+///
 /// ```dart
 /// Provider((i) => UsersRepo(i.get()));        // T inferred, key = UsersRepo
 /// Provider<Clock>((i) => SystemClock());      // key = Clock
@@ -44,7 +47,8 @@ sealed class ProviderSpec {
 /// startup invokes it again. This double invocation happens only on the
 /// error path.
 final class Provider<T extends Object> implements ProviderSpec {
-  /// Synchronous (or implicitly async) factory provider.
+  /// Synchronous factory provider; prefer [Provider.async] for factories that
+  /// return a [Future].
   Provider(ProviderFactory<T> create, {Token<T>? token})
     : this._(create, token: token, isAsync: false);
 

@@ -115,7 +115,7 @@ void main() {
       'maybeGet throws instead of returning null when the provider fails to create',
       () async {
         // Db is created first and probes Repo, whose factory needs a missing
-        // Clock. The old swallow-all maybeGet let Db's factory continue.
+        // Clock. Db's factory must not continue past a failed probe.
         var reachedAfterProbe = false;
         final app = Module(
           id: 'app',

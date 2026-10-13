@@ -98,11 +98,14 @@ void main() {
       expect(describeKey(const Token<int>('port')), 'Token<int>(port)');
     });
 
-    test('errors are Exceptions under the sealed roots', () {
-      expect(const DuplicateModuleIdError('x'), isA<InjectionError>());
-      expect(const DuplicateModuleIdError('x'), isA<DartnestError>());
-      expect(const DuplicateModuleIdError('x'), isA<Exception>());
-    });
+    test(
+      'errors are Exceptions: InjectionError is sealed, DartnestError is open',
+      () {
+        expect(const DuplicateModuleIdError('x'), isA<InjectionError>());
+        expect(const DuplicateModuleIdError('x'), isA<DartnestError>());
+        expect(const DuplicateModuleIdError('x'), isA<Exception>());
+      },
+    );
 
     test('DartnestError can be extended from another library', () {
       Object caught = '';
