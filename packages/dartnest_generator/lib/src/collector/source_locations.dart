@@ -14,21 +14,25 @@ final class SourceLocations {
   /// Where [element]'s name is declared. Files outside [packageRoot] are
   /// shown by library URI.
   SourceLocation of(Element element) {
+    final library = element.library;
+    if (library == null) {
+      throw StateError('Element ${element.displayName} has no library.');
+    }
     final fragment = element.firstFragment;
     final libraryFragment = fragment.libraryFragment;
     if (libraryFragment == null) {
-      return SourceLocation('${element.library?.uri}', 1, 1);
+      return SourceLocation('${library.uri}', 1, 1);
     }
     final offset = fragment.nameOffset ?? fragment.offset;
     final position = libraryFragment.lineInfo.getLocation(offset);
     return SourceLocation(
-      _display(libraryFragment.source.fullName, element.library?.uri),
+      _display(libraryFragment.source.fullName, library.uri),
       position.lineNumber,
       position.columnNumber,
     );
   }
 
-  String _display(String file, Uri? libraryUri) {
+  String _display(String file, Uri libraryUri) {
     if (!p.isWithin(packageRoot, file)) return '$libraryUri';
     return p.posix.joinAll(p.split(p.relative(file, from: packageRoot)));
   }
