@@ -4,6 +4,7 @@ import '../diagnostic/diagnostic.dart';
 import '../emit/module_emitter.dart';
 import '../model/generated_names.dart';
 import '../model/package_model.dart';
+import 'dependency_check.dart';
 import 'module_structure_check.dart';
 
 /// Checks the module graph the way `Application.create` would and
@@ -12,9 +13,13 @@ final class ModuleConstruct implements Construct {
   /// Creates the construct.
   const ModuleConstruct();
 
+  /// Dependencies are resolved only in a structurally valid graph, so one
+  /// mistake is not reported again as missing providers.
   @override
-  Iterable<Diagnostic> validate(PackageModel package) =>
-      ModuleStructureCheck.check(package.modules);
+  Iterable<Diagnostic> validate(PackageModel package) {
+    final structure = ModuleStructureCheck.check(package.modules).toList();
+    return structure.isEmpty ? DependencyCheck.check(package) : structure;
+  }
 
   @override
   Iterable<GeneratedUnit> generate(PackageModel package) => [

@@ -1,0 +1,80 @@
+import '../model/module_export.dart';
+import '../model/module_model.dart';
+import '../model/module_reference.dart';
+import '../model/provider_key.dart';
+import '../model/provider_model.dart';
+import '../model/type_model.dart';
+
+/// A provider as one module sees it: the provider and the module that
+/// declares it.
+typedef ScopedProvider = ({ModuleModel owner, ProviderModel provider});
+
+/// What each module of a package can inject, by the rules of the core
+/// injector: own providers, then exports of imports (with re-exports), then
+/// exports of global modules.
+///
+/// Built only for a graph of `@Module` classes of this package with no
+/// import cycles; a module from another package is not in the scope, so it
+/// contributes nothing (the caller skips packages that have one).
+final class ModuleScope {
+  /// Creates the scope of [modules].
+  ModuleScope(this.modules)
+    : _byType = {for (final module in modules) module.type: module};
+
+  /// The modules.
+  final List<ModuleModel> modules;
+
+  final Map<TypeModel, ModuleModel> _byType;
+
+  final Map<ModuleModel, Map<ProviderKey, ScopedProvider>> _visible = {};
+
+  /// The providers [module] can inject, by key; computed once per module.
+  ///
+  /// Own providers win over exports of imports, which win over exports of
+  /// global modules.
+  Map<ProviderKey, ScopedProvider> visibleIn(ModuleModel module) =>
+      _visible.putIfAbsent(module, () => _computeVisible(module));
+
+  /// The ids of the modules that declare [key], in module order.
+  List<String> declaring(ProviderKey key) => [
+    for (final module in modules)
+      if (module.providers.any((provider) => provider.key == key)) module.id,
+  ];
+
+  Map<ProviderKey, ScopedProvider> _computeVisible(ModuleModel module) => {
+    for (final global in modules)
+      if (global.isGlobal) ..._exported(global),
+    for (final reference in module.imports) ..._exportedBy(reference),
+    for (final provider in module.providers)
+      provider.key: (owner: module, provider: provider),
+  };
+
+  Map<ProviderKey, ScopedProvider> _exportedBy(ModuleReference reference) =>
+      switch (reference) {
+        LocalModuleReference(:final type) => switch (_byType[type]) {
+          final module? => _exported(module),
+          null => const {},
+        },
+        OpaqueModuleReference() => const {},
+      };
+
+  Map<ProviderKey, ScopedProvider> _exported(ModuleModel module) => {
+    for (final export in module.exports) ..._exportedEntry(module, export),
+  };
+
+  Map<ProviderKey, ScopedProvider> _exportedEntry(
+    ModuleModel module,
+    ModuleExport export,
+  ) => switch (export) {
+    KeyExport(:final key) => _ownProvider(module, key),
+    ModuleReexport(module: final reference) => _exportedBy(reference),
+  };
+
+  Map<ProviderKey, ScopedProvider> _ownProvider(
+    ModuleModel module,
+    ProviderKey key,
+  ) => {
+    for (final provider in module.providers)
+      if (provider.key == key) key: (owner: module, provider: provider),
+  };
+}
