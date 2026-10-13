@@ -130,7 +130,10 @@ the boundary, and never swallows the failure:
   which logs it;
 - `ResponseSerializer` (added by the HTTP pipeline work) catches `JsonUnsupportedObjectError` (an `Error` the
   JSON encoder throws for a user value) and throws `SerializationError` with
-  the original stack trace.
+  the original stack trace;
+- `HttpErrorResponder` (added by the HTTP pipeline work) catches the exact
+  `JsonUnsupportedObjectError` while encoding `details` and falls back to a
+  body without them.
 `rethrow` keeps the stack trace. Never silence a lint: no `// ignore:`
 without a comment on why, and no rule removed from `analysis_options.yaml`
 to make a change pass.

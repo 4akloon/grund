@@ -18,6 +18,10 @@ final class Money {
 
 final class Opaque {}
 
+final class Broken {
+  Object? toJson() => throw StateError('no json');
+}
+
 Future<String> text(HttpResponse response) async =>
     utf8.decode(await response.body.readAll());
 
@@ -75,7 +79,7 @@ void main() {
       expect(await text(serialize(42)), '42');
     });
 
-    // Review Focus 1: a list of ints is data, not bytes.
+    // A list of ints is data the client asked for as JSON, not raw bytes.
     test('List<int> is a JSON array, not a byte body', () async {
       final response = serialize(<int>[1, 2, 3]);
 
@@ -125,6 +129,17 @@ void main() {
       expect(
         await text(response),
         '{"price":{"cents":150},"history":[{"cents":1}]}',
+      );
+    });
+
+    test('a throwing toJson is a SerializationError with its cause', () {
+      expect(
+        () => serialize(Broken()),
+        throwsA(
+          isA<SerializationError>()
+              .having((e) => e.valueType, 'type', Broken)
+              .having((e) => e.cause, 'cause', isA<StateError>()),
+        ),
       );
     });
 

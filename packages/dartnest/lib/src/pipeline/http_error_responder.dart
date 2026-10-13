@@ -57,13 +57,25 @@ final class HttpErrorResponder {
     Map<String, Object?> body,
   ) {
     headers.set('content-type', 'application/json; charset=utf-8');
-    // Anything that is not a JSON value is sent as its toString(), so
-    // building an error response cannot fail.
-    final text = jsonEncode(body, toEncodable: (Object? value) => '$value');
+    final text = _encode(body);
     return HttpResponse(
       status,
       headers: headers,
       body: BytesBody(utf8.encode(text)),
     );
+  }
+
+  static String _encode(Map<String, Object?> body) {
+    // Anything that is not a JSON value is sent as its toString(), so
+    // building an error response cannot fail on odd details.
+    String encode(Map<String, Object?> value) =>
+        jsonEncode(value, toEncodable: (Object? value) => '$value');
+    // HttpErrorResponder boundary: a cyclic details value makes the encoder
+    // throw this SDK Error; the body is then sent without details.
+    try {
+      return encode(body);
+    } on JsonUnsupportedObjectError {
+      return encode({...body}..remove('details'));
+    }
   }
 }

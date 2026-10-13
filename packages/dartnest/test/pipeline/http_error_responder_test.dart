@@ -56,6 +56,23 @@ void main() {
       expect((await jsonOf(response) as Map)['details'], 'unprintable');
     });
 
+    test('cyclic details are dropped, the rest of the body is kept', () async {
+      final cyclic = <Object?, Object?>{};
+      cyclic['self'] = cyclic;
+
+      final response = responder.respond(
+        BadRequestException(message: 'Bad input', details: cyclic),
+        StackTrace.current,
+      );
+
+      expect(response.status, 400);
+      expect(await jsonOf(response), {
+        'statusCode': 400,
+        'error': 'Bad Request',
+        'message': 'Bad input',
+      });
+    });
+
     test('an unknown error is a logged 500 without internals', () async {
       final error = StateError('db password is hunter2');
 
