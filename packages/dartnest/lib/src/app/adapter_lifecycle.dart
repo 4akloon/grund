@@ -8,8 +8,8 @@ import 'in_flight_requests.dart';
 /// An adapter creates one, calls [start] from `listen` and [close] from
 /// `close`, and counts its requests with [inFlight]. The lifecycle
 ///
-/// - allows [start] only once and refuses it after [close] (a
-///   [StateError]);
+/// - allows one successful [start] and refuses it after [close] (a
+///   [StateError]); a failed bind can be retried;
 /// - closes a server that finished binding after [close] was called;
 /// - makes [close] idempotent: every call returns the same future;
 /// - lets `close(force: true)` end a graceful close that is still waiting;
@@ -45,8 +45,10 @@ final class AdapterLifecycle<S extends Object> {
   ///
   /// [stop] stops the server accepting connections; with `force` it also
   /// drops the open ones, without it the returned future may wait for them.
-  /// Fails with a [StateError] when called twice or after [close], and when
-  /// [close] is called while [bind] is pending (the server is stopped then).
+  /// Fails with a [StateError] when called after a successful start or after
+  /// [close], and when [close] is called while [bind] is pending (the server
+  /// is stopped then). When [bind] fails, the failure is passed on and
+  /// [start] can be called again.
   Future<void> start(
     Future<S> Function() bind, {
     required Future<void> Function(S server, {required bool force}) stop,
@@ -60,6 +62,7 @@ final class AdapterLifecycle<S extends Object> {
     // while the bind is pending must see it.
     final bound = Completer<void>();
     _binding = bound.future;
+    var isServing = false;
     try {
       final server = await bind();
       if (_closing != null) {
@@ -69,7 +72,11 @@ final class AdapterLifecycle<S extends Object> {
       _server = server;
       _stop = stop;
       serve(server);
+      isServing = true;
     } finally {
+      // A failed start leaves nothing bound: it can be retried (the
+      // application passes the failure on and allows another listen).
+      if (!isServing) _binding = null;
       bound.complete();
     }
   }

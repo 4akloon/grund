@@ -58,6 +58,32 @@ void main() {
       expect(harness.served, 1);
     });
 
+    test('a failed bind can be retried', () async {
+      final harness = _Harness(_FakeServer());
+      var attempts = 0;
+      Future<_FakeServer> bindOnce() async {
+        if (attempts++ == 0) throw StateError('address in use');
+        return harness.server;
+      }
+
+      await expectLater(
+        harness.start(bind: bindOnce),
+        throwsA(
+          isA<StateError>().having(
+            (e) => e.message,
+            'message',
+            'address in use',
+          ),
+        ),
+      );
+      await harness.start(bind: bindOnce);
+
+      expect(harness.lifecycle.server, same(harness.server));
+      expect(harness.served, 1);
+      await harness.lifecycle.close(force: false);
+      expect(harness.server.stops, [false]);
+    });
+
     test('close before listen completes and blocks a later listen', () async {
       final harness = _Harness(_FakeServer());
 

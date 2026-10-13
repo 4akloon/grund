@@ -6,6 +6,8 @@ import 'package:dartnest/dartnest.dart';
 import 'package:test/test.dart';
 
 import '../adapter_under_test.dart';
+import '../conformance_app.dart';
+import '../conformance_probe.dart';
 import '../conformance_server.dart';
 import '../raw_http.dart';
 
@@ -212,6 +214,37 @@ abstract final class LifecycleConformance {
           );
         });
       }
+
+      test('a failed bind can be retried on another port', () async {
+        final blocker = await ServerSocket.bind(
+          InternetAddress.loopbackIPv4,
+          0,
+        );
+        addTearDown(blocker.close);
+        final underTest = factory((_, _) {}, null);
+        final app = await Application.create(
+          () => conformanceModule(ConformanceProbe()),
+          adapter: underTest.adapter,
+          onError: (_, _) {},
+        );
+        addTearDown(() => app.close(force: true));
+
+        await expectLater(
+          app.listen(port: blocker.port, address: InternetAddress.loopbackIPv4),
+          throwsA(isA<SocketException>()),
+        );
+        await app.listen(port: 0, address: InternetAddress.loopbackIPv4);
+
+        final client = HttpClient();
+        addTearDown(() => client.close(force: true));
+        final request = await client.get(
+          '127.0.0.1',
+          underTest.boundPort(),
+          '/users/1',
+        );
+        expect((await request.close()).statusCode, 200);
+        await app.close().timeout(stepTimeout);
+      });
 
       // Review Focus 4: the stream is cancelled and close is not stuck.
       test('survives a client that leaves mid-response', () async {
