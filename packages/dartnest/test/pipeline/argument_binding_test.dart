@@ -216,6 +216,41 @@ void main() {
       expect(upper.seen, ['query:name:String']);
     });
 
+    test(
+      'app, controller, route then call pipes run in order on a path',
+      () async {
+        final context = contextWithPipes(
+          '/',
+          pathParameters: {'id': '1'},
+          pipes: [const AppendPipe('-app'), const AppendPipe('-route')],
+        );
+
+        final id = await context.param<String>(
+          'id',
+          pipes: [const AppendPipe('-call')],
+        );
+
+        expect(id, '1-app-route-call');
+      },
+    );
+
+    test(
+      'configured pipes run in order before call pipes on a query',
+      () async {
+        final context = contextWithPipes(
+          '/?q=x',
+          pipes: [const AppendPipe('-app'), const AppendPipe('-route')],
+        );
+
+        final value = await context.query<String>(
+          'q',
+          pipes: [const AppendPipe('-call')],
+        );
+
+        expect(value, 'x-app-route-call');
+      },
+    );
+
     test('a typed Pipe<String, int> works on a path parameter', () async {
       final context = contextWithPipes('/', pathParameters: {'name': 'anna'});
 

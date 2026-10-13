@@ -193,6 +193,11 @@ void main() {
         Enhancers.none,
       );
 
+      app.use((request, next) async {
+        await Future<void>.delayed(Duration.zero);
+        return next();
+      });
+
       final inFlight = app.handle(requestFor('GET', '/slow'));
       app.replaceRoutes(next);
       final after = app.handle(requestFor('GET', '/slow'));
@@ -200,6 +205,27 @@ void main() {
 
       expect(await textOf(await inFlight), 'old');
       expect(await textOf(await after), 'new');
+    });
+
+    test('middleware added while a request runs does not join it', () async {
+      final gate = Completer<void>();
+      final app = await Application.create(() => slowModule('old', gate));
+      final log = <String>[];
+      app.use((request, next) async {
+        await gate.future;
+        return next();
+      });
+
+      final inFlight = app.handle(requestFor('GET', '/slow'));
+      app.use((request, next) {
+        log.add('late');
+        return next();
+      });
+      gate.complete();
+      await inFlight;
+      await app.handle(requestFor('GET', '/slow'));
+
+      expect(log, ['late']);
     });
   });
 }

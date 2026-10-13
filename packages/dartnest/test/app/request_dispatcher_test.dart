@@ -70,9 +70,6 @@ Future<(RequestDispatcher, Router<Endpoint>)> dispatcherFor(
   return (dispatcher, RouteTableBuilder.build(container, enhancers));
 }
 
-Future<Object?> jsonOf(HttpResponse response) async =>
-    jsonDecode(utf8.decode(await response.body.readAll()));
-
 void main() {
   late RequestDispatcher dispatcher; // set in setUp before every test
   late Router<Endpoint> router; // set in setUp before every test

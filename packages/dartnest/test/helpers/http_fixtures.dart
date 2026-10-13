@@ -31,3 +31,7 @@ ExecutionContext contextFor(
   handlerName: 'test',
   metadata: metadata,
 );
+
+/// The JSON value in the body of [response].
+Future<Object?> jsonOf(HttpResponse response) async =>
+    jsonDecode(utf8.decode(await response.body.readAll()));

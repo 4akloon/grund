@@ -1,16 +1,13 @@
-import 'dart:convert';
-
 import 'package:dartnest/dartnest.dart';
 import 'package:dartnest/src/pipeline/http_error_responder.dart';
 import 'package:test/test.dart';
+
+import '../helpers/http_fixtures.dart';
 
 final class Unprintable {
   @override
   String toString() => 'unprintable';
 }
-
-Future<Object?> jsonOf(HttpResponse response) async =>
-    jsonDecode(utf8.decode(await response.body.readAll()));
 
 void main() {
   group('HttpErrorResponder', () {
