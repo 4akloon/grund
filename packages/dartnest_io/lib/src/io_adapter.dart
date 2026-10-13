@@ -129,7 +129,8 @@ final class IoAdapter implements HttpAdapter {
   Future<void> _serve(io.HttpRequest native, RequestHandler handler) async {
     final response = await _answer(native, handler);
     // Response boundary: the body stream is user code and the client can
-    // go away; dart:io has already dropped the connection, so report it.
+    // go away; report the failure and drop the connection (dart:io only
+    // drops it itself once the head was sent).
     try {
       await IoResponseWriter.write(
         response,
@@ -138,6 +139,19 @@ final class IoAdapter implements HttpAdapter {
       );
     } on Object catch (error, stackTrace) {
       _report(error, stackTrace);
+      await _dropConnection(native);
+    }
+  }
+
+  // A response whose head could not be written (an invalid header value, a
+  // body stream somebody already listens to) is never completed, so dart:io
+  // keeps the connection open: the client hangs and close() waits for it.
+  static Future<void> _dropConnection(io.HttpRequest native) async {
+    try {
+      final socket = await native.response.detachSocket(writeHeaders: false);
+      socket.destroy();
+    } on StateError {
+      // The head was sent: dart:io has already dropped the connection.
     }
   }
 

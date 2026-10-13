@@ -196,6 +196,23 @@ abstract final class LifecycleConformance {
         await server.app.close().timeout(stepTimeout);
       });
 
+      for (final route in const ['bad-header', 'bad-length']) {
+        test('a response whose head cannot be written is reported and the '
+            'connection closes ($route)', () async {
+          // The client sees the connection closed, with or without a head.
+          await RawHttp.exchange(
+            server.port,
+            RawHttp.head('GET', '/probe/$route'),
+          );
+          await server.firstAdapterError.timeout(stepTimeout);
+          await server.app.close().timeout(stepTimeout);
+          await expectLater(
+            Socket.connect(InternetAddress.loopbackIPv4, server.port),
+            throwsA(isA<SocketException>()),
+          );
+        });
+      }
+
       // Review Focus 4: the stream is cancelled and close is not stuck.
       test('survives a client that leaves mid-response', () async {
         await RawHttp.abortAfterFirstBytes(

@@ -22,6 +22,8 @@ import 'conformance_probe.dart';
 /// - `GET /probe/broken-stream`: a body stream that fails after a chunk.
 /// - `GET /probe/cookies`, `/probe/framing`, `/probe/close-connection`,
 ///   `/probe/empty`, `/probe/fail`: header and error edge cases.
+/// - `GET /probe/bad-header`, `/probe/bad-length`:
+///   responses whose head cannot be written.
 Module conformanceModule(ConformanceProbe probe) => Module(
   id: 'conformance',
   providers: [Provider.value(probe), Provider((i) => _ConformanceUsers())],
@@ -123,6 +125,20 @@ final _probeController = Controller<ConformanceProbe>(
       (_, _) => HttpResponse.text(
         'bye',
         headers: HeaderMap.of({'connection': 'close'}),
+      ),
+    ),
+    Route.get(
+      '/bad-header',
+      (_, _) => HttpResponse.text(
+        'x',
+        headers: HeaderMap.of({'x-bad': 'one\r\ntwo'}),
+      ),
+    ),
+    Route.get(
+      '/bad-length',
+      (_, _) => HttpResponse.stream(
+        Stream.value(utf8.encode('x')),
+        headers: HeaderMap.of({'content-length': 'abc'}),
       ),
     ),
     Route.get('/empty', (_, _) => null),

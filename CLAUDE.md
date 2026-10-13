@@ -140,12 +140,14 @@ producing a response):
   failure of the request handler (only possible when the application's own
   error logger throws) to its `onError` and answers 500 without a body, and
   reports a failure while writing the response (a failing body stream, a
-  client that went away) to its `onError`; the connection is already
-  dropped, and the adapter keeps serving;
+  client that went away, a head that cannot be written) to its `onError` and
+  drops the connection itself (`detachSocket` + `destroy`; dart:io only
+  drops it once the head was sent), and the adapter keeps serving;
 - `ShelfBridge` and `ShelfAdapter` (added by the adapters work) do the same
   for shelf: `ShelfBridge` reports a failure of the request handler to its
   `onError` and answers 500 without a body; `ShelfAdapter` reports a failure
-  of `shelf_io.handleRequest` while writing the response to its `onError`;
+  of `shelf_io.handleRequest` while writing the response to its `onError`
+  and drops the connection the same way;
 - the `IoAdapter` and `ShelfAdapter` reporter boundaries and the one in
   `shelfHandler` (added by the adapters work) catch a failure of their own
   `onError` and write it to stderr, so reporting never stops the 500 or the

@@ -15,8 +15,8 @@ abstract final class IoResponseWriter {
   /// - For `HEAD` ([isHead]) no body is written and a stream is cancelled
   ///   unread; the headers stay those of the `GET` response.
   ///
-  /// Fails when the body stream fails or the connection breaks; the caller
-  /// reports it, `dart:io` has already dropped the connection.
+  /// Fails when the body stream fails, the head cannot be written or the
+  /// connection breaks; the caller reports it and drops the connection.
   static Future<void> write(
     HttpResponse response,
     io.HttpResponse native, {
