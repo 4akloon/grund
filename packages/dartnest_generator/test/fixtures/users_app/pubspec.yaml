@@ -1,0 +1,15 @@
+name: users_app
+description: >-
+  The core e2e users application written with annotations; its generated
+  library is the golden file of dartnest_generator.
+version: 0.1.0-dev
+publish_to: none
+
+environment:
+  sdk: ^3.8.0
+
+resolution: workspace
+
+dependencies:
+  dartnest: ^0.1.0-dev
+  dartnest_annotations: ^0.1.0-dev

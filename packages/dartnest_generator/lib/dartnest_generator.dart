@@ -2,7 +2,13 @@
 /// API, and checks the module graph before the application starts.
 ///
 /// A driver (the CLI, build_runner) resolves the libraries of a package,
-/// builds its model with [PackageCollector] and runs a [DartnestGenerator].
+/// builds its model with [PackageCollector] and runs a [DartnestGenerator]:
+///
+/// ```dart
+/// final package = PackageCollector('shop', root).collect(libraries);
+/// final result = const DartnestGenerator.core().generate(package);
+/// if (!result.isSuccess) result.diagnostics.forEach(print);
+/// ```
 ///
 /// The model and [Construct] are public so later packages (OpenAPI,
 /// GraphQL) can add constructs of their own.
@@ -14,6 +20,9 @@ export 'src/construct/content_type.dart';
 export 'src/construct/dartnest_generator.dart';
 export 'src/construct/generated_unit.dart';
 export 'src/construct/generation_result.dart';
+export 'src/constructs/controller_construct.dart';
+export 'src/constructs/module_construct.dart';
+export 'src/constructs/provider_construct.dart';
 export 'src/diagnostic/diagnostic.dart';
 export 'src/diagnostic/diagnostic_code.dart';
 export 'src/diagnostic/source_location.dart';

@@ -1,5 +1,8 @@
 import 'package:code_builder/code_builder.dart';
 
+import '../constructs/controller_construct.dart';
+import '../constructs/module_construct.dart';
+import '../constructs/provider_construct.dart';
 import '../diagnostic/diagnostic.dart';
 import '../diagnostic/diagnostic_code.dart';
 import '../emit/library_writer.dart';
@@ -15,6 +18,15 @@ import 'generation_result.dart';
 final class DartnestGenerator {
   /// Creates the generator; [constructs] run in order.
   const DartnestGenerator(this.constructs);
+
+  /// The v1 constructs: modules, then controllers, then the provider
+  /// factories they use.
+  const DartnestGenerator.core()
+    : constructs = const [
+        ModuleConstruct(),
+        ControllerConstruct(),
+        ProviderConstruct(),
+      ];
 
   /// The constructs.
   final List<Construct> constructs;
