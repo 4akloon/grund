@@ -3,7 +3,7 @@ import 'dart:async';
 import 'errors.dart';
 import 'injector.dart';
 import 'module.dart';
-import 'provider_spec.dart';
+import 'provider.dart';
 import 'resolution_trace.dart';
 import 'token.dart';
 

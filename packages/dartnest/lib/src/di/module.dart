@@ -1,4 +1,4 @@
-import 'provider_spec.dart';
+import 'provider.dart';
 import 'token.dart';
 
 /// Declarative description of a module: what it provides, what it imports,

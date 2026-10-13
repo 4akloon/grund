@@ -1,13 +1,33 @@
 import 'dart:async';
 
 import 'injector.dart';
-import 'provider_spec.dart';
 import 'token.dart';
 
 /// Builds a provider instance. Receives the injector of the module that
 /// declares the provider, so it can resolve its own dependencies.
 typedef ProviderFactory<T extends Object> =
     FutureOr<T> Function(Injector injector);
+
+/// Non-generic view of a provider: what `Module.providers` holds.
+///
+/// It is non-generic so that Dart does not push `Object` into the type
+/// inference of `Provider(...)` written inside the list literal. It is sealed
+/// because the key/instance-type invariant (the instance created for [key] is
+/// a [type]) is guaranteed only by [Provider]; other implementations could
+/// break it.
+sealed class ProviderSpec {
+  /// Lookup key: a [Type] or a [Token].
+  Object get key;
+
+  /// Whether the provider was declared with [Provider.async].
+  bool get isAsync;
+
+  /// The provided type.
+  Type get type;
+
+  /// Invokes the factory. Callers must handle a returned [Future].
+  FutureOr<Object> create(Injector injector);
+}
 
 /// Declares how a module creates one singleton of type [T].
 ///
