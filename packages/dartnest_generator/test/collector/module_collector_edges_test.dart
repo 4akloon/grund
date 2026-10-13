@@ -35,6 +35,8 @@ void main() {
       'imports: _hidden is not a module.',
       'imports: needsArgument is not a module.',
       'imports: notAModule is not a module.',
+      'imports: create is not a module.',
+      'imports: create is not a module.',
     ]);
   });
 

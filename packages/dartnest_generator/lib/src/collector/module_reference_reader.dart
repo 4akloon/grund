@@ -56,7 +56,10 @@ final class ModuleReferenceReader {
         TypeReader.isDartnest(function.returnType, 'Module') &&
         function.isPublic &&
         (function is TopLevelFunctionElement ||
-            (function is MethodElement && function.isStatic));
+            (function is MethodElement &&
+                function.isStatic &&
+                enclosing is InterfaceElement &&
+                enclosing.isPublic));
     if (!ok) return null;
     return OpaqueModuleReference(
       name: name,

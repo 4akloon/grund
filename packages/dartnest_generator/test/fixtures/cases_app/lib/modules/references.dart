@@ -11,6 +11,18 @@ abstract final class ModuleFactories {
   static core.Module withArgument(int count) => core.Module(id: 'count');
 }
 
+/// A private holder: its factories are not reachable from generated code.
+abstract final class _PrivateFactories {
+  /// A static factory of a private class.
+  static core.Module create() => core.Module(id: 'private');
+}
+
+/// Extension members are not reachable as `Holder.name` either.
+extension ModuleExtension on int {
+  /// A static factory of an extension.
+  static core.Module create() => core.Module(id: 'extension');
+}
+
 core.Module _hidden() => core.Module(id: 'hidden');
 
 /// Takes a required argument.
@@ -31,6 +43,8 @@ String notAModule() => '';
     needsArgument,
     optionalArgument,
     notAModule,
+    _PrivateFactories.create,
+    ModuleExtension.create,
   ],
 )
 class ReferencesModule {}
