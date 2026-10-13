@@ -4,6 +4,7 @@ environment:
   sdk: ^3.8.0
 workspace:
   - packages/dartnest
+  - packages/dartnest_annotations
   - packages/dartnest_conformance
   - packages/dartnest_io
   - packages/dartnest_shelf
