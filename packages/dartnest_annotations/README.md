@@ -64,7 +64,7 @@ final class UsersModule {}
 
 The generated library exports `Module usersModule()` and
 `Controller<UsersController> usersController()`; pass the root module
-function to `Application.create(appModule)`.
+function to `Application.create(usersModule)`.
 
 Rules:
 

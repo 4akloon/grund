@@ -36,7 +36,6 @@ final class PackageModel {
   /// order within a library.
   final List<ControllerModel> controllers;
 
-  /// Request bodies and handler results, in library-URI order, then source
-  /// order within a library.
+  /// Request bodies and handler results, sorted by library URI, then name.
   final List<DtoModel> dtos;
 }

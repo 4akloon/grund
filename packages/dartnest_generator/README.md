@@ -34,11 +34,11 @@ Output (`lib/<package>.dartnest.dart`, one library per package):
   package's language version.
 - The same sources give byte-identical output, whatever the order of the
   libraries; a change of output is a breaking change of the generator.
-- `PackageModel` lists modules, injectables, controllers and DTOs in
-  library-URI order, then source order within a library. This is the order
-  `PackageCollector` produces, and the generated declarations follow it.
-  A custom `Construct` or a hand-built model must keep that order to get
-  stable output.
+- `PackageModel` lists modules, injectables and controllers in library-URI
+  order, then source order within a library, and DTOs sorted by library URI,
+  then class name. This is the order `PackageCollector` produces, and the
+  generated declarations follow it. A custom `Construct` or a hand-built
+  model must keep that order to get stable output.
 
 Annotation details that are easy to miss:
 
