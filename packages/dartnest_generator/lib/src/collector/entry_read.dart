@@ -1,6 +1,7 @@
 /// The outcome of reading one entry of an annotation list, such as
 /// `@Module(providers: [...])`: a value, or a sentence on why it is invalid.
 sealed class EntryRead<T> {
+  /// Creates the outcome.
   const EntryRead();
 
   /// The values of the [ReadEntry] items of [reads], in order.

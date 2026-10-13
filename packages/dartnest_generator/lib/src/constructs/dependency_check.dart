@@ -11,6 +11,7 @@ import '../model/provider_key.dart';
 import '../model/provider_model.dart';
 import '../model/type_model.dart';
 import 'module_scope.dart';
+import 'scoped_provider.dart';
 
 /// The startup checks that resolve dependencies: a missing provider and a
 /// circular dependency, for provider classes, controllers and the pipeline

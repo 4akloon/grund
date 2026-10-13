@@ -6,6 +6,7 @@ import 'content_type.dart';
 /// A piece of generator output: a Dart declaration of the package's
 /// generated library, or a file of its own.
 sealed class GeneratedUnit {
+  /// Creates the unit.
   const GeneratedUnit();
 }
 

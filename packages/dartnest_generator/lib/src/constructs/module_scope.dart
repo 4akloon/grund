@@ -2,12 +2,8 @@ import '../model/module_export.dart';
 import '../model/module_model.dart';
 import '../model/module_reference.dart';
 import '../model/provider_key.dart';
-import '../model/provider_model.dart';
 import '../model/type_model.dart';
-
-/// A provider as one module sees it: the provider and the module that
-/// declares it.
-typedef ScopedProvider = ({ModuleModel owner, ProviderModel provider});
+import 'scoped_provider.dart';
 
 /// What each module of a package can inject, by the rules of the core
 /// injector: own providers, then exports of imports (with re-exports), then
