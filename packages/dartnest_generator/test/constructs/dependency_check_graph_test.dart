@@ -1,4 +1,5 @@
 import 'package:dartnest_generator/src/constructs/dependency_check.dart';
+import 'package:dartnest_generator/src/model/controller_model.dart';
 import 'package:dartnest_generator/src/model/module_export.dart';
 import 'package:dartnest_generator/src/model/module_model.dart';
 import 'package:dartnest_generator/src/model/module_reference.dart';
@@ -10,8 +11,13 @@ void main() {
   final provider = GraphModels.provider;
   final module = GraphModels.module;
 
-  List<String> check(List<ModuleModel> modules) => [
-    for (final d in DependencyCheck.check(GraphModels.package([...modules])))
+  List<String> check(
+    List<ModuleModel> modules, [
+    List<ControllerModel> controllers = const [],
+  ]) => [
+    for (final d in DependencyCheck.check(
+      GraphModels.package(modules, controllers),
+    ))
       d.message,
   ];
 
@@ -108,7 +114,7 @@ void main() {
     expect(stopwatch.elapsed, lessThan(const Duration(seconds: 2)));
   });
 
-  test('a dense graph with a cycle at the bottom reports it once', () {
+  test('a dense graph with a cycle at the bottom reports one per entry', () {
     const layers = 40;
     final providers = [
       for (var layer = 0; layer < layers; layer++)
@@ -121,7 +127,7 @@ void main() {
 
     final found = check([module('App', providers: providers)]);
 
-    expect(found, hasLength(greaterThanOrEqualTo(1)));
+    expect(found, hasLength(2));
     expect(found, everyElement(startsWith('Circular dependency: ')));
   });
 
@@ -160,4 +166,23 @@ void main() {
       ]);
     },
   );
+
+  test('a guard on the controller and on its route is reported once', () {
+    final found = check(
+      [
+        module('App', controllers: [GraphModels.type('Api')]),
+      ],
+      [GraphModels.controller('Api', guard: 'Gate')],
+    );
+
+    expect(found, ['No provider for Gate in module "App" (resolving: Api).']);
+  });
+
+  test('a controller that was not collected is skipped', () {
+    final found = check([
+      module('App', controllers: [GraphModels.type('Elsewhere')]),
+    ]);
+
+    expect(found, isEmpty);
+  });
 }

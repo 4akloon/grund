@@ -1,6 +1,9 @@
 import 'package:dartnest_generator/src/diagnostic/source_location.dart';
+import 'package:dartnest_generator/src/model/component_reference.dart';
 import 'package:dartnest_generator/src/model/constructor_model.dart';
+import 'package:dartnest_generator/src/model/controller_model.dart';
 import 'package:dartnest_generator/src/model/dependency_model.dart';
+import 'package:dartnest_generator/src/model/enhancers_model.dart';
 import 'package:dartnest_generator/src/model/injectable_model.dart';
 import 'package:dartnest_generator/src/model/module_export.dart';
 import 'package:dartnest_generator/src/model/module_model.dart';
@@ -8,6 +11,7 @@ import 'package:dartnest_generator/src/model/module_reference.dart';
 import 'package:dartnest_generator/src/model/package_model.dart';
 import 'package:dartnest_generator/src/model/provider_key.dart';
 import 'package:dartnest_generator/src/model/provider_model.dart';
+import 'package:dartnest_generator/src/model/route_model.dart';
 import 'package:dartnest_generator/src/model/type_kind.dart';
 import 'package:dartnest_generator/src/model/type_model.dart';
 import 'package:pub_semver/pub_semver.dart';
@@ -50,6 +54,7 @@ abstract final class GraphModels {
     List<ModuleReference> imports = const [],
     List<ProviderModel> providers = const [],
     List<ModuleExport> exports = const [],
+    List<TypeModel> controllers = const [],
     bool isGlobal = false,
   }) => ModuleModel(
     type: type(name),
@@ -58,6 +63,7 @@ abstract final class GraphModels {
     imports: imports,
     providers: providers,
     exports: exports,
+    controllers: controllers,
     isGlobal: isGlobal,
   );
 
@@ -65,10 +71,37 @@ abstract final class GraphModels {
   static LocalModuleReference reference(String name) =>
       LocalModuleReference(type(name));
 
-  /// A package of [modules].
-  static PackageModel package(List<ModuleModel> modules) => PackageModel(
+  /// A controller [name] with a guard [guard] on the class and on one route.
+  static ControllerModel controller(String name, {required String guard}) {
+    final component = ComponentReference(type(guard), isValid: true);
+    final enhancers = EnhancersModel(guards: [component]);
+    return ControllerModel(
+      type: type(name),
+      path: '/',
+      constructor: const ConstructorModel([]),
+      location: SourceLocation('lib/app.dart', 4, name.length),
+      enhancers: enhancers,
+      routes: [
+        RouteModel(
+          method: 'GET',
+          path: '/',
+          handlerName: 'get',
+          returnType: TypeModel.voidType,
+          location: SourceLocation('lib/app.dart', 5, 1),
+          enhancers: enhancers,
+        ),
+      ],
+    );
+  }
+
+  /// A package of [modules] and [controllers].
+  static PackageModel package(
+    List<ModuleModel> modules, [
+    List<ControllerModel> controllers = const [],
+  ]) => PackageModel(
     packageName: 'app',
     languageVersion: Version(3, 8, 0),
     modules: modules,
+    controllers: controllers,
   );
 }

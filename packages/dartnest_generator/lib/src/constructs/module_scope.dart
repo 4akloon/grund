@@ -17,12 +17,11 @@ typedef ScopedProvider = ({ModuleModel owner, ProviderModel provider});
 /// import cycles; a module from another package is not in the scope, so it
 /// contributes nothing (the caller skips packages that have one).
 final class ModuleScope {
-  /// Creates the scope of [modules].
-  ModuleScope(this.modules)
-    : _byType = {for (final module in modules) module.type: module};
+  /// Creates the scope of the package's modules.
+  ModuleScope(this._modules)
+    : _byType = {for (final module in _modules) module.type: module};
 
-  /// The modules.
-  final List<ModuleModel> modules;
+  final List<ModuleModel> _modules;
 
   final Map<TypeModel, ModuleModel> _byType;
 
@@ -31,21 +30,23 @@ final class ModuleScope {
   /// The providers [module] can inject, by key; computed once per module.
   ///
   /// Own providers win over exports of imports, which win over exports of
-  /// global modules.
+  /// global modules; among equals the first entry wins, as in the core.
+  /// Ambiguity itself is not diagnosed here: the core throws
+  /// `AmbiguousProviderError` at startup.
   Map<ProviderKey, ScopedProvider> visibleIn(ModuleModel module) =>
       _visible.putIfAbsent(module, () => _computeVisible(module));
 
   /// The ids of the modules that declare [key], in module order.
   List<String> declaring(ProviderKey key) => [
-    for (final module in modules)
+    for (final module in _modules)
       if (module.providers.any((provider) => provider.key == key)) module.id,
   ];
 
   Map<ProviderKey, ScopedProvider> _computeVisible(ModuleModel module) => {
-    for (final global in modules)
+    for (final global in _modules.reversed)
       if (global.isGlobal) ..._exported(global),
-    for (final reference in module.imports) ..._exportedBy(reference),
-    for (final provider in module.providers)
+    for (final reference in module.imports.reversed) ..._exportedBy(reference),
+    for (final provider in module.providers.reversed)
       provider.key: (owner: module, provider: provider),
   };
 
@@ -59,7 +60,8 @@ final class ModuleScope {
       };
 
   Map<ProviderKey, ScopedProvider> _exported(ModuleModel module) => {
-    for (final export in module.exports) ..._exportedEntry(module, export),
+    for (final export in module.exports.reversed)
+      ..._exportedEntry(module, export),
   };
 
   Map<ProviderKey, ScopedProvider> _exportedEntry(
@@ -74,7 +76,7 @@ final class ModuleScope {
     ModuleModel module,
     ProviderKey key,
   ) => {
-    for (final provider in module.providers)
+    for (final provider in module.providers.reversed)
       if (provider.key == key) key: (owner: module, provider: provider),
   };
 }

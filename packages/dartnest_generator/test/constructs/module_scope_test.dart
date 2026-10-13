@@ -1,6 +1,9 @@
 import 'package:dartnest_generator/src/constructs/module_scope.dart';
+import 'package:dartnest_generator/src/model/constant_value.dart';
 import 'package:dartnest_generator/src/model/module_export.dart';
 import 'package:dartnest_generator/src/model/module_reference.dart';
+import 'package:dartnest_generator/src/model/provider_key.dart';
+import 'package:dartnest_generator/src/model/provider_model.dart';
 import 'package:test/test.dart';
 
 import '../helpers/graph_models.dart';
@@ -89,5 +92,69 @@ void main() {
 
     expect(ModuleScope([a, b]).declaring(key('Repo')), ['A', 'B']);
     expect(ModuleScope([a, b]).declaring(key('Nope')), isEmpty);
+  });
+
+  test('among equals the first entry wins, as in the core', () {
+    final one = module(
+      'One',
+      providers: [provider('Repo')],
+      exports: [KeyExport(key('Repo'))],
+    );
+    final two = module(
+      'Two',
+      providers: [provider('Repo')],
+      exports: [KeyExport(key('Repo'))],
+    );
+    final app = module('App', imports: [reference('One'), reference('Two')]);
+    final twin = module(
+      'Twin',
+      providers: [provider('Repo'), provider('Repo')],
+    );
+    final scope = ModuleScope([app, one, two, twin]);
+
+    expect(scope.visibleIn(app)[key('Repo')]!.owner, one);
+    expect(scope.visibleIn(twin)[key('Repo')]!.provider, twin.providers.first);
+  });
+
+  test('globals: the first wins; an import beats a global', () {
+    final g1 = module(
+      'G1',
+      providers: [provider('Log')],
+      isGlobal: true,
+      exports: [KeyExport(key('Log'))],
+    );
+    final g2 = module(
+      'G2',
+      providers: [provider('Log')],
+      isGlobal: true,
+      exports: [KeyExport(key('Log'))],
+    );
+    final lib = module(
+      'Lib',
+      providers: [provider('Log')],
+      exports: [KeyExport(key('Log'))],
+    );
+    final plain = module('Plain');
+    final importing = module('Importing', imports: [reference('Lib')]);
+    final scope = ModuleScope([g1, g2, lib, plain, importing]);
+
+    expect(scope.visibleIn(plain)[key('Log')]!.owner, g1);
+    expect(scope.visibleIn(importing)[key('Log')]!.owner, lib);
+  });
+
+  test('a provided token is visible by its token key', () {
+    final token = TokenKey(
+      valueType: GraphModels.type('String'),
+      name: 'url',
+      expression: const NullConstant(),
+    );
+    final db = module(
+      'Db',
+      providers: [ValueProvider(token, const NullConstant())],
+      exports: [KeyExport(token)],
+    );
+    final app = module('App', imports: [reference('Db')]);
+
+    expect(ModuleScope([app, db]).visibleIn(app).keys, [token]);
   });
 }

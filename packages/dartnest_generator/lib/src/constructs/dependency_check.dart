@@ -20,6 +20,15 @@ import 'module_scope.dart';
 /// can provide and export anything, so a package that imports or re-exports
 /// one is not checked here at all: no module can be proven to lack a
 /// provider. `Application.create` still checks it at startup.
+///
+/// Two limits follow from reading only `@Module` classes:
+/// - the opaque test looks at imports and re-exports of `@Module` classes
+///   only. An explicit global `Module` that only an explicit root imports is
+///   invisible to the scope, so a dependency it satisfies can be reported as
+///   `missing_provider` wrongly.
+/// - a global `@Module` of this package that nothing imports is treated as
+///   global, although at startup it is absent unless something imports it;
+///   a real `missing_provider` can be hidden.
 final class DependencyCheck {
   DependencyCheck._(this._package, this._scope);
 
@@ -61,6 +70,10 @@ final class DependencyCheck {
       final controller = _package.controllers
           .where((controller) => controller.type == type)
           .firstOrNull;
+      // Invariant: every listed controller class is annotated with
+      // `@Controller` and collected into the package, so this skip is only a
+      // guard for a controller declared outside the analysed libraries; the
+      // core checks it at startup.
       if (controller == null) continue;
       yield* _missing(module, type, controller.constructor);
       yield* _missingComponents(module, controller);
