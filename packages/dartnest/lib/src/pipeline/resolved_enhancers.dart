@@ -1,4 +1,4 @@
-import '../app/application_error.dart';
+import 'application_error.dart';
 import '../di/injector.dart';
 import 'enhancers.dart';
 import 'exception_filter.dart';

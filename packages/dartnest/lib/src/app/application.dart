@@ -13,7 +13,7 @@ import '../pipeline/http_error_responder.dart';
 import '../pipeline/response_serializer.dart';
 import '../pipeline/serializer_registry.dart';
 import '../routing/router.dart';
-import 'application_error.dart';
+import '../pipeline/application_error.dart';
 import 'http_adapter.dart';
 import 'in_flight_requests.dart';
 import 'middleware.dart';

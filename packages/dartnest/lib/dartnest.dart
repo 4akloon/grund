@@ -2,7 +2,7 @@
 library;
 
 export 'src/app/application.dart';
-export 'src/app/application_error.dart';
+export 'src/pipeline/application_error.dart';
 export 'src/app/http_adapter.dart';
 export 'src/app/middleware.dart';
 export 'src/controller/controller.dart';
