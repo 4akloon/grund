@@ -5,9 +5,11 @@ import 'package:dartnest_generator/src/model/body_kind.dart';
 import 'package:dartnest_generator/src/model/component_reference.dart';
 import 'package:dartnest_generator/src/model/constant_value.dart';
 import 'package:dartnest_generator/src/model/constructor_model.dart';
+import 'package:dartnest_generator/src/model/controller_model.dart';
 import 'package:dartnest_generator/src/model/enhancers_model.dart';
 import 'package:dartnest_generator/src/model/parameter_binding.dart';
 import 'package:dartnest_generator/src/model/provider_key.dart';
+import 'package:dartnest_generator/src/model/route_model.dart';
 import 'package:dartnest_generator/src/model/type_kind.dart';
 import 'package:dartnest_generator/src/model/type_model.dart';
 import 'package:dartnest_generator/src/model/dependency_model.dart';
@@ -37,6 +39,104 @@ List<String> _problems(List<Object> controllers) => [
           .diagnostics)
     '${d.code.id}: ${d.message}',
 ];
+
+/// A controller with dependencies, all four component lists and a request
+/// and a context parameter.
+ControllerModel _richController() => ControllerModels.controller(
+  'Rich',
+  '/r',
+  [
+    ControllerModels.route(
+      'GET',
+      '',
+      parameters: [
+        ControllerModels.parameter(
+          'r',
+          ControllerModels.type('HttpRequest'),
+          const RequestBinding(),
+        ),
+        ControllerModels.parameter(
+          'x',
+          ControllerModels.type('ExecutionContext'),
+          const ContextBinding(),
+        ),
+      ],
+    ),
+  ],
+  constructor: ConstructorModel([
+    ControllerModels.dependency('Repo'),
+    ControllerModels.dependency('Clock', isNamed: true),
+  ]),
+  enhancers: EnhancersModel(
+    guards: [ControllerModels.component('G')],
+    interceptors: [ControllerModels.component('I')],
+    pipes: [ControllerModels.component('P')],
+    filters: [ControllerModels.component('F')],
+  ),
+);
+
+/// A constructor dependency on a token whose expression is [unsupported].
+DependencyModel _unsupportedToken(UnsupportedConstant unsupported) {
+  return DependencyModel.injected(
+    name: 'url',
+    isNamed: false,
+    location: ControllerModels.location,
+    key: TokenKey(
+      valueType: _string,
+      name: 'db.url',
+      expression: ObjectConstant(
+        type: TypeModel(name: 'Value', kind: TypeKind.interface),
+        constructorName: '',
+        positional: [unsupported],
+      ),
+    ),
+  );
+}
+
+/// Routes whose `@Param('id')` is not in their path.
+List<RouteModel> _unknownPathRoutes() => [
+  for (final (name, path) in [('none', '/r'), ('wild', '/s/*')])
+    ControllerModels.route(
+      'GET',
+      path,
+      name: name,
+      parameters: [
+        ControllerModels.parameter('p', _int, const PathBinding('id')),
+      ],
+    ),
+];
+
+/// A controller whose handlers, constructor and metadata are all unusable.
+ControllerModel _badController(UnsupportedConstant unsupported) =>
+    ControllerModels.controller(
+      'Bad',
+      '/b',
+      [
+        ControllerModels.route(
+          'GET',
+          '/p',
+          name: '_hidden',
+          problem: 'Handler Bad._hidden is private.',
+        ),
+        ControllerModels.route(
+          'GET',
+          '/q',
+          name: 'tagged',
+          metadata: [unsupported],
+          enhancers: const EnhancersModel(
+            pipes: [
+              ComponentReference(
+                TypeModel(name: 'Q', kind: TypeKind.interface),
+                isValid: false,
+              ),
+            ],
+          ),
+        ),
+        ..._unknownPathRoutes(),
+      ],
+      constructor: const ConstructorModel.invalid('Bad is private.'),
+      metadata: [unsupported],
+    );
 
 void main() {
   test('void handlers return null, Future<void> handlers await', () {
@@ -135,40 +235,7 @@ void main() {
   });
 
   test('dependencies, all four lists and the request binding', () {
-    final library = _library([
-      ControllerModels.controller(
-        'Rich',
-        '/r',
-        [
-          ControllerModels.route(
-            'GET',
-            '',
-            parameters: [
-              ControllerModels.parameter(
-                'r',
-                ControllerModels.type('HttpRequest'),
-                const RequestBinding(),
-              ),
-              ControllerModels.parameter(
-                'x',
-                ControllerModels.type('ExecutionContext'),
-                const ContextBinding(),
-              ),
-            ],
-          ),
-        ],
-        constructor: ConstructorModel([
-          ControllerModels.dependency('Repo'),
-          ControllerModels.dependency('Clock', isNamed: true),
-        ]),
-        enhancers: EnhancersModel(
-          guards: [ControllerModels.component('G')],
-          interceptors: [ControllerModels.component('I')],
-          pipes: [ControllerModels.component('P')],
-          filters: [ControllerModels.component('F')],
-        ),
-      ),
-    ]);
+    final library = _library([_richController()]);
 
     expect(
       library,
@@ -196,70 +263,13 @@ void main() {
 
   test('metadata, constructors, tokens and handlers it cannot generate', () {
     const unsupported = UnsupportedConstant('_Role is private');
-    final token = DependencyModel.injected(
-      name: 'url',
-      isNamed: false,
-      location: ControllerModels.location,
-      key: TokenKey(
-        valueType: _string,
-        name: 'db.url',
-        expression: const ObjectConstant(
-          type: TypeModel(name: 'Value', kind: TypeKind.interface),
-          constructorName: '',
-          positional: [unsupported],
-        ),
-      ),
-    );
     final problems = _problems([
-      ControllerModels.controller(
-        'Bad',
-        '/b',
-        [
-          ControllerModels.route(
-            'GET',
-            '/p',
-            name: '_hidden',
-            problem: 'Handler Bad._hidden is private.',
-          ),
-          ControllerModels.route(
-            'GET',
-            '/q',
-            name: 'tagged',
-            metadata: [unsupported],
-            enhancers: const EnhancersModel(
-              pipes: [
-                ComponentReference(
-                  TypeModel(name: 'Q', kind: TypeKind.interface),
-                  isValid: false,
-                ),
-              ],
-            ),
-          ),
-          ControllerModels.route(
-            'GET',
-            '/r',
-            name: 'none',
-            parameters: [
-              ControllerModels.parameter('p', _int, const PathBinding('id')),
-            ],
-          ),
-          ControllerModels.route(
-            'GET',
-            '/s/*',
-            name: 'wild',
-            parameters: [
-              ControllerModels.parameter('p', _int, const PathBinding('id')),
-            ],
-          ),
-        ],
-        constructor: const ConstructorModel.invalid('Bad is private.'),
-        metadata: [unsupported],
-      ),
+      _badController(unsupported),
       ControllerModels.controller(
         'Tokens',
         '',
         const [],
-        constructor: ConstructorModel([token]),
+        constructor: ConstructorModel([_unsupportedToken(unsupported)]),
       ),
     ]);
 

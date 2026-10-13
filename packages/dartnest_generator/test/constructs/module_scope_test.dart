@@ -94,7 +94,7 @@ void main() {
     expect(ModuleScope([a, b]).declaring(key('Nope')), isEmpty);
   });
 
-  test('among equals the first entry wins, as in the core', () {
+  test('among equals the first entry wins; a twin in one module is kept', () {
     final one = module(
       'One',
       providers: [provider('Repo')],
@@ -113,6 +113,9 @@ void main() {
     final scope = ModuleScope([app, one, two, twin]);
 
     expect(scope.visibleIn(app)[key('Repo')]!.owner, one);
+    // Core rejects a key declared twice in one module and the structure check
+    // reports duplicate_provider; the scope only keeps the first so that the
+    // dependency check does not report follow-up errors.
     expect(scope.visibleIn(twin)[key('Repo')]!.provider, twin.providers.first);
   });
 
