@@ -1,0 +1,35 @@
+import 'package:analyzer/dart/element/element.dart';
+import 'package:path/path.dart' as p;
+
+import '../diagnostic/source_location.dart';
+
+/// Turns elements into [SourceLocation]s relative to the package root.
+final class SourceLocations {
+  /// Creates the reader for the package at [packageRoot] (absolute path).
+  SourceLocations(this.packageRoot);
+
+  /// Absolute path of the package root.
+  final String packageRoot;
+
+  /// Where [element]'s name is declared. Files outside [packageRoot] are
+  /// shown by library URI.
+  SourceLocation of(Element element) {
+    final fragment = element.firstFragment;
+    final libraryFragment = fragment.libraryFragment;
+    if (libraryFragment == null) {
+      return SourceLocation('${element.library?.uri}', 1, 1);
+    }
+    final offset = fragment.nameOffset ?? fragment.offset;
+    final position = libraryFragment.lineInfo.getLocation(offset);
+    return SourceLocation(
+      _display(libraryFragment.source.fullName, element.library?.uri),
+      position.lineNumber,
+      position.columnNumber,
+    );
+  }
+
+  String _display(String file, Uri? libraryUri) {
+    if (!p.isWithin(packageRoot, file)) return '$libraryUri';
+    return p.posix.joinAll(p.split(p.relative(file, from: packageRoot)));
+  }
+}
