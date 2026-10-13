@@ -8,6 +8,7 @@ import 'package:shelf/shelf_io.dart' as shelf_io;
 
 import 'guarded_reporter.dart';
 import 'shelf_bridge.dart';
+import 'target_request.dart';
 
 /// Serves a dartnest application through shelf on a `dart:io` server.
 ///
@@ -23,9 +24,10 @@ import 'shelf_bridge.dart';
 /// The server adds no x-powered-by and no dart:io default headers (such as
 /// `x-frame-options`; add them with middleware). It does not send exactly
 /// the application's headers though: `shelf_io` itself adds a `date`
-/// header. Like `shelf_io`, requests are routed on the requested URI that
-/// shelf builds from `Host` and the target, whereas `IoAdapter` routes on
-/// the request target only.
+/// header. Requests are routed on their target only, like `IoAdapter`
+/// does: unlike plain `shelf_io`, neither `Host` nor the client-controlled
+/// `X-Forwarded-Host` / `X-Forwarded-Proto` headers can change the routed
+/// path.
 final class ShelfAdapter implements HttpAdapter {
   /// Creates the adapter. [closeTimeout] bounds how long a graceful
   /// `close` waits for the requests in flight. [onError] receives failures
@@ -98,7 +100,11 @@ final class ShelfAdapter implements HttpAdapter {
     // socket that can fail; report the failure and drop the connection
     // (dart:io only drops it itself once the head was sent).
     try {
-      await shelf_io.handleRequest(request, handler, poweredByHeader: null);
+      await shelf_io.handleRequest(
+        TargetRequest(request),
+        handler,
+        poweredByHeader: null,
+      );
     } on Object catch (error, stackTrace) {
       _report(error, stackTrace);
       await _dropConnection(request);

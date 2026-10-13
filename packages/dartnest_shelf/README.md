@@ -38,6 +38,10 @@ Future<void> main() async {
 
 - Changes nothing around it. The application sees the path relative to the
   shelf `handlerPath`, so it can be mounted under a prefix.
+- Routes on the path shelf hands over (`Request.url`). A plain `shelf_io`
+  server derives it from `Host` and the client-controlled
+  `X-Forwarded-Host`, so behind such a server strip or overwrite those
+  headers; `ShelfAdapter` is independent of them.
 - Does not close the application with your server; after `app.close()` the
   handler answers 503.
 - Reports a failure of `app.handle` (only possible when the application's
@@ -51,9 +55,12 @@ Future<void> main() async {
 - Sends byte bodies with `content-length`, streams unbuffered, and `HEAD`
   without a body. A `transfer-encoding` header from the application is
   dropped; framing is not left to the application.
-- Routes like `shelf_io`: on the URI built from `Host` and the request
-  target (`IoAdapter` from `dartnest_io` routes on the target only).
-  `shelf_io` itself answers 400 to invalid percent-encoding.
+- Routes on the request target only, like `IoAdapter` from `dartnest_io`:
+  neither `Host` nor the client-controlled `X-Forwarded-Host` /
+  `X-Forwarded-Proto` headers can change the routed path (plain `shelf_io`
+  would let `X-Forwarded-Host: x/admin` turn `/public` into
+  `/admin/public`). `shelf_io` itself answers 400 to invalid
+  percent-encoding.
 - `adapter.port` is the bound port (useful with `port: 0`); it throws a
   `StateError` before `listen` completes and after `close`. `listen` can be
   called once; a second call, or a call after `close`, throws a

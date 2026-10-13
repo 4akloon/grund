@@ -16,6 +16,11 @@ import 'shelf_bridge.dart';
 /// logger throws), answered with a 500 without a body; it defaults to
 /// [ShelfAdapter.printError]. A failure of [onError] itself goes to stderr.
 ///
+/// Routing uses the path shelf hands over (`Request.url`). A plain
+/// `shelf_io` server derives it from `Host` and the client-controlled
+/// `X-Forwarded-Host`; behind it, strip or overwrite those headers. Use
+/// `ShelfAdapter` to be independent of them.
+///
 /// ```dart
 /// final handler = const shelf.Pipeline()
 ///     .addMiddleware(shelf.logRequests())

@@ -72,6 +72,28 @@ abstract final class RequestConformance {
         expect(response.json, {'id': 1, 'name': 'ann'});
       });
 
+      // The client controls X-Forwarded-*: they must not change the route.
+      test(
+        'routes on the target despite X-Forwarded-Host and -Proto',
+        () async {
+          final response = await RawHttp.exchange(
+            server.port,
+            RawHttp.head(
+              'GET',
+              '/users/1',
+              headers: {
+                'X-Forwarded-Host': 'x/admin',
+                'X-Forwarded-Proto': 'https',
+                'Connection': 'close',
+              },
+            ),
+          );
+
+          expect(response.status, 200);
+          expect(response.json, {'id': 1, 'name': 'ann'});
+        },
+      );
+
       test('keeps %2F inside one path segment', () async {
         final response = await server.send('GET', '/probe/segments/a%2Fb');
 
