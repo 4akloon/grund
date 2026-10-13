@@ -943,9 +943,9 @@ void main() {
     });
 
     test('import cycle is an error listing the cycle', () {
-      final a = Module(id: 'a');
+      final a = Module(id: 'a', imports: []); // growable list, so the test can close the cycle
       final b = Module(id: 'b', imports: [a]);
-      a.imports.add(b); // lists are mutable; build a cycle for the test
+      a.imports.add(b);
 
       expect(
         () => ModuleGraph.build(Module(id: 'app', imports: [a])),
@@ -1001,7 +1001,7 @@ void main() {
 }
 ```
 
-Note on the cycle test: `Module.imports` defaults to `const []`, which is immutable; the test passes a literal `[a]` so `add` works. The implementation must not rely on lists being immutable.
+Note on the cycle test: `Module.imports` defaults to `const []`, which is immutable, so the test passes a growable `[]` for module `a` and adds `b` afterwards. The implementation must not rely on lists being immutable.
 
 - [ ] **Step 2: Run the test to verify it fails**
 
