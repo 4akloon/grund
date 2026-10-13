@@ -55,7 +55,9 @@ final class TestClient {
 
   /// Sends [method] to [target]. The body is [json] encoded as JSON (with
   /// `content-type: application/json`) or the raw [body] string; passing
-  /// both is an `ArgumentError`.
+  /// both is an `ArgumentError`. `json: null` cannot be sent: null means no
+  /// body. A response to `HEAD` keeps its body here, unlike real adapters,
+  /// which drop it.
   Future<TestResponse> request(
     String method,
     String target, {

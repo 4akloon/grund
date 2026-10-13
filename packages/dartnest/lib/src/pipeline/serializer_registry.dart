@@ -6,8 +6,9 @@
 /// ```
 ///
 /// A converter applies to a handler result and to values nested in its
-/// `Map`s and `List`s; it does not reach inside the output of another
-/// object's `toJson()`. The first registered converter whose type matches
+/// `Map`s and `List`s; it is not applied to values nested inside the result
+/// of another object's `toJson()`, so such a `toJson()` must return plain
+/// JSON values. The first registered converter whose type matches
 /// wins.
 final class SerializerRegistry {
   /// Creates an empty registry.

@@ -22,6 +22,10 @@ final class Broken {
   Object? toJson() => throw StateError('no json');
 }
 
+final class Wrapper {
+  Object? toJson() => {'inner': Opaque()};
+}
+
 Future<String> text(HttpResponse response) async =>
     utf8.decode(await response.body.readAll());
 
@@ -138,7 +142,31 @@ void main() {
         throwsA(
           isA<SerializationError>()
               .having((e) => e.valueType, 'type', Broken)
-              .having((e) => e.cause, 'cause', isA<StateError>()),
+              .having((e) => e.cause, 'cause', isA<StateError>())
+              .having(
+                (e) => e.message,
+                'message',
+                allOf(contains('no json'), isNot(contains('Give it a'))),
+              ),
+        ),
+      );
+    });
+
+    test('a value nested in a toJson result is not converted', () {
+      final registry = SerializerRegistry()
+        ..register<Opaque>((_) => 'converted');
+
+      expect(
+        () => serialize(Wrapper(), registry: registry),
+        throwsA(
+          isA<SerializationError>().having(
+            (e) => e.message,
+            'message',
+            allOf(
+              contains("Instance of 'Opaque'"),
+              contains('do not apply to values inside'),
+            ),
+          ),
         ),
       );
     });

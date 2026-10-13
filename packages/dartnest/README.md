@@ -115,8 +115,11 @@ Rules:
   over a parameter, a parameter over `*`. An unknown path is 404, a known path
   with another method is 405 with `allow`; `HEAD` is served by the `GET` route.
 - Results: an `HttpResponse` is sent as is, `null` is 204, a `String` is
-  `text/plain`, bytes and byte streams are `application/octet-stream`, and
-  anything else is JSON via `toJson()` or `app.serializers.register<T>(...)`.
+  `text/plain`, a `Uint8List` and byte streams are `application/octet-stream`
+  (a `List<int>` is a JSON array), and anything else is JSON via `toJson()` or
+  `app.serializers.register<T>(...)`. Registered serializers apply to the
+  result and to the `Map`s and `List`s inside it, not to values nested in the
+  output of a `toJson()`.
 - Errors: throw an `HttpException` (`NotFoundException`, `BadRequestException`,
   ...) to answer `{statusCode, error, message, details?}`. Any other exception
   is a logged 500 (`onError`) with the message

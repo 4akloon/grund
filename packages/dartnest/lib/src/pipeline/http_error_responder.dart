@@ -7,6 +7,8 @@ import '../http/response_body.dart';
 import '../http/status_code.dart';
 
 /// Receives errors that become 500 responses, with their stack traces.
+///
+/// It must not throw: a throwing logger makes `Application.handle` fail.
 typedef ErrorLogger = void Function(Object error, StackTrace stackTrace);
 
 /// The default exception filter: turns any error into a JSON error response
