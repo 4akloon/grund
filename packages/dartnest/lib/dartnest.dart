@@ -1,6 +1,8 @@
 /// NestJS-style modular backend framework for Dart without `dart:mirrors`.
 library;
 
+export 'src/di/errors.dart';
 export 'src/di/injector.dart' show Injector;
+export 'src/di/module.dart';
 export 'src/di/provider.dart';
 export 'src/di/token.dart';

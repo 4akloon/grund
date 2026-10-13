@@ -50,11 +50,14 @@ void main() {
       expect(provider.create(FakeInjector({})), 'postgres://x');
     });
 
-    test('explicit type parameter binds an abstraction to an implementation', () {
-      final provider = Provider<Ticker>((i) => SystemTicker());
-      expect(provider.key, Ticker);
-      expect(provider.type, Ticker);
-    });
+    test(
+      'explicit type parameter binds an abstraction to an implementation',
+      () {
+        final provider = Provider<Ticker>((i) => SystemTicker());
+        expect(provider.key, Ticker);
+        expect(provider.type, Ticker);
+      },
+    );
 
     test('rejects a type parameter that could not be inferred', () {
       expect(() => Provider<Object>((i) => Clock()), throwsArgumentError);

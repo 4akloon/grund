@@ -5,9 +5,8 @@ import 'token.dart';
 
 /// Builds a provider instance. Receives the injector of the module that
 /// declares the provider, so it can resolve its own dependencies.
-typedef ProviderFactory<T extends Object> = FutureOr<T> Function(
-  Injector injector,
-);
+typedef ProviderFactory<T extends Object> =
+    FutureOr<T> Function(Injector injector);
 
 /// Declares how a module creates one singleton of type [T].
 ///
@@ -21,20 +20,22 @@ typedef ProviderFactory<T extends Object> = FutureOr<T> Function(
 final class Provider<T extends Object> {
   /// Synchronous (or implicitly async) factory provider.
   Provider(ProviderFactory<T> create, {Token<T>? token})
-      : this._(create, token: token, isAsync: false);
+    : this._(create, token: token, isAsync: false);
 
   /// Provides an already-built [value].
   Provider.value(T value, {Token<T>? token})
-      : this._((_) => value, token: token, isAsync: false);
+    : this._((_) => value, token: token, isAsync: false);
 
   /// Factory that must be awaited. The container awaits it during startup;
   /// a synchronous `get` of this key before that fails with
   /// `AsyncProviderNotReadyError`.
-  Provider.async(Future<T> Function(Injector injector) create, {Token<T>? token})
-      : this._(create, token: token, isAsync: true);
+  Provider.async(
+    Future<T> Function(Injector injector) create, {
+    Token<T>? token,
+  }) : this._(create, token: token, isAsync: true);
 
   Provider._(this._create, {Token<T>? token, required this.isAsync})
-      : key = token ?? T {
+    : key = token ?? T {
     if (T == Object) {
       throw ArgumentError(
         'Provider type could not be inferred. '

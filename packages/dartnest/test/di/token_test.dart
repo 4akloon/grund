@@ -4,7 +4,10 @@ import 'package:test/test.dart';
 void main() {
   group('Token', () {
     test('equal when name and type match', () {
-      expect(const Token<String>('db.url'), equals(const Token<String>('db.url')));
+      expect(
+        const Token<String>('db.url'),
+        equals(const Token<String>('db.url')),
+      );
       expect(Token<String>('db.url'), equals(Token<String>('db.url')));
       expect(
         Token<String>('db.url').hashCode,
