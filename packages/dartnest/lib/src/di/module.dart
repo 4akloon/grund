@@ -6,8 +6,11 @@ import 'token.dart';
 ///
 /// A module is a value, not a class. Dynamic modules are therefore plain
 /// functions that return a [Module]. Two modules with the same [id] are
-/// treated as one; importing the same dynamic module twice with different
-/// configuration is an error (see `DuplicateModuleIdError`).
+/// treated as one: their shape (imports, provider keys, exports, [global])
+/// must match or `ModuleGraph.build` throws `DuplicateModuleIdError`.
+/// Configuration captured inside factories is not compared and the first-seen
+/// instance wins, so a dynamic module that can be configured differently in
+/// one application must encode it in its [id] (for example `'database:$name'`).
 ///
 /// ```dart
 /// final usersModule = Module(

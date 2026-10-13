@@ -6,11 +6,12 @@ import 'module.dart';
 ///
 /// Building the graph performs every structural check that does not need
 /// provider instances: duplicate ids with different shape, import cycles,
-/// duplicate provider keys, invalid exports.
+/// duplicate provider keys, invalid exports. Modules with equal ids are
+/// compared by shape only (ids and keys); the first-seen instance wins.
 final class ModuleGraph {
   ModuleGraph._(this.root, this.ordered, this._byId);
 
-  /// The module `build` was called with.
+  /// The module [build] was called with.
   final Module root;
 
   /// Every distinct module once, imports before importers, [root] last.
@@ -84,8 +85,8 @@ final class ModuleGraph {
     }
   }
 
-  /// Structural equality used to accept the same dynamic module imported
-  /// from several places.
+  /// Structural equality (ids and keys only, not factory configuration) used
+  /// to accept the same dynamic module imported from several places.
   static bool _sameShape(Module a, Module b) {
     if (a.id != b.id || a.global != b.global) return false;
     if (!_sameList(a.imports.map((m) => m.id), b.imports.map((m) => m.id))) {
