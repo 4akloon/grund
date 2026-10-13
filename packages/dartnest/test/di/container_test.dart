@@ -299,14 +299,17 @@ void main() {
     });
 
     test(
-      'maybeGet propagates a creation failure of an existing provider',
+      'maybeGet throws instead of returning null when the provider fails to create',
       () async {
-        // Db is created first and probes Repo, whose factory needs a missing Clock.
+        // Db is created first and probes Repo, whose factory needs a missing
+        // Clock. The old swallow-all maybeGet let Db's factory continue.
+        var reachedAfterProbe = false;
         final app = Module(
           id: 'app',
           providers: [
             Provider((i) {
               i.maybeGet<Repo>();
+              reachedAfterProbe = true;
               return Db();
             }),
             Provider((i) => Repo(i.get())),
@@ -317,6 +320,13 @@ void main() {
           throwsA(
             isA<MissingProviderError>().having((e) => e.key, 'key', Clock),
           ),
+        );
+        expect(
+          reachedAfterProbe,
+          isFalse,
+          reason:
+              'maybeGet must throw, not return null, for a provider that '
+              'failed to create',
         );
       },
     );
