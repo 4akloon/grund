@@ -62,6 +62,75 @@ Rules:
   module inside a global's import closure that needs another global's async
   export should import that global explicitly.
 
-Annotations, an analyzer-based generator, HTTP adapters and the request
-pipeline are planned in later milestones; see the repository's `docs/`
-directory for the roadmap.
+## HTTP
+
+Controllers are values too. A handler receives its controller instance and an
+`ExecutionContext`; arguments are read through the context, so a value that
+does not parse becomes `400 Bad Request` on its own. Excerpt; the full
+version is `test/helpers/app_fixtures.dart`:
+
+```dart
+final usersController = Controller<UsersController>(
+  path: '/users',
+  create: (i) => UsersController(i.get()),
+  enhancers: const Enhancers(filters: [UserMissingFilter()]),
+  routes: [
+    Route.get('/:id', (c, ctx) async => c.findOne(await ctx.param<int>('id'))),
+    Route.post(
+      '/',
+      (c, ctx) async => c.create(await ctx.bodyAs(CreateUserDto.fromJson)),
+      enhancers: const Enhancers(guards: [Use<AuthGuard>(), Use<RolesGuard>()]),
+      metadata: const [Roles(['admin'])],
+    ),
+  ],
+);
+
+Module usersModule() => Module(
+  id: 'users',
+  providers: [
+    Provider((i) => UsersService()),
+    Provider((i) => AuthGuard()),
+    Provider((i) => RolesGuard()),
+  ],
+  controllers: [usersController],
+);
+
+final app = await Application.create(() => Module(id: 'app', imports: [usersModule()]));
+final response = await TestClient(app).get('/users/1'); // package:dartnest/testing.dart
+await app.close();
+```
+
+Rules:
+
+- A request goes through middleware (`app.use`), the router, guards,
+  interceptors, the handler and serialization. An exception from a guard,
+  interceptor, pipe, the handler or serialization goes to the exception
+  filters (route, then controller, then application) and finally to the
+  default JSON error response.
+- Guards, interceptors, pipes and filters are declared per application,
+  controller or route in `Enhancers(...)`, as instances or as `Use<T>()`,
+  which resolves `T` from the controller's module (so a guard can inject
+  services).
+- Routes: static segments, `:name` parameters and a trailing `*`; static wins
+  over a parameter, a parameter over `*`. An unknown path is 404, a known path
+  with another method is 405 with `allow`; `HEAD` is served by the `GET` route.
+- Results: an `HttpResponse` is sent as is, `null` is 204, a `String` is
+  `text/plain`, a `Uint8List` and byte streams are `application/octet-stream`
+  (a `List<int>` is a JSON array), and anything else is JSON via `toJson()` or
+  `app.serializers.register<T>(...)`. Registered serializers apply to the
+  result and to the `Map`s and `List`s inside it, not to values nested in the
+  output of a `toJson()`.
+- Errors: throw an `HttpException` (`NotFoundException`, `BadRequestException`,
+  ...) to answer `{statusCode, error, message, details?}`. Any other exception
+  is a logged 500 (`onError`) with the message
+  `Internal server error`; `debug: true` puts the error text in `message`
+  and adds a `stack` field.
+- `Application.create` takes a function returning the root module; routes are
+  checked before any provider is created. `app.close()` can be called any
+  number of times: new requests get 503, running ones finish, then the
+  container closes.
+
+This package has no server: `app.handle(request)` answers an `HttpRequest`
+directly and `TestClient` wraps it for tests. Annotations, an analyzer-based
+generator and HTTP adapters (`dart:io`, shelf) are planned in later
+milestones; see the repository's `docs/` directory for the roadmap.
