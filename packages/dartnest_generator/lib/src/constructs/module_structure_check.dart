@@ -41,38 +41,19 @@ abstract final class ModuleStructureCheck {
   }
 
   static Iterable<Diagnostic> _importCycles(List<ModuleModel> modules) sync* {
-    final byType = {for (final m in modules) m.type: m};
+    final finder = _ImportCycleFinder({for (final m in modules) m.type: m});
     final reported = <ModuleModel>{};
-    for (final start in modules) {
-      final cycle = _cycleFrom(start, byType, [start]);
-      if (cycle == null || cycle.any(reported.contains)) continue;
+    for (final cycle in finder.find(modules)) {
+      if (cycle.any(reported.contains)) continue;
       reported.addAll(cycle);
       yield Diagnostic(
         DiagnosticCode.circularModuleImport,
-        start.location,
+        cycle.first.location,
         'Module imports form a cycle: '
-        '${[...cycle, start].map((m) => m.id).join(' -> ')}. Move the '
+        '${[...cycle, cycle.first].map((m) => m.id).join(' -> ')}. Move the '
         'shared providers into a third module imported by both.',
       );
     }
-  }
-
-  /// The import path from [start] back to itself, if any.
-  static List<ModuleModel>? _cycleFrom(
-    ModuleModel start,
-    Map<Object, ModuleModel> byType,
-    List<ModuleModel> path,
-  ) {
-    for (final reference in path.last.imports) {
-      if (reference is! LocalModuleReference) continue;
-      final next = byType[reference.type];
-      if (next == null || (next != start && path.contains(next))) continue;
-      if (next == start) return path;
-      if (_cycleFrom(start, byType, [...path, next]) case final cycle?) {
-        return cycle;
-      }
-    }
-    return null;
   }
 
   static Iterable<Diagnostic> _entries(ModuleModel module) => [
@@ -147,5 +128,44 @@ abstract final class ModuleStructureCheck {
         yield ('the token $key', key.expression);
       }
     }
+  }
+}
+
+/// Finds import cycles with a depth-first search that marks each module
+/// once (grey on the current path, black when done), so a dense module graph
+/// costs one visit per module and import, not one per path.
+final class _ImportCycleFinder {
+  _ImportCycleFinder(this._byType);
+
+  final Map<Object, ModuleModel> _byType;
+
+  final Set<ModuleModel> _done = {};
+
+  final List<ModuleModel> _path = [];
+
+  /// Every cycle a back edge closes, each starting at the module where the
+  /// search entered it.
+  List<List<ModuleModel>> find(List<ModuleModel> modules) {
+    final found = <List<ModuleModel>>[];
+    for (final module in modules) {
+      _visit(module, found);
+    }
+    return found;
+  }
+
+  void _visit(ModuleModel module, List<List<ModuleModel>> found) {
+    final index = _path.indexOf(module);
+    if (index >= 0) {
+      found.add(_path.sublist(index));
+      return;
+    }
+    if (_done.contains(module)) return;
+    _path.add(module);
+    for (final reference in module.imports) {
+      if (reference is! LocalModuleReference) continue;
+      if (_byType[reference.type] case final next?) _visit(next, found);
+    }
+    _path.removeLast();
+    _done.add(module);
   }
 }
