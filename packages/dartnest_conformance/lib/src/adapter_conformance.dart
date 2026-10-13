@@ -2,6 +2,7 @@ import 'package:test/test.dart';
 
 import 'adapter_under_test.dart';
 import 'groups/body_conformance.dart';
+import 'groups/lifecycle_conformance.dart';
 import 'groups/request_conformance.dart';
 
 /// Entry point of the shared suite: an adapter package calls [run] from a
@@ -26,6 +27,7 @@ abstract final class AdapterConformance {
     group('$name conformance', () {
       RequestConformance.register(factory);
       BodyConformance.register(factory);
+      LifecycleConformance.register(factory);
     });
   }
 }

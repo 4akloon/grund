@@ -135,7 +135,13 @@ producing a response):
   value) and throws `SerializationError` with the original stack trace;
 - `HttpErrorResponder` (added by the HTTP pipeline work) catches the exact
   `JsonUnsupportedObjectError` while encoding `details` and falls back to a
-  body without them, so the last-resort 500 is always produced.
+  body without them, so the last-resort 500 is always produced;
+- adapter boundaries (added by the adapters work): `IoAdapter` reports a
+  failure of the request handler (only possible when the application's own
+  error logger throws) to its `onError` and answers 500 without a body, and
+  reports a failure while writing the response (a failing body stream, a
+  client that went away) to its `onError`; the connection is already
+  dropped, and the adapter keeps serving.
 `rethrow` keeps the stack trace. Never silence a lint: no `// ignore:`
 without a comment on why, and no rule removed from `analysis_options.yaml`
 to make a change pass.
