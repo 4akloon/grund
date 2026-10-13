@@ -1,7 +1,6 @@
 import 'package:meta/meta.dart';
 
 import '../di/container.dart';
-import '../di/errors.dart';
 import '../di/module.dart';
 import '../di/module_graph.dart';
 import '../http/http_exception.dart';
@@ -55,8 +54,8 @@ final class Application {
   /// throw, or [handle] fails.
   ///
   /// Fails fast: a `RoutingError` before any provider is created, an
-  /// `InjectionError` or `ApplicationError` before the application is
-  /// returned (the container is closed first).
+  /// `InjectionError` or `ApplicationError` (or any other failure) before the
+  /// application is returned (the container is closed first).
   static Future<Application> create(
     Module Function() root, {
     HttpAdapter? adapter,
@@ -81,8 +80,11 @@ final class Application {
   }) async {
     RouteTableBuilder.validate(ModuleGraph.build(root));
     final container = await Container.create(root);
+    // Any failure before the return closes the container; the error itself
+    // propagates untouched, so no catch is needed.
+    var succeeded = false;
     try {
-      return Application._(
+      final app = Application._(
         container: container,
         router: RouteTableBuilder.build(container, enhancers),
         adapter: adapter,
@@ -91,9 +93,10 @@ final class Application {
           log: onError ?? HttpErrorResponder.printError,
         ),
       );
-    } on DartnestError {
-      await container.close();
-      rethrow;
+      succeeded = true;
+      return app;
+    } finally {
+      if (!succeeded) await container.close();
     }
   }
 
@@ -115,8 +118,17 @@ final class Application {
   /// Whether [close] was called.
   bool get isClosed => _closing != null;
 
-  /// Adds [middleware] after the ones added before (it runs inside them).
-  void use(Middleware middleware) => _middleware.add(middleware);
+  /// Adds [middleware] after the ones added before (it runs inside them);
+  /// fails with [ApplicationStateError] after [close] has started.
+  void use(Middleware middleware) {
+    if (isClosed) {
+      throw const ApplicationStateError(
+        operation: 'use',
+        reason: 'the application is closed',
+      );
+    }
+    _middleware.add(middleware);
+  }
 
   /// Answers [request]; never throws. After [close] it answers 503.
   ///
@@ -177,6 +189,11 @@ final class Application {
   /// [handle] calls answer 503, in-flight requests finish (unless [force]),
   /// then the container closes. Every call returns the same future; [force]
   /// of later calls is ignored.
+  ///
+  /// If the adapter's `close` throws, the wait for in-flight requests is
+  /// skipped (the container is still closed and the error propagates to
+  /// every `close()` caller), so a failing adapter can cut in-flight
+  /// requests short.
   Future<void> close({bool force = false}) =>
       _closing ??= _shutdown(force: force);
 

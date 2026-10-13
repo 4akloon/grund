@@ -150,6 +150,23 @@ void main() {
     });
   });
 
+  test('use after close fails with ApplicationStateError', () async {
+    final app = await Application.create(appModule);
+    final closing = app.close();
+
+    expect(
+      () => app.use((request, next) => next()),
+      throwsA(
+        isA<ApplicationStateError>().having(
+          (e) => e.operation,
+          'operation',
+          'use',
+        ),
+      ),
+    );
+    await closing;
+  });
+
   test('closes the container even when the adapter close throws', () async {
     final adapter = FakeAdapter()..closeFailure = StateError('close failed');
     final app = await Application.create(appModule, adapter: adapter);
