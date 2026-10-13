@@ -29,6 +29,26 @@ final class AnyFilter extends ExceptionFilter<Object> {
 }
 
 void main() {
+  test('resolve and chain return unmodifiable lists', () async {
+    final container = await Container.create(Module(id: 'app'));
+    final resolved = ResolvedEnhancers.resolve(
+      Enhancers(guards: [AuthGuard()], filters: const [AnyFilter('a')]),
+      container.root,
+      owner: 'Application',
+    );
+    final chained = ResolvedEnhancers.chain([resolved, resolved]);
+
+    for (final lists in [resolved, chained]) {
+      expect(() => lists.guards.add(AuthGuard()), throwsUnsupportedError);
+      expect(() => lists.interceptors.add(Timing()), throwsUnsupportedError);
+      expect(() => lists.pipes.add(const TrimPipe()), throwsUnsupportedError);
+      expect(
+        () => lists.filters.add(const AnyFilter('b')),
+        throwsUnsupportedError,
+      );
+    }
+  });
+
   group('ResolvedEnhancers.resolve', () {
     test('resolves Use through the injector and keeps instances', () async {
       final container = await Container.create(

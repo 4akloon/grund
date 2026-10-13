@@ -45,10 +45,16 @@ final class ResolvedEnhancers {
         _resolveOne<C>(component, injector, owner: owner, slot: slot),
     ];
     return ResolvedEnhancers(
-      guards: all<Guard>(enhancers.guards, 'guards'),
-      interceptors: all<Interceptor>(enhancers.interceptors, 'interceptors'),
-      pipes: all<Pipe<Object?, Object?>>(enhancers.pipes, 'pipes'),
-      filters: all<ExceptionFilter<Object>>(enhancers.filters, 'filters'),
+      guards: List.unmodifiable(all<Guard>(enhancers.guards, 'guards')),
+      interceptors: List.unmodifiable(
+        all<Interceptor>(enhancers.interceptors, 'interceptors'),
+      ),
+      pipes: List.unmodifiable(
+        all<Pipe<Object?, Object?>>(enhancers.pipes, 'pipes'),
+      ),
+      filters: List.unmodifiable(
+        all<ExceptionFilter<Object>>(enhancers.filters, 'filters'),
+      ),
     );
   }
 
@@ -57,10 +63,18 @@ final class ResolvedEnhancers {
   /// reversed so the innermost level is tried first.
   static ResolvedEnhancers chain(List<ResolvedEnhancers> outerToInner) =>
       ResolvedEnhancers(
-        guards: [for (final level in outerToInner) ...level.guards],
-        interceptors: [for (final level in outerToInner) ...level.interceptors],
-        pipes: [for (final level in outerToInner) ...level.pipes],
-        filters: [for (final level in outerToInner.reversed) ...level.filters],
+        guards: List.unmodifiable([
+          for (final level in outerToInner) ...level.guards,
+        ]),
+        interceptors: List.unmodifiable([
+          for (final level in outerToInner) ...level.interceptors,
+        ]),
+        pipes: List.unmodifiable([
+          for (final level in outerToInner) ...level.pipes,
+        ]),
+        filters: List.unmodifiable([
+          for (final level in outerToInner.reversed) ...level.filters,
+        ]),
       );
 
   static C _resolveOne<C extends PipelineComponent>(
