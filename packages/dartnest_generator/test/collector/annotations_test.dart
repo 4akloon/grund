@@ -37,11 +37,19 @@ void main() {
     expect(found.map(typeName), ['Tagged', 'Wrapped']);
   });
 
-  test('field looks through the super chain', () {
+  test('field reads a field declared on the annotation class', () {
     final tagged = Annotations.routeMetadata(holder).first;
 
     expect(Annotations.field(tagged, 'label')?.toStringValue(), r"it's $5");
     expect(Annotations.field(tagged, 'missing'), isNull);
+  });
+
+  test('field looks through the super chain', () {
+    final guards = Annotations.find(holder, 'UseGuards')!;
+
+    // `types` is declared on the superclass UseComponents.
+    expect(guards.getField('types'), isNull);
+    expect(Annotations.field(guards, 'types')?.toListValue(), hasLength(1));
   });
 
   test('describe names a type and falls back to the value type', () {

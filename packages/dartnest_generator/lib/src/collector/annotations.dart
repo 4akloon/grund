@@ -26,8 +26,8 @@ abstract final class Annotations {
   /// `RouteMetadata`, in source order.
   static List<DartObject> routeMetadata(Element element) => [
     for (final value in _values(element))
-      if (value.type case InterfaceType(:final element))
-        if (element.allSupertypes.any(
+      if (value.type case InterfaceType(element: final typeElement))
+        if (typeElement.allSupertypes.any(
           (type) => isAnnotation(type, const {'RouteMetadata'}),
         ))
           value,

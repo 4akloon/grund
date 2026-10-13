@@ -93,4 +93,63 @@ void main() {
     expect(location.path, 'lib/constants.dart');
     expect(source[location.line - 1].indexOf('Holder'), location.column - 1);
   });
+
+  group('edge constants', () {
+    late LibraryElement edges; // Set in setUpAll.
+
+    setUpAll(() async {
+      edges = (await fixture.libraries(['lib/edge_constants.dart'])).single;
+    });
+
+    ConstantValue probe(String className) {
+      final element = edges.classes.firstWhere((c) => c.name == className);
+      final annotation = element.metadata.annotations.single
+          .computeConstantValue();
+      final object = ConstantReader.read(annotation) as ObjectConstant;
+      return object.positional.single;
+    }
+
+    test('null', () => expect(probe('NullCase'), isA<NullConstant>()));
+
+    test('a bool', () {
+      expect((probe('BoolCase') as BoolConstant).value, isTrue);
+    });
+
+    test('a double keeps its literal', () {
+      expect((probe('DoubleCase') as NumberConstant).literal, '1.5');
+    });
+
+    test('a non-finite double is unsupported', () {
+      expect(
+        (probe('InfiniteCase') as UnsupportedConstant).reason,
+        'Infinity is not a finite number',
+      );
+    });
+
+    test('a private constructor is unsupported', () {
+      expect(
+        (probe('LockedCase') as UnsupportedConstant).reason,
+        contains('constructor'),
+      );
+      expect(probe('LockedCase').unsupported?.reason, contains('private'));
+    });
+
+    test('a function is not a constructor call', () {
+      expect(
+        (probe('FunctionCase') as UnsupportedConstant).reason,
+        contains('is not a constructor call'),
+      );
+    });
+
+    test('a static constant of a public class is a reference', () {
+      final reference = probe('StaticCase') as ReferenceConstant;
+
+      expect('${reference.enclosingName}.${reference.name}', 'Limits.max');
+      expect(reference.libraryUri, 'package:cases_app/edge_constants.dart');
+    });
+
+    test('a static constant of a private class is its value', () {
+      expect((probe('PrivateOwnerCase') as NumberConstant).literal, '7');
+    });
+  });
 }
