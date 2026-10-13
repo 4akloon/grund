@@ -103,6 +103,21 @@ void main() {
       );
     });
 
+    test('the wrapped error keeps the original stack trace', () async {
+      final container = await Container.create(Module(id: 'app'));
+      final broken = Controller<Broken>(create: (i) => Broken(), routes: []);
+
+      StackTrace? thrownAt;
+      try {
+        broken.instantiate(container.root);
+      } on ControllerCreationError catch (e, stackTrace) {
+        thrownAt = stackTrace;
+        expect(e.stackTrace.toString(), contains('Broken'));
+      }
+
+      expect(thrownAt.toString(), contains('Broken'));
+    });
+
     test('DI errors from the factory pass through unchanged', () async {
       final container = await Container.create(Module(id: 'app'));
 
@@ -122,6 +137,36 @@ void main() {
 
       expect(Module(id: 'x').controllers, isEmpty);
       expect(module.controllers.map((c) => c.type), [GreetController, Greeter]);
+    });
+
+    test('same length with different controller types is another shape', () {
+      final first = Module(id: 'shared', controllers: [greetController]);
+      final second = Module(
+        id: 'shared',
+        controllers: [
+          Controller<Greeter>(create: (i) => Greeter(), routes: []),
+        ],
+      );
+
+      expect(
+        () => ModuleGraph.build(Module(id: 'app', imports: [first, second])),
+        throwsA(isA<DuplicateModuleIdError>()),
+      );
+    });
+
+    test('same controller types with other factories are the same shape', () {
+      Module withFactory(Greeter Function() make) => Module(
+        id: 'shared',
+        controllers: [Controller<Greeter>(create: (i) => make(), routes: [])],
+      );
+      final first = withFactory(Greeter.new);
+      final second = withFactory(() => Greeter());
+
+      final graph = ModuleGraph.build(
+        Module(id: 'app', imports: [first, second]),
+      );
+
+      expect(graph.ordered.where((m) => m.id == 'shared'), hasLength(1));
     });
 
     test('same id with different controllers is a duplicate module', () {

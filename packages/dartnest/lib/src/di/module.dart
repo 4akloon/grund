@@ -27,6 +27,9 @@ import 'token.dart';
 /// ```
 final class Module {
   /// Creates a module. [id] must be unique per configuration.
+  ///
+  /// Has six named parameters, one over the usual limit of five, by spec: a
+  /// module is a declarative value, so there is no parameter object.
   Module({
     required this.id,
     this.imports = const [],

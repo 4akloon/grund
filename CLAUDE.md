@@ -82,7 +82,7 @@ A reader must understand a unit quickly; if not, decompose it.
 | File in `lib/` | 300 lines | all lines count; use `wc -l` |
 | Test file | 500 lines | split by behaviour, helpers to `test/helpers/` |
 | Method / function | 40 lines | |
-| Parameters | 5 | past that, take a parameter object |
+| Parameters | 5 | past that, take a parameter object; `Module` has 6 named fields by spec: it is a declarative value, no parameter object |
 | Nesting | 3 levels of `if`/`for`/`switch`/`try` | early `continue`/`return`, extract |
 | Class | one responsibility, ~15 members | not "and" in its one-line doc |
 | Declarations per file | one public class or sealed family | small private helpers may share the file |
@@ -118,16 +118,17 @@ letters are words (`Http`, `Json`, `Di`); an unused callback parameter is
 identifiers in `[brackets]`; a boolean starts with "Whether"; no `@param`
 tags; do not repeat the signature. No nullable `Future`/`Stream`/collection
 returns. No `catch` without `on`; never catch `Error`. The exceptions are
-the boundaries where user code runs; each catches `on Object`, has a comment
-naming the boundary, and never swallows the failure:
+the boundaries where user code runs; each catches `on Object` (except where
+the entry names the exact `Error` subtype it catches), has a comment naming
+the boundary, and never swallows the failure:
 - factory boundaries: `ModuleInjector` (provider factories) and
   `Controller.instantiate` wrap the failure in `ProviderCreationError` /
   `ControllerCreationError` with its cause and original stack trace;
-- request boundaries: `Pipeline.run` hands the failure to the exception
+- request boundaries (added by the HTTP pipeline work): `Pipeline.run` hands the failure to the exception
   filters and rethrows it when none handles it; `RequestDispatcher.dispatch`
   and `Application.handle` turn it into a 500 through `HttpErrorResponder`,
   which logs it;
-- `ResponseSerializer` catches `JsonUnsupportedObjectError` (an `Error` the
+- `ResponseSerializer` (added by the HTTP pipeline work) catches `JsonUnsupportedObjectError` (an `Error` the
   JSON encoder throws for a user value) and throws `SerializationError` with
   the original stack trace.
 `rethrow` keeps the stack trace. Never silence a lint: no `// ignore:`
