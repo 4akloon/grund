@@ -17,3 +17,4 @@ export 'src/http/request_body.dart';
 export 'src/http/response_body.dart';
 export 'src/http/response_head.dart';
 export 'src/http/status_code.dart';
+export 'src/routing/routing_error.dart';
