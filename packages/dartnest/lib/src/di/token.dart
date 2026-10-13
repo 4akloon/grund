@@ -11,7 +11,8 @@ import 'package:meta/meta.dart';
 /// ```
 ///
 /// Two tokens are equal when they have the same [name] and the same type
-/// parameter [T]. String tokens without a type do not exist on purpose.
+/// parameter [T]; comparing [type] (not `is Token<T>`) keeps `==` symmetric
+/// across tokens whose type parameters are related by subtyping. String tokens without a type do not exist on purpose.
 @immutable
 final class Token<T extends Object> {
   /// Creates a token named [name] for values of type [T].
@@ -24,7 +25,8 @@ final class Token<T extends Object> {
   Type get type => T;
 
   @override
-  bool operator ==(Object other) => other is Token<T> && other.name == name;
+  bool operator ==(Object other) =>
+      other is Token<Object> && other.type == type && other.name == name;
 
   @override
   int get hashCode => Object.hash(T, name);

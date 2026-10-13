@@ -23,6 +23,13 @@ void main() {
       expect(const Token<String>('a'), isNot(equals(const Token<int>('a'))));
     });
 
+    test('is not equal across a supertype parameter, in both directions', () {
+      const narrow = Token<String>('a');
+      const wide = Token<Object>('a');
+      expect(narrow == wide, isFalse);
+      expect(wide == narrow, isFalse);
+    });
+
     test('exposes its type and a readable toString', () {
       const token = Token<int>('port');
       expect(token.type, int);
