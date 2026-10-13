@@ -1,13 +1,23 @@
 /// Turns dartnest annotations into ordinary code on the explicit dartnest
 /// API, and checks the module graph before the application starts.
 ///
-/// The model and the diagnostics are public so later packages (OpenAPI,
-/// GraphQL) can read them.
+/// A driver (the CLI, build_runner) resolves the libraries of a package,
+/// builds its model with [PackageCollector] and runs a [DartnestGenerator].
+///
+/// The model and [Construct] are public so later packages (OpenAPI,
+/// GraphQL) can add constructs of their own.
 library;
 
+export 'src/collector/package_collector.dart';
+export 'src/construct/construct.dart';
+export 'src/construct/content_type.dart';
+export 'src/construct/dartnest_generator.dart';
+export 'src/construct/generated_unit.dart';
+export 'src/construct/generation_result.dart';
 export 'src/diagnostic/diagnostic.dart';
 export 'src/diagnostic/diagnostic_code.dart';
 export 'src/diagnostic/source_location.dart';
+export 'src/emit/library_writer.dart';
 export 'src/model/body_kind.dart';
 export 'src/model/component_reference.dart';
 export 'src/model/constant_value.dart';
