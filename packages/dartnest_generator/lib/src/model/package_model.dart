@@ -24,16 +24,19 @@ final class PackageModel {
   /// The package's language version, used to format the output.
   final Version languageVersion;
 
-  /// Classes annotated with `@Module`, sorted by name and library.
+  /// Classes annotated with `@Module`, in library-URI order, then source
+  /// order within a library.
   final List<ModuleModel> modules;
 
-  /// Classes provided through their constructor, sorted by name and
-  /// library, each once.
+  /// Classes provided through their constructor, each once, in library-URI
+  /// order, then source order within a library.
   final List<InjectableModel> injectables;
 
-  /// Classes annotated with `@Controller`, sorted by name and library.
+  /// Classes annotated with `@Controller`, in library-URI order, then source
+  /// order within a library.
   final List<ControllerModel> controllers;
 
-  /// Request bodies and handler results, sorted by name and library.
+  /// Request bodies and handler results, in library-URI order, then source
+  /// order within a library.
   final List<DtoModel> dtos;
 }
