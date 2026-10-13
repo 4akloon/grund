@@ -6,5 +6,6 @@ workspace:
   - packages/dartnest
   - packages/dartnest_annotations
   - packages/dartnest_conformance
+  - packages/dartnest_generator
   - packages/dartnest_io
   - packages/dartnest_shelf
