@@ -1,6 +1,9 @@
 /// NestJS-style modular backend framework for Dart without `dart:mirrors`.
 library;
 
+export 'src/app/application_error.dart';
+export 'src/controller/controller.dart';
+export 'src/controller/route.dart';
 export 'src/di/container.dart';
 export 'src/di/errors.dart';
 export 'src/di/injector.dart';
@@ -24,6 +27,7 @@ export 'src/pipeline/enum_pipe.dart';
 export 'src/pipeline/exception_filter.dart';
 export 'src/pipeline/execution_context.dart';
 export 'src/pipeline/guard.dart';
+export 'src/pipeline/handler_spec.dart';
 export 'src/pipeline/interceptor.dart';
 export 'src/pipeline/pipe.dart';
 export 'src/pipeline/pipeline_component.dart';

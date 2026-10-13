@@ -117,12 +117,22 @@ letters are words (`Http`, `Json`, `Di`); an unused callback parameter is
 `_`. Doc comments use `///`, start with a one-sentence summary, refer to
 identifiers in `[brackets]`; a boolean starts with "Whether"; no `@param`
 tags; do not repeat the signature. No nullable `Future`/`Stream`/collection
-returns. No `catch` without `on`; never catch `Error`; the one exception is the
-provider-factory boundary in `ModuleInjector`, which catches `on Object` to
-wrap every factory failure in `ProviderCreationError` with its cause, chain
-and original stack trace, and never swallows it; `rethrow` keeps the
-stack trace. Never silence a lint: no `// ignore:` without a comment on why,
-and no rule removed from `analysis_options.yaml` to make a change pass.
+returns. No `catch` without `on`; never catch `Error`. The exceptions are
+the boundaries where user code runs; each catches `on Object`, has a comment
+naming the boundary, and never swallows the failure:
+- factory boundaries: `ModuleInjector` (provider factories) and
+  `Controller.instantiate` wrap the failure in `ProviderCreationError` /
+  `ControllerCreationError` with its cause and original stack trace;
+- request boundaries: `Pipeline.run` hands the failure to the exception
+  filters and rethrows it when none handles it; `RequestDispatcher.dispatch`
+  and `Application.handle` turn it into a 500 through `HttpErrorResponder`,
+  which logs it;
+- `ResponseSerializer` catches `JsonUnsupportedObjectError` (an `Error` the
+  JSON encoder throws for a user value) and throws `SerializationError` with
+  the original stack trace.
+`rethrow` keeps the stack trace. Never silence a lint: no `// ignore:`
+without a comment on why, and no rule removed from `analysis_options.yaml`
+to make a change pass.
 
 **Tests.** Tests come in the same commit as the code; a new branch of logic
 has a test that fails without it. A test names the behaviour, builds its

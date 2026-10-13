@@ -1,3 +1,4 @@
+import '../controller/controller.dart';
 import 'provider.dart';
 import 'token.dart';
 
@@ -6,8 +7,9 @@ import 'token.dart';
 ///
 /// A module is a value, not a class. Dynamic modules are therefore plain
 /// functions that return a [Module]. Two modules with the same [id] are
-/// treated as one: their shape (imports, provider keys, exports, [global])
-/// must match or `ModuleGraph.build` throws `DuplicateModuleIdError`.
+/// treated as one: their shape (imports, provider keys, controller types,
+/// exports, [global]) must match or `ModuleGraph.build` throws
+/// `DuplicateModuleIdError`.
 /// Configuration captured inside factories is not compared and the first-seen
 /// instance wins, so a dynamic module that can be configured differently in
 /// one application must encode it in its [id] (for example `'database:$name'`).
@@ -29,6 +31,7 @@ final class Module {
     required this.id,
     this.imports = const [],
     this.providers = const [],
+    this.controllers = const [],
     this.exports = const [],
     this.global = false,
   });
@@ -43,6 +46,10 @@ final class Module {
   /// matters only for async providers: a provider may only use an async
   /// provider that is declared before it (or in an imported module).
   final List<ProviderSpec> providers;
+
+  /// Controllers whose instances are created with this module's injector
+  /// after its providers, and whose routes the application serves.
+  final List<ControllerSpec> controllers;
 
   /// What importers of this module can see: a [Type] or [Token] of one of
   /// [providers], or a [Module] from [imports] (re-export).
