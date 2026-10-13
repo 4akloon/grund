@@ -29,6 +29,11 @@ final class Container {
   ///    declaration order. Async factories are awaited; sync factories may
   ///    pull sync dependencies on demand in any order.
   ///
+  /// Modules start in imports-first graph order, so a module that does not
+  /// import a global module may start before it; a sync `get` of that
+  /// global's async export then throws `AsyncProviderNotReadyError`. Import
+  /// the global explicitly when you depend on its async providers.
+  ///
   /// Throws an `InjectionError` subtype on the first problem; no partially
   /// started container is ever returned.
   static Future<Container> create(Module root) async {

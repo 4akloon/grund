@@ -14,7 +14,6 @@ final class _Slot {
   final ProviderSpec provider;
   final ModuleInjector owner;
   Object? instance;
-  bool created = false;
   bool creating = false;
 
   Object get key => provider.key;
@@ -53,12 +52,7 @@ final class ModuleInjector implements Injector {
 
   @override
   T get<T extends Object>([Token<T>? token]) {
-    final key = token ?? T;
-    if (key == Object) {
-      throw ArgumentError(
-        'Type argument for get() could not be inferred; call get<MyType>().',
-      );
-    }
+    final key = _keyFor<T>(token);
     final slot = _resolveSlot(key);
     if (slot == null) {
       throw MissingProviderError(
@@ -73,18 +67,26 @@ final class ModuleInjector implements Injector {
 
   @override
   T? maybeGet<T extends Object>([Token<T>? token]) {
-    try {
-      return get<T>(token);
-    } on MissingProviderError {
-      return null;
+    final slot = _resolveSlot(_keyFor<T>(token));
+    if (slot == null) return null;
+    return slot.owner._createSync(slot) as T;
+  }
+
+  Object _keyFor<T extends Object>(Token<T>? token) {
+    final key = token ?? T;
+    if (key == Object) {
+      throw ArgumentError(
+        'Type argument for get() could not be inferred; call get<MyType>().',
+      );
     }
+    return key;
   }
 
   /// Creates every own provider in declaration order, awaiting async ones.
   /// Called once by `Container.create`.
   Future<void> instantiateAll() async {
     for (final slot in _own.values) {
-      if (!slot.created) {
+      if (slot.instance == null) {
         await _createAsync(slot);
       }
     }
@@ -118,8 +120,7 @@ final class ModuleInjector implements Injector {
   }
 
   Object _createSync(_Slot slot) {
-    final instance = slot.instance;
-    if (slot.created && instance != null) return instance;
+    if (slot.instance case final instance?) return instance;
     if (slot.creating) {
       throw CircularDependencyError(_trace.cycleFrom(slot.key));
     }
@@ -128,8 +129,10 @@ final class ModuleInjector implements Injector {
     }
     final result = _invoke(slot);
     if (result is Future) {
-      // The factory was `async` without Provider.async. Keep the future so
-      // startup can still await it, but a sync caller cannot use it.
+      // The factory was `async` without Provider.async. A sync caller cannot
+      // use the future, so it is discarded (startup invokes the factory
+      // again); `ignore` keeps a later failure from becoming unhandled.
+      result.ignore();
       slot.creating = false;
       throw AsyncProviderNotReadyError(key: slot.key, chain: _trace.snapshot);
     }
@@ -138,27 +141,21 @@ final class ModuleInjector implements Injector {
   }
 
   Future<void> _createAsync(_Slot slot) async {
-    if (slot.created) return;
+    if (slot.instance != null) return;
     if (slot.creating) {
       throw CircularDependencyError(_trace.cycleFrom(slot.key));
     }
     final result = _invoke(slot);
-    if (result is Future<Object>) {
-      try {
-        _complete(slot, await result);
-      } catch (error, stackTrace) {
-        slot.creating = false;
-        if (error is DartnestError) rethrow;
-        throw ProviderCreationError(
-          key: slot.key,
-          moduleId: module.id,
-          chain: const [],
-          error: error,
-          stackTrace: stackTrace,
-        );
-      }
-    } else {
+    if (result is! Future<Object>) {
       _complete(slot, result);
+      return;
+    }
+    try {
+      _complete(slot, await result);
+    } on Object catch (error, stackTrace) {
+      slot.creating = false;
+      if (error is DartnestError) rethrow;
+      _failCreation(slot, error, stackTrace, const []);
     }
   }
 
@@ -167,26 +164,37 @@ final class ModuleInjector implements Injector {
   FutureOr<Object> _invoke(_Slot slot) {
     slot.creating = true;
     _trace.push(slot.key);
+    // The factory boundary wraps every failure, including `Error`s from user
+    // config code, to annotate it with the chain; the cause and stack trace
+    // are preserved and nothing is swallowed.
     try {
       return slot.provider.create(this);
-    } catch (error, stackTrace) {
+    } on Object catch (error, stackTrace) {
       slot.creating = false;
       if (error is DartnestError) rethrow;
-      throw ProviderCreationError(
-        key: slot.key,
-        moduleId: module.id,
-        chain: _trace.snapshot.skip(1).toList(),
-        error: error,
-        stackTrace: stackTrace,
-      );
+      _failCreation(slot, error, stackTrace, _trace.snapshot.skip(1).toList());
     } finally {
       _trace.pop();
     }
   }
 
+  Never _failCreation(
+    _Slot slot,
+    Object error,
+    StackTrace stackTrace,
+    List<Object> chain,
+  ) {
+    throw ProviderCreationError(
+      key: slot.key,
+      moduleId: module.id,
+      chain: chain,
+      error: error,
+      stackTrace: stackTrace,
+    );
+  }
+
   void _complete(_Slot slot, Object instance) {
     slot.instance = instance;
-    slot.created = true;
     slot.creating = false;
   }
 }

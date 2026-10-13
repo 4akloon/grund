@@ -18,6 +18,11 @@ typedef ProviderFactory<T extends Object> =
 /// Provider.async((i) async => Db.connect());  // awaited at startup
 /// Provider.value(url, token: dbUrl);          // keyed by a Token
 /// ```
+///
+/// A sync `get` of a plain-async closure (an `async` factory declared without
+/// `Provider.async`) invokes the factory once and discards the future;
+/// startup invokes it again. This double invocation happens only on the
+/// error path.
 final class Provider<T extends Object> implements ProviderSpec {
   /// Synchronous (or implicitly async) factory provider.
   Provider(ProviderFactory<T> create, {Token<T>? token})

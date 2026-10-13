@@ -117,7 +117,10 @@ letters are words (`Http`, `Json`, `Di`); an unused callback parameter is
 `_`. Doc comments use `///`, start with a one-sentence summary, refer to
 identifiers in `[brackets]`; a boolean starts with "Whether"; no `@param`
 tags; do not repeat the signature. No nullable `Future`/`Stream`/collection
-returns. No `catch` without `on`; never catch `Error`; `rethrow` keeps the
+returns. No `catch` without `on`; never catch `Error`; the one exception is the
+provider-factory boundary in `ModuleInjector`, which catches `on Object` to
+wrap every factory failure in `ProviderCreationError` with its cause, chain
+and original stack trace, and never swallows it; `rethrow` keeps the
 stack trace. Never silence a lint: no `// ignore:` without a comment on why,
 and no rule removed from `analysis_options.yaml` to make a change pass.
 

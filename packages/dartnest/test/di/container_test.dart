@@ -270,25 +270,52 @@ void main() {
       );
     });
 
-    test(
-      'plain async closure is awaited at startup and guarded in sync get',
-      () async {
-        final ok = await Container.create(
-          Module(id: 'app', providers: [Provider((i) async => Db())]),
-        );
-        expect(ok.root.get<Db>(), isA<Db>());
+    test('plain async closure is awaited at startup', () async {
+      final c = await Container.create(
+        Module(id: 'app', providers: [Provider((i) async => Db())]),
+      );
+      expect(c.root.get<Db>(), isA<Db>());
+    });
 
-        final tooEarly = Module(
+    test('plain async closure is guarded in sync get', () async {
+      final tooEarly = Module(
+        id: 'app',
+        providers: [
+          Provider((i) => UsesDb(i.get())),
+          Provider((i) async => Db()),
+        ],
+      );
+      await expectLater(
+        Container.create(tooEarly),
+        throwsA(
+          isA<AsyncProviderNotReadyError>().having((e) => e.key, 'key', Db),
+        ),
+      );
+    });
+
+    test('maybeGet returns null for a missing provider', () async {
+      final c = await Container.create(Module(id: 'app'));
+      expect(c.root.maybeGet<Clock>(), isNull);
+    });
+
+    test(
+      'maybeGet propagates a creation failure of an existing provider',
+      () async {
+        // Db is created first and probes Repo, whose factory needs a missing Clock.
+        final app = Module(
           id: 'app',
           providers: [
-            Provider((i) => UsesDb(i.get())),
-            Provider((i) async => Db()),
+            Provider((i) {
+              i.maybeGet<Repo>();
+              return Db();
+            }),
+            Provider((i) => Repo(i.get())),
           ],
         );
         await expectLater(
-          Container.create(tooEarly),
+          Container.create(app),
           throwsA(
-            isA<AsyncProviderNotReadyError>().having((e) => e.key, 'key', Db),
+            isA<MissingProviderError>().having((e) => e.key, 'key', Clock),
           ),
         );
       },
@@ -360,6 +387,81 @@ void main() {
         throwsA(isA<DuplicateProviderError>()),
       );
       expect(ran, isFalse);
+    });
+
+    test('global module non-exported provider is invisible', () async {
+      final config = Module(
+        id: 'config',
+        global: true,
+        providers: [Provider((i) => Secret()), Provider((i) => Config())],
+        exports: [Config],
+      );
+      final app = Module(
+        id: 'app',
+        imports: [config],
+        providers: [Provider((i) => UsesSecret(i.get()))],
+      );
+      await expectLater(
+        Container.create(app),
+        throwsA(
+          isA<MissingProviderError>()
+              .having((e) => e.key, 'key', Secret)
+              .having((e) => e.definedIn, 'definedIn', ['config']),
+        ),
+      );
+    });
+
+    test('own provider shadows an import export with the same key', () async {
+      final shared = Module(
+        id: 'shared',
+        providers: [Provider((i) => Clock())],
+        exports: [Clock],
+      );
+      final app = Module(
+        id: 'app',
+        imports: [shared],
+        providers: [Provider((i) => Clock())],
+      );
+      final c = await Container.create(app);
+      expect(
+        c.root.get<Clock>(),
+        isNot(same(c.injectorFor('shared').get<Clock>())),
+      );
+    });
+
+    test('async factory failure is wrapped with its cause', () async {
+      final app = Module(
+        id: 'app',
+        providers: [Provider<Db>.async((i) async => throw StateError('boom'))],
+      );
+      await expectLater(
+        Container.create(app),
+        throwsA(
+          isA<ProviderCreationError>()
+              .having((e) => e.key, 'key', Db)
+              .having((e) => e.error, 'error', isA<StateError>()),
+        ),
+      );
+    });
+
+    test('two-level transitive re-export reaches the importer', () async {
+      final c = Module(
+        id: 'c',
+        providers: [Provider((i) => Db())],
+        exports: [Db],
+      );
+      final b = Module(id: 'b', imports: [c], exports: [c]);
+      final a = Module(id: 'a', imports: [b], exports: [b]);
+      final app = Module(
+        id: 'app',
+        imports: [a],
+        providers: [Provider((i) => UsesDb(i.get()))],
+      );
+      final container = await Container.create(app);
+      expect(
+        container.root.get<Db>(),
+        same(container.injectorFor('c').get<Db>()),
+      );
     });
   });
 }
