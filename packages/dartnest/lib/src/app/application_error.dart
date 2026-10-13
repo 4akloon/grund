@@ -33,3 +33,32 @@ final class ControllerCreationError extends ApplicationError {
       'Factory of controller $controllerType in module "$moduleId" threw: '
       '$error';
 }
+
+/// An `Enhancers` list holds a component of the wrong kind, for example an
+/// interceptor among the guards.
+final class InvalidComponentError extends ApplicationError {
+  /// Creates the error.
+  const InvalidComponentError({
+    required this.owner,
+    required this.slot,
+    required this.actualType,
+    required this.expectedType,
+  });
+
+  /// Where the list is declared: `Application`, a controller type, or
+  /// `Controller.handler`.
+  final String owner;
+
+  /// The list: `guards`, `interceptors`, `pipes` or `filters`.
+  final String slot;
+
+  /// Runtime type of the (resolved) component.
+  final Type actualType;
+
+  /// The kind the list requires.
+  final Type expectedType;
+
+  @override
+  String get message =>
+      '$owner lists $actualType in $slot, but it is not a $expectedType.';
+}
