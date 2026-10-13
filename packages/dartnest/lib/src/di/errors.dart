@@ -138,14 +138,21 @@ final class CircularDependencyError extends InjectionError {
       'Circular dependency: ${cycle.map(describeKey).join(' -> ')}.';
 }
 
-/// A synchronous `get` asked for an async provider before the container
-/// had awaited it.
+/// A synchronous `get` asked for an async provider that had not finished
+/// starting.
 final class AsyncProviderNotReadyError extends InjectionError {
   /// Creates the error.
-  const AsyncProviderNotReadyError({required this.key, required this.chain});
+  const AsyncProviderNotReadyError({
+    required this.key,
+    required this.moduleId,
+    required this.chain,
+  });
 
   /// The async key.
   final Object key;
+
+  /// The module that declares [key].
+  final String moduleId;
 
   /// Keys being resolved, innermost first.
   final List<Object> chain;
@@ -155,8 +162,12 @@ final class AsyncProviderNotReadyError extends InjectionError {
     final who = chain.isEmpty
         ? 'it was requested'
         : '${describeKey(chain.first)} asked for it';
-    return 'Provider ${describeKey(key)} is async and was not created yet '
-        'when $who. Declare it earlier in the module, or in an imported module.';
+    return 'Provider ${describeKey(key)} (module "$moduleId") is async and '
+        'was not ready when $who: a synchronous get ran before it finished '
+        'starting. Await Container.create before using the container. If '
+        'this happened inside a factory during startup, declare the async '
+        'provider earlier in the same module or in an imported module '
+        '(global modules already start first).';
   }
 }
 

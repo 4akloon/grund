@@ -12,12 +12,13 @@ final class ResolutionTrace {
   /// Removes the innermost key.
   void pop() => _stack.removeLast();
 
-  /// The cycle starting at [key], for `CircularDependencyError`. When [key]
-  /// is not on the stack (a factory re-entered itself after an `await`), the
-  /// cycle is reported as `[key, key]`.
+  /// Whether [key] is being resolved right now.
+  bool contains(Object key) => _stack.contains(key);
+
+  /// The cycle starting at [key], for `CircularDependencyError`. [key] must
+  /// be on the stack (check [contains] first).
   List<Object> cycleFrom(Object key) {
     final start = _stack.indexOf(key);
-    if (start < 0) return [key, key];
     return [..._stack.sublist(start), key];
   }
 }

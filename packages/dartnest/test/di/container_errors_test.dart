@@ -85,7 +85,13 @@ void main() {
         throwsA(
           isA<AsyncProviderNotReadyError>()
               .having((e) => e.key, 'key', Db)
-              .having((e) => e.chain, 'chain', [UsesDb]),
+              .having((e) => e.moduleId, 'moduleId', 'app')
+              .having((e) => e.chain, 'chain', [UsesDb])
+              .having(
+                (e) => e.message,
+                'message',
+                contains('Container.create'),
+              ),
         ),
       );
     });
@@ -148,8 +154,8 @@ void main() {
       final app = Module(
         id: 'app',
         providers: [
-          Provider<Clock>((i) => throw StateError('boom')),
           Provider((i) => Repo(i.get())),
+          Provider<Clock>((i) => throw StateError('boom')),
         ],
       );
 
@@ -160,7 +166,7 @@ void main() {
               .having((e) => e.key, 'key', Clock)
               .having((e) => e.moduleId, 'moduleId', 'app')
               .having((e) => e.error, 'error', isA<StateError>())
-              .having((e) => e.chain, 'chain', isEmpty),
+              .having((e) => e.chain, 'chain', [Repo]),
         ),
       );
     });
@@ -233,6 +239,79 @@ void main() {
           isA<ProviderCreationError>()
               .having((e) => e.key, 'key', Db)
               .having((e) => e.error, 'error', isA<StateError>()),
+        ),
+      );
+    });
+
+    test('factory failure keeps the factory\'s original stack trace', () async {
+      StackTrace? thrownAt;
+      final app = Module(
+        id: 'app',
+        providers: [
+          Provider<Clock>((i) {
+            try {
+              throw StateError('boom');
+            } on StateError catch (_, stackTrace) {
+              thrownAt = stackTrace;
+              rethrow;
+            }
+          }),
+        ],
+      );
+      await expectLater(
+        Container.create(app),
+        throwsA(
+          isA<ProviderCreationError>().having(
+            (e) => e.stackTrace.toString(),
+            'stackTrace',
+            thrownAt?.toString(),
+          ),
+        ),
+      );
+    });
+
+    test(
+      'async factory missing a dependency after an await keeps the chain',
+      () async {
+        final app = Module(
+          id: 'app',
+          providers: [
+            Provider.async((i) async {
+              await Future<void>.value();
+              return Repo(i.get());
+            }),
+          ],
+        );
+        await expectLater(
+          Container.create(app),
+          throwsA(
+            isA<MissingProviderError>()
+                .having((e) => e.key, 'key', Clock)
+                .having((e) => e.chain, 'chain', [Repo]),
+          ),
+        );
+      },
+    );
+
+    test('cycle through an async factory after an await is detected', () async {
+      final app = Module(
+        id: 'app',
+        providers: [
+          Provider.async((i) async {
+            await Future<void>.value();
+            return NeedsA(i.get());
+          }),
+          Provider((i) => NeedsB(i.get())),
+        ],
+      );
+      await expectLater(
+        Container.create(app),
+        throwsA(
+          isA<CircularDependencyError>().having((e) => e.cycle, 'cycle', [
+            NeedsA,
+            NeedsB,
+            NeedsA,
+          ]),
         ),
       );
     });

@@ -121,12 +121,8 @@ final class ModuleInjector implements Injector {
 
   Object _createSync(_Slot slot) {
     if (slot.instance case final instance?) return instance;
-    if (slot.creating) {
-      throw CircularDependencyError(_trace.cycleFrom(slot.key));
-    }
-    if (slot.provider.isAsync) {
-      throw AsyncProviderNotReadyError(key: slot.key, chain: _trace.snapshot);
-    }
+    if (slot.creating) _rejectReentry(slot);
+    if (slot.provider.isAsync) throw _notReady(slot);
     final result = _invoke(slot);
     if (result is Future) {
       // The factory was `async` without Provider.async. A sync caller cannot
@@ -134,28 +130,44 @@ final class ModuleInjector implements Injector {
       // again); `ignore` keeps a later failure from becoming unhandled.
       result.ignore();
       slot.creating = false;
-      throw AsyncProviderNotReadyError(key: slot.key, chain: _trace.snapshot);
+      throw _notReady(slot);
     }
     _complete(slot, result);
     return result;
   }
 
-  Future<void> _createAsync(_Slot slot) async {
-    if (slot.instance != null) return;
-    if (slot.creating) {
+  /// A slot that is still being created was asked for again: a cycle when
+  /// its key is on the trace, otherwise an access from outside the sequential
+  /// startup (for example an unawaited future), which is a not-ready error.
+  Never _rejectReentry(_Slot slot) {
+    if (_trace.contains(slot.key)) {
       throw CircularDependencyError(_trace.cycleFrom(slot.key));
     }
-    final result = _invoke(slot);
-    if (result is! Future<Object>) {
-      _complete(slot, result);
-      return;
-    }
+    throw _notReady(slot);
+  }
+
+  AsyncProviderNotReadyError _notReady(_Slot slot) =>
+      AsyncProviderNotReadyError(
+        key: slot.key,
+        moduleId: slot.owner.module.id,
+        chain: _trace.snapshot,
+      );
+
+  /// Creates [slot], awaiting an async factory. The key stays on the trace
+  /// across the await so that a `get` made after it still sees the chain.
+  Future<void> _createAsync(_Slot slot) async {
+    if (slot.instance != null) return;
+    if (slot.creating) _rejectReentry(slot);
+    slot.creating = true;
+    _trace.push(slot.key);
     try {
-      _complete(slot, await result);
+      _complete(slot, await slot.provider.create(this));
     } on Object catch (error, stackTrace) {
       slot.creating = false;
       if (error is DartnestError) rethrow;
-      _failCreation(slot, error, stackTrace, const []);
+      _failCreation(slot, error, stackTrace, _trace.snapshot.skip(1).toList());
+    } finally {
+      _trace.pop();
     }
   }
 
@@ -178,18 +190,23 @@ final class ModuleInjector implements Injector {
     }
   }
 
+  /// Rethrows with the factory's own stack trace so an uncaught crash points
+  /// at the user's frame instead of this wrapper.
   Never _failCreation(
     _Slot slot,
     Object error,
     StackTrace stackTrace,
     List<Object> chain,
   ) {
-    throw ProviderCreationError(
-      key: slot.key,
-      moduleId: module.id,
-      chain: chain,
-      error: error,
-      stackTrace: stackTrace,
+    Error.throwWithStackTrace(
+      ProviderCreationError(
+        key: slot.key,
+        moduleId: module.id,
+        chain: chain,
+        error: error,
+        stackTrace: stackTrace,
+      ),
+      stackTrace,
     );
   }
 
