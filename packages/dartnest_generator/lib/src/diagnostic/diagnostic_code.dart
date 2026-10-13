@@ -55,7 +55,8 @@ enum DiagnosticCode {
   /// A `@Param` name is not a parameter of the route path.
   unknownPathParameter('unknown_path_parameter'),
 
-  /// Two routes have the same method and path.
+  /// Two routes have the same method and path, or a controller is listed
+  /// by more than one module (its routes would be registered twice).
   duplicateRoute('duplicate_route'),
 
   /// Two generated declarations would have the same name.

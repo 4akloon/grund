@@ -55,7 +55,7 @@ Diagnostics stop generation; each has a stable code:
 | --- | --- |
 | `ModuleConstruct` | `duplicate_module_id`, `circular_module_import`, `duplicate_provider`, `invalid_export`, `invalid_module_entry`, `unsupported_constant`, `missing_provider`, `circular_dependency` |
 | `ProviderConstruct` | `not_injectable`, `invalid_constructor`, `invalid_dependency`, `unsupported_constant` |
-| `ControllerConstruct` | `invalid_constructor`, `invalid_dependency`, `invalid_component`, `invalid_route_handler`, `invalid_handler_parameter`, `missing_from_json`, `unknown_path_parameter`, `unsupported_constant`, `duplicate_route` |
+| `ControllerConstruct` | `invalid_constructor`, `invalid_dependency`, `invalid_component`, `invalid_route_handler`, `invalid_handler_parameter`, `missing_from_json`, `unknown_path_parameter`, `unsupported_constant`, `duplicate_route` (also a controller listed by more than one module) |
 | `DartnestGenerator` | `duplicate_generated_name` |
 
 `unsupported_constant` is reported wherever a constant must be written into
