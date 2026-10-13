@@ -6,7 +6,8 @@ import 'module.dart';
 ///
 /// Building the graph performs every structural check that does not need
 /// provider instances: duplicate ids with different shape, import cycles,
-/// duplicate provider keys, invalid exports. Modules with equal ids are
+/// duplicate provider keys, invalid exports, keys exported to one module by
+/// several modules. Modules with equal ids are
 /// compared by shape only (id, `global`, import ids, provider keys and export
 /// keys); the first-seen instance wins.
 final class ModuleGraph {
@@ -15,7 +16,8 @@ final class ModuleGraph {
   /// The module [build] was called with.
   final Module root;
 
-  /// Every distinct module once, imports before importers, [root] last.
+  /// Every distinct module once: imports before importers; global modules and
+  /// their imports first; [root] last.
   final List<Module> ordered;
 
   final Map<String, Module> _byId;
@@ -51,7 +53,12 @@ final class ModuleGraph {
     }
 
     visit(root);
-    return ModuleGraph._(root, List.unmodifiable(ordered), byId);
+    final started = _globalsFirst(ordered);
+    final globals = started.where((m) => m.global).toList();
+    for (final module in started) {
+      _validateVisibility(module, globals);
+    }
+    return ModuleGraph._(root, List.unmodifiable(started), byId);
   }
 
   /// The module with [id]; throws [UnknownModuleError] if absent.
@@ -65,6 +72,74 @@ final class ModuleGraph {
     for (final m in ordered)
       if (m.declares(key)) m.id,
   ];
+
+  /// Stable partition: global modules and the closure of their imports keep
+  /// their imports-first order and start first, so every module can use a
+  /// global module's async exports.
+  static List<Module> _globalsFirst(List<Module> ordered) {
+    final early = <String>{};
+    final pending = [
+      for (final module in ordered)
+        if (module.global) module,
+    ];
+    while (pending.isNotEmpty) {
+      final module = pending.removeLast();
+      if (early.add(module.id)) pending.addAll(module.imports);
+    }
+    return [
+      ...ordered.where((m) => early.contains(m.id)),
+      ...ordered.where((m) => !early.contains(m.id)),
+    ];
+  }
+
+  /// Rejects a key that reaches [module] from two owners within the imports
+  /// tier or within the globals tier. Own providers and imports shadow lower
+  /// tiers by design, so those are not ambiguity.
+  static void _validateVisibility(Module module, List<Module> globals) {
+    final viaImports = <Object, Set<String>>{};
+    final importsSeen = <String>{};
+    for (final import in module.imports) {
+      _exportedOwners(import, viaImports, importsSeen);
+    }
+    _rejectAmbiguous(module, viaImports);
+    final viaGlobals = <Object, Set<String>>{};
+    final globalsSeen = <String>{};
+    for (final global in globals) {
+      if (global.id != module.id) {
+        _exportedOwners(global, viaGlobals, globalsSeen);
+      }
+    }
+    _rejectAmbiguous(module, viaGlobals);
+  }
+
+  /// Adds to [into] each key [module] exports, mapped to the module that
+  /// declares it, following re-exported modules. [visited] holds module ids
+  /// already walked, so one owner reached by several paths counts once.
+  static void _exportedOwners(
+    Module module,
+    Map<Object, Set<String>> into,
+    Set<String> visited,
+  ) {
+    if (!visited.add(module.id)) return;
+    for (final export in module.exports) {
+      if (export is Module) {
+        _exportedOwners(export, into, visited);
+      } else {
+        into.putIfAbsent(export, () => {}).add(module.id);
+      }
+    }
+  }
+
+  static void _rejectAmbiguous(Module module, Map<Object, Set<String>> owners) {
+    for (final MapEntry(:key, value: ids) in owners.entries) {
+      if (ids.length < 2 || module.declares(key)) continue;
+      throw AmbiguousProviderError(
+        key: key,
+        moduleId: module.id,
+        owners: ids.toList()..sort(),
+      );
+    }
+  }
 
   static void _validateProviders(Module module) {
     final keys = <Object>{};

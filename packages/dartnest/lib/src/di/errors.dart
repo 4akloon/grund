@@ -82,6 +82,34 @@ final class InvalidExportError extends InjectionError {
   }
 }
 
+/// Several modules export the same key into one scope tier of a module.
+///
+/// Scope order (own providers, then imports, then globals) is not ambiguity;
+/// two different owners within the imports, or within the globals, are.
+final class AmbiguousProviderError extends InjectionError {
+  /// Creates the error.
+  const AmbiguousProviderError({
+    required this.key,
+    required this.moduleId,
+    required this.owners,
+  });
+
+  /// The key that is visible from several modules.
+  final Object key;
+
+  /// The importing module in which the key is ambiguous.
+  final String moduleId;
+
+  /// Ids of the modules that declare [key], sorted.
+  final List<String> owners;
+
+  @override
+  String get message =>
+      'Provider ${describeKey(key)} is visible in module "$moduleId" from '
+      'several modules: ${owners.join(', ')}. Import only one of them, or '
+      'alias with a Token.';
+}
+
 /// Nothing in scope provides the requested key.
 final class MissingProviderError extends InjectionError {
   /// Creates the error.

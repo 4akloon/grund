@@ -25,14 +25,15 @@ final class Container {
   /// Order of work:
   /// 1. [ModuleGraph.build] — structural validation, nothing is created.
   /// 2. One injector per module, wired to its imports and to global modules.
-  /// 3. Modules in imports-first order; inside a module, providers in
+  /// 3. Modules in start order (see below); inside a module, providers in
   ///    declaration order. Async factories are awaited; sync factories may
   ///    pull sync dependencies on demand in any order.
   ///
-  /// Modules start in imports-first graph order, so a module that does not
-  /// import a global module may start before it; a sync `get` of that
-  /// global's async export then throws `AsyncProviderNotReadyError`. Import
-  /// the global explicitly when you depend on its async providers.
+  /// Modules start in imports-first order with global modules (and their
+  /// imports) first, so any module may use a global module's async exports.
+  /// The one remaining edge: a module inside a global's import closure that
+  /// uses another global's async export may start before it; a sync `get`
+  /// then throws `AsyncProviderNotReadyError`. Import that global explicitly.
   ///
   /// Throws an `InjectionError` subtype on the first problem; no partially
   /// started container is ever returned.

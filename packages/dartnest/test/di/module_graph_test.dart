@@ -161,4 +161,102 @@ void main() {
       expect(graph.modulesDeclaring(B), isEmpty);
     });
   });
+
+  group('ModuleGraph.build start order', () {
+    Module exporting(
+      String id, {
+      List<Module> imports = const [],
+      bool global = false,
+    }) => Module(
+      id: id,
+      imports: imports,
+      global: global,
+      providers: [Provider((i) => A())],
+      exports: [A],
+    );
+
+    List<String> orderOf(Module root) =>
+        ModuleGraph.build(root).ordered.map((m) => m.id).toList();
+
+    test('global modules come before other modules', () {
+      final users = Module(id: 'users');
+      final config = exporting('config', global: true);
+      final root = Module(id: 'root', imports: [users, config]);
+      expect(orderOf(root), ['config', 'users', 'root']);
+    });
+
+    test('imports of a global module come before it', () {
+      final env = Module(id: 'env');
+      final users = Module(id: 'users');
+      final config = exporting('config', imports: [env], global: true);
+      final root = Module(id: 'root', imports: [users, config]);
+      expect(orderOf(root), ['env', 'config', 'users', 'root']);
+    });
+  });
+
+  group('ModuleGraph.build ambiguity', () {
+    Module owner(String id) =>
+        Module(id: id, providers: [Provider((i) => A())], exports: [A]);
+
+    test('two imports exporting one key from different owners', () {
+      final root = Module(id: 'root', imports: [owner('b'), owner('a')]);
+      expect(
+        () => ModuleGraph.build(root),
+        throwsA(
+          isA<AmbiguousProviderError>()
+              .having((e) => e.key, 'key', A)
+              .having((e) => e.moduleId, 'moduleId', 'root')
+              .having((e) => e.owners, 'owners', ['a', 'b']),
+        ),
+      );
+    });
+
+    test('one owner re-exported through several imports is fine', () {
+      final a = owner('a');
+      final left = Module(id: 'left', imports: [a], exports: [a]);
+      final right = Module(id: 'right', imports: [a], exports: [a]);
+      final root = Module(id: 'root', imports: [left, right]);
+      expect(ModuleGraph.build(root).contains('root'), isTrue);
+    });
+
+    test('import beats a global with the same key', () {
+      final global = Module(
+        id: 'g',
+        global: true,
+        providers: [Provider((i) => A())],
+        exports: [A],
+      );
+      final holder = Module(id: 'holder', imports: [global]);
+      final root = Module(id: 'root', imports: [owner('a'), holder]);
+      expect(ModuleGraph.build(root).contains('root'), isTrue);
+    });
+
+    test('two globals exporting one key from different owners', () {
+      Module global(String id) => Module(
+        id: id,
+        global: true,
+        providers: [Provider((i) => A())],
+        exports: [A],
+      );
+      final root = Module(id: 'root', imports: [global('g1'), global('g2')]);
+      expect(
+        () => ModuleGraph.build(root),
+        throwsA(
+          isA<AmbiguousProviderError>().having((e) => e.owners, 'owners', [
+            'g1',
+            'g2',
+          ]),
+        ),
+      );
+    });
+
+    test('an own provider shadows ambiguous imports', () {
+      final root = Module(
+        id: 'root',
+        imports: [owner('a'), owner('b')],
+        providers: [Provider((i) => A())],
+      );
+      expect(ModuleGraph.build(root).contains('root'), isTrue);
+    });
+  });
 }

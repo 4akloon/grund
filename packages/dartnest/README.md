@@ -50,15 +50,17 @@ Rules:
   container rejects duplicate module ids with a different shape
   (`DuplicateModuleIdError`), import cycles (`CircularModuleImportError`),
   duplicate provider keys (`DuplicateProviderError`) and invalid exports
-  (`InvalidExportError`). During startup, while providers are created, it
+  (`InvalidExportError`), and a key that several modules export into one scope
+  (`AmbiguousProviderError`). During startup, while providers are created, it
   reports a missing provider with the resolution chain and the modules that
   declare it (`MissingProviderError`), a circular provider dependency
   (`CircularDependencyError`), a sync `get` of an async provider that is not
   ready yet (`AsyncProviderNotReadyError`), and a factory that throws,
   wrapped with its cause (`ProviderCreationError`).
-- A module that depends on an async provider exported by a `global` module
-  should import that module explicitly: modules start in imports-first
-  order, so without the import it may start before the global one.
+- Global modules (and the modules they import) start first, so any other
+  module can use a global module's async exports without importing it. Only a
+  module inside a global's import closure that needs another global's async
+  export should import that global explicitly.
 
 Annotations, an analyzer-based generator, HTTP adapters and the request
 pipeline are planned in later milestones; see the repository's `docs/`

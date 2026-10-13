@@ -209,5 +209,26 @@ void main() {
         same(container.injectorFor('c').get<Db>()),
       );
     });
+
+    test(
+      'a global module\'s async export is ready for modules listed before it',
+      () async {
+        final users = Module(
+          id: 'users',
+          providers: [Provider((i) => UsesDb(i.get()))],
+        );
+        final config = Module(
+          id: 'config',
+          global: true,
+          providers: [Provider.async((i) async => Db())],
+          exports: [Db],
+        );
+        final app = Module(id: 'app', imports: [users, config]);
+
+        final c = await Container.create(app);
+
+        expect(c.injectorFor('users').get<UsesDb>(), isA<UsesDb>());
+      },
+    );
   });
 }
