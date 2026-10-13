@@ -1,0 +1,21 @@
+name: dartnest_generator
+description: >-
+  Turns dartnest annotations into ordinary code on the explicit dartnest API,
+  with static validation of the module graph.
+version: 0.1.0-dev
+publish_to: none
+environment:
+  sdk: ^3.8.0
+resolution: workspace
+dependencies:
+  analyzer: '>=8.1.1 <15.0.0'
+  code_builder: ^4.11.1
+  dart_style: ^3.1.2
+  path: ^1.9.0
+  pub_semver: ^2.1.4
+dev_dependencies:
+  cases_app: ^0.1.0-dev
+  dartnest: ^0.1.0-dev
+  lints: ^5.1.0
+  test: ^1.25.0
+  users_app: ^0.1.0-dev

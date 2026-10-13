@@ -28,6 +28,8 @@ dart pub get                          # repo root, once and after pubspec edits
 dart analyze                          # repo root; must print "No issues found!"
 cd packages/dartnest && dart test     # same for every package
 dart format packages                  # a second run must change 0 files
+# packages/dartnest_generator, after a deliberate change of generated output:
+DARTNEST_UPDATE_GOLDENS=1 dart test test/golden
 ```
 
 Git commands run from the repo root. Commit messages are Conventional Commits
@@ -56,7 +58,11 @@ Git commands run from the repo root. Commit messages are Conventional Commits
   server or client setup; `shelfHandler(app)` embeds into an existing shelf
   pipeline unchanged.
 - Escape every string taken from user sources at every interpolation site of
-  generated code.
+  generated code (`DartString.literal` in `dartnest_generator`).
+- **Annotations share names with the explicit API** (`Module`,
+  `Controller`): a library that uses both imports
+  `package:dartnest/dartnest.dart` with `hide Controller, Module`, and a
+  module written with the explicit API lives in a file without that `hide`.
 
 ## Code rules
 
@@ -82,7 +88,7 @@ A reader must understand a unit quickly; if not, decompose it.
 | File in `lib/` | 300 lines | all lines count; use `wc -l` |
 | Test file | 500 lines | split by behaviour, helpers to `test/helpers/` |
 | Method / function | 40 lines | |
-| Parameters | 5 | past that, take a parameter object; `Module` has 6 named fields by spec: it is a declarative value, no parameter object |
+| Parameters | 5 | past that, take a parameter object; `Module` has 6 named fields by spec: it is a declarative value, no parameter object; so are the generator's model classes (`ModuleModel`, `RouteModel`, ...) |
 | Nesting | 3 levels of `if`/`for`/`switch`/`try` | early `continue`/`return`, extract |
 | Class | one responsibility, ~15 members | not "and" in its one-line doc |
 | Declarations per file | one public class or sealed family | small private helpers may share the file |
@@ -166,6 +172,9 @@ than about 5 lines repeated becomes a helper. `packages/dartnest_conformance`
 is unpublished test support for the adapter packages: its `lib/` may import
 `package:test`, and the `register` methods of its test groups are held to the
 test-file limits, not to the 40-line method limit.
+The generator's fixture packages (`packages/dartnest_generator/test/fixtures/*`)
+are unpublished workspace members; `users_app.dartnest.dart` there is the
+golden file: generated, committed, never edited by hand.
 
 **Self-review before saying "done".**
 

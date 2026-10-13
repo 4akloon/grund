@@ -4,6 +4,10 @@ environment:
   sdk: ^3.8.0
 workspace:
   - packages/dartnest
+  - packages/dartnest_annotations
   - packages/dartnest_conformance
+  - packages/dartnest_generator
+  - packages/dartnest_generator/test/fixtures/cases_app
+  - packages/dartnest_generator/test/fixtures/users_app
   - packages/dartnest_io
   - packages/dartnest_shelf
