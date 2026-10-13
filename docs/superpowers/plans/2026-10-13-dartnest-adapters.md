@@ -36,7 +36,7 @@
 - Hot reload не блокується: адаптер тримає лише замикання `RequestHandler` (`app.handle`), яке на кожен запит читає поточну таблицю роутів; адаптер нічого не кешує з застосунку.
 - Перед кожним комітом: з кореня репо `dart analyze` — «No issues found!», `dart format --output=none --set-exit-if-changed packages` — 0 змінених файлів; `dart test` зелений у кожному пакеті, якого торкнулась задача.
 - `dart` не завжди в `PATH`: `export PATH="$HOME/fvm/versions/3.47.6/bin/cache/dart-sdk/bin:$PATH"`. Після зміни будь-якого `pubspec.yaml` — `dart pub get` з кореня.
-- Відхилення від специфікації, зафіксовані планом: `onError` в адаптерах і `shelfHandler` (рішення 3); `closeTimeout` в обох адаптерах (рішення 11); геттер `port` в обох адаптерах (`HttpAdapter` не має способу повідомити порт, прив'язаний до `port: 0`); `ShelfAdapter` маршрутизує як `shelf_io` (рішення 7).
+- Відхилення від специфікації, зафіксовані планом: `onError` в адаптерах і `shelfHandler` (рішення 3); `closeTimeout` в обох адаптерах (рішення 11); геттер `port` в обох адаптерах (`HttpAdapter` не має способу повідомити порт, прив'язаний до `port: 0`); `ShelfAdapter` маршрутизує як `shelf_io` (рішення 7); непублікований пакет `dartnest_conformance` у таблиці розділу 2; бібліотека `package:dartnest/adapter.dart` (`InFlightRequests` для адаптерів); `Application.listen` передає адаптеру handler без власного лічильника, адаптери рахують запити в польоті самі (рішення 12).
 
 ## Review Focus
 

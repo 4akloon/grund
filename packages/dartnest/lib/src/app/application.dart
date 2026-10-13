@@ -135,22 +135,15 @@ final class Application {
   /// The route table is read once per request, so a request keeps the table
   /// it started with even if [replaceRoutes] runs meanwhile.
   Future<HttpResponse> handle(HttpRequest request) {
-    if (isClosed) {
-      return Future.value(
-        _errors.respond(
-          const ServiceUnavailableException(
-            message: 'The application is shutting down.',
-          ),
-          StackTrace.current,
-        ),
-      );
-    }
+    if (isClosed) return _unavailable();
     final router = _router;
     final chain = List.of(_middleware);
     return _inFlight.track(() => _answer(request, router, chain));
   }
 
-  /// Serves [handle] through the adapter on [address] and [port]; fails with
+  /// Serves the application through the adapter on [address] and [port]. The
+  /// adapter gets an uncounted variant of [handle] (same answers, 503 after
+  /// [close]); it counts its own in-flight requests. Fails with
   /// [ApplicationStateError] without an adapter, after [close], or when
   /// already listening. When the adapter fails to start, the error is passed
   /// on and [listen] can be called again, e.g. on another port.
@@ -178,7 +171,7 @@ final class Application {
     // A failed start must not block a retry, e.g. on another port.
     var started = false;
     try {
-      await adapter.listen(handle, address: address, port: port);
+      await adapter.listen(_handleForAdapter, address: address, port: port);
       started = true;
     } finally {
       if (!started) _listening = false;
@@ -186,9 +179,13 @@ final class Application {
   }
 
   /// Stops the application: the adapter stops accepting requests, new
-  /// [handle] calls answer 503, in-flight requests finish (unless [force]),
-  /// then the container closes. Every call returns the same future; [force]
-  /// of later calls is ignored.
+  /// requests answer 503, in-flight requests finish (unless [force]), then
+  /// the container closes. Every call returns the same future; [force] of
+  /// later calls is ignored.
+  ///
+  /// The adapter's `close` waits for the requests it delivered and may give
+  /// up on them after a timeout of its own; this method then waits for the
+  /// [handle] calls made directly, e.g. by `TestClient`.
   ///
   /// If the adapter's `close` throws, the wait for in-flight requests is
   /// skipped (the container is still closed and the error propagates to
@@ -201,6 +198,23 @@ final class Application {
   /// finish on the table they started with. For hot reload; not public API.
   @internal
   void replaceRoutes(Router<Endpoint> router) => _router = router;
+
+  // Not counted in _inFlight: the adapter's close waits for the requests it
+  // delivered and may abandon them after its timeout; counting them here as
+  // well would leave close waiting for a handler the adapter gave up on.
+  Future<HttpResponse> _handleForAdapter(HttpRequest request) {
+    if (isClosed) return _unavailable();
+    return _answer(request, _router, List.of(_middleware));
+  }
+
+  Future<HttpResponse> _unavailable() => Future.value(
+    _errors.respond(
+      const ServiceUnavailableException(
+        message: 'The application is shutting down.',
+      ),
+      StackTrace.current,
+    ),
+  );
 
   Future<void> _shutdown({required bool force}) async {
     final adapter = _adapter;

@@ -130,7 +130,11 @@ Rules:
   number of times: new requests get 503, running ones finish, then the
   container closes.
 
-This package has no server: `app.handle(request)` answers an `HttpRequest`
-directly and `TestClient` wraps it for tests. Annotations, an analyzer-based
-generator and HTTP adapters (`dart:io`, shelf) are planned in later
-milestones; see the repository's `docs/` directory for the roadmap.
+This package has no server of its own: `app.handle(request)` answers an
+`HttpRequest` directly and `TestClient` wraps it for tests. To serve over
+HTTP, pass an adapter to `Application.create`: `IoAdapter` from
+`dartnest_io` (a `dart:io` `HttpServer`) or `ShelfAdapter` from
+`dartnest_shelf`; `shelfHandler(app)` from `dartnest_shelf` embeds an
+application in an existing shelf pipeline. Annotations and an
+analyzer-based generator are planned in later milestones; see the
+repository's `docs/` directory for the roadmap.

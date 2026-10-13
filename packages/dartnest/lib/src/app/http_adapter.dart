@@ -1,7 +1,9 @@
 import '../http/http_request.dart';
 import '../http/http_response.dart';
 
-/// Answers one request; `Application.handle` is the implementation.
+/// Answers one request. `Application.listen` passes adapters an
+/// implementation equal to `Application.handle` but not counted by the
+/// application's in-flight counter: adapters count their own requests.
 typedef RequestHandler = Future<HttpResponse> Function(HttpRequest request);
 
 /// Connects an HTTP server library to an `Application`.
@@ -21,10 +23,12 @@ typedef RequestHandler = Future<HttpResponse> Function(HttpRequest request);
 /// - [address] is adapter-specific (a host name or an address object); a
 ///   [port] of 0 asks for an ephemeral port.
 /// - [close] stops accepting connections. With `force: false` it completes
-///   after the responses in progress are written; with `force: true` it
-///   drops open connections. It is idempotent and completes at once if
-///   [listen] was never called. `Application.close` calls it before waiting
-///   for in-flight requests.
+///   after the responses in progress are written; an adapter may bound that
+///   wait (e.g. a `closeTimeout`) and then drop the remaining connections
+///   as `force: true` does. With `force: true` it drops open connections at
+///   once. It is idempotent and completes at once if [listen] was never
+///   called. `Application.close` calls it first and does not itself wait
+///   for the requests the adapter delivered: that wait is the adapter's.
 abstract interface class HttpAdapter {
   /// Starts serving [handler] on [address] and [port].
   Future<void> listen(

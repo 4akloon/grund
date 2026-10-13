@@ -60,10 +60,11 @@ Request-scoped провайдери, lifecycle-хуки, GraphQL (v2), WebSocket
 
 | Пакет | Відповідальність | Залежності |
 |---|---|---|
-| `dartnest` | Ядро: `Module`, `Provider`, `Token`, `Injector`, `Controller`, `Route`, роутер, конвеєр, `ExecutionContext`, `Application`, інтерфейс `HttpAdapter`, моделі `HttpRequest`/`HttpResponse`, `TestClient` | Dart SDK |
+| `dartnest` | Ядро: `Module`, `Provider`, `Token`, `Injector`, `Controller`, `Route`, роутер, конвеєр, `ExecutionContext`, `Application`, інтерфейс `HttpAdapter`, моделі `HttpRequest`/`HttpResponse`, `TestClient` | Dart SDK; бібліотека `package:dartnest/adapter.dart` відкриває адаптерам `InFlightRequests` і `AdapterLifecycle` (спільний автомат listen/close) |
 | `dartnest_annotations` | Лише `const`-класи анотацій | — |
 | `dartnest_io` | Адаптер на `dart:io` `HttpServer` | `dartnest` |
 | `dartnest_shelf` | Адаптер на shelf; `shelfHandler(app)` для вбудовування | `dartnest`, `shelf` |
+| `dartnest_conformance` | Спільний conformance-набір для адаптерів (непублікований тестовий пакет, `package:test` лише тут і в `test/`) | `dartnest`, `test` |
 | `dartnest_generator` | Логіка генерації: analyzer `LibraryElement` → код явного API; набір `Construct` | `analyzer`, `code_builder`, `dart_style` |
 | `dartnest_cli` | `dart run dartnest_cli gen [--watch]` | `dartnest_generator`, `watcher` |
 | `dartnest_build` | Builder для build_runner (агрегуючий, вхід `lib/$lib$`) | `dartnest_generator`, `build` |
@@ -303,6 +304,11 @@ final app = await Application.create(
 await app.listen(port: 3000);
 await app.close();
 ```
+
+`Application.listen` передає адаптеру handler без власного лічильника
+запитів: адаптер сам рахує запити в польоті (`InFlightRequests`; автомат
+listen/close спільний для адаптерів: `AdapterLifecycle`), щоб
+`close` не чекав покинутий хендлер довше за `closeTimeout` адаптера.
 
 `app.handle(HttpRequest)` працює без адаптера; `TestClient(app)` дає
 `get/post/...` для тестів.

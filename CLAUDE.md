@@ -135,7 +135,26 @@ producing a response):
   value) and throws `SerializationError` with the original stack trace;
 - `HttpErrorResponder` (added by the HTTP pipeline work) catches the exact
   `JsonUnsupportedObjectError` while encoding `details` and falls back to a
-  body without them, so the last-resort 500 is always produced.
+  body without them, so the last-resort 500 is always produced;
+- adapter boundaries (added by the adapters work): `IoAdapter` reports a
+  failure of the request handler (only possible when the application's own
+  error logger throws) to its `onError` and answers 500 without a body, and
+  reports a failure while writing the response (a failing body stream, a
+  client that went away, a head that cannot be written) to its `onError` and
+  drops the connection itself (`detachSocket` + `destroy`; dart:io only
+  drops it once the head was sent), and the adapter keeps serving;
+- `ShelfBridge` and `ShelfAdapter` (added by the adapters work) do the same
+  for shelf: `ShelfBridge` reports a failure of the request handler to its
+  `onError` and answers 500 without a body, and reports a failure while
+  discarding the body stream of a `HEAD` response (a throwing `onCancel`, a
+  stream already listened to) and still answers; `ShelfAdapter` reports a failure
+  of `shelf_io.handleRequest` while writing the response to its `onError`
+  and drops the connection the same way;
+- the reporter boundaries (added by the adapters work): `IoAdapter` and
+  `GuardedReporter` (shared by `ShelfAdapter` and `shelfHandler`) catch a
+  failure of their own `onError` and write it to stderr with its stack
+  trace, so reporting never
+  stops the 500 or the server.
 `rethrow` keeps the stack trace. Never silence a lint: no `// ignore:`
 without a comment on why, and no rule removed from `analysis_options.yaml`
 to make a change pass.
@@ -143,7 +162,10 @@ to make a change pass.
 **Tests.** Tests come in the same commit as the code; a new branch of logic
 has a test that fails without it. A test names the behaviour, builds its
 input in the test or a named helper, and checks one thing. Set-up of more
-than about 5 lines repeated becomes a helper.
+than about 5 lines repeated becomes a helper. `packages/dartnest_conformance`
+is unpublished test support for the adapter packages: its `lib/` may import
+`package:test`, and the `register` methods of its test groups are held to the
+test-file limits, not to the 40-line method limit.
 
 **Self-review before saying "done".**
 

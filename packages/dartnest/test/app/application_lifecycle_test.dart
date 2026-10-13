@@ -148,6 +148,37 @@ void main() {
       expect(app.container.isClosed, isTrue);
       gate.complete();
     });
+
+    // Review Focus 6: an adapter that gave up on a request after its close
+    // timeout must not leave Application.close waiting for it. FakeAdapter
+    // closes at once, like an adapter whose timeout has expired.
+    test('does not wait for requests the adapter delivered', () async {
+      final gate = Completer<void>();
+      final adapter = FakeAdapter();
+      final app = await Application.create(
+        () => waitingModule(gate),
+        adapter: adapter,
+      );
+      await app.listen(port: 0);
+      unawaited(adapter.send(requestFor('GET', '/wait')));
+      await pumpEventQueue();
+
+      await app.close().timeout(const Duration(seconds: 1));
+
+      expect(app.container.isClosed, isTrue);
+      gate.complete();
+    });
+
+    test('answers 503 to a request the adapter delivers after close', () async {
+      final adapter = FakeAdapter();
+      final app = await Application.create(appModule, adapter: adapter);
+      await app.listen(port: 0);
+      await app.close();
+
+      final response = await adapter.send(requestFor('GET', '/users/1'));
+
+      expect(response.status, 503);
+    });
   });
 
   test('use after close fails with ApplicationStateError', () async {

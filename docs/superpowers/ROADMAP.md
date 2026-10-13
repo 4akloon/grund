@@ -11,7 +11,7 @@
 |---|---|---|---|
 | 1 | **Ядро DI** (план `2026-10-13-dartnest-core-di.md`) | `dartnest` | `Container.create(module)` з модулями, провайдерами, токенами, областями видимості, жадібною async-ініціалізацією; всі помилки графа — типізовані, з ланцюжком |
 | 2 | **HTTP-конвеєр** (план `2026-10-13-dartnest-http-pipeline.md`) | `dartnest` | `HttpRequest/HttpResponse`, radix-роутер, `ExecutionContext`, `Controller<T>`/`Route` на `HandlerSpec`, guards → interceptors → pipes → handler → filters, серіалізація, `Application.create`, `app.handle`, `TestClient`; e2e без сервера |
-| 3 | **Адаптери** | `dartnest_io`, `dartnest_shelf` | Обидва проходять спільний conformance-набір на реальних сокетах; `shelfHandler(app)` вбудовується в shelf-пайплайн |
+| 3 | **Адаптери** (план `2026-10-13-dartnest-adapters.md`) | `dartnest_io`, `dartnest_shelf` | Обидва проходять спільний conformance-набір на реальних сокетах; `shelfHandler(app)` вбудовується в shelf-пайплайн |
 | 4 | **Анотації та генератор** | `dartnest_annotations`, `dartnest_generator` | `Collector` → `PackageModel` (з doc-коментарями, типами, `DtoModel`); `ModuleConstruct`, `ProviderConstruct`, `ControllerConstruct`; статична валідація з `path:line:col`; golden-тести; згенерований код проходить ті самі e2e, що явний |
 | 5 | **CLI** | `dartnest_cli` | `gen`, `gen --watch`, `init`; analyzer-контекст у пам'яті; бенчмарк: інкремент < 1 с на 200 файлах, холодний старт < 10 с |
 | 5b | **Hot reload / hot restart** | `dartnest` (`Container.reassemble`, extension), `dartnest_cli` (`dev`) | `dartnest_cli dev` перезбирає генерований код і робить hot reload зі збереженням стану провайдерів або hot restart; інтеграційний тест: PID не змінюється при reload, змінюється при restart (спека, розділ 10) |
