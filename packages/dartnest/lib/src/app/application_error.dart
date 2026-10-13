@@ -62,3 +62,18 @@ final class InvalidComponentError extends ApplicationError {
   String get message =>
       '$owner lists $actualType in $slot, but it is not a $expectedType.';
 }
+
+/// An `Application` method was called in a state that does not allow it.
+final class ApplicationStateError extends ApplicationError {
+  /// Creates the error.
+  const ApplicationStateError({required this.operation, required this.reason});
+
+  /// The rejected method, for example `listen`.
+  final String operation;
+
+  /// Why it was rejected.
+  final String reason;
+
+  @override
+  String get message => 'Cannot $operation: $reason.';
+}

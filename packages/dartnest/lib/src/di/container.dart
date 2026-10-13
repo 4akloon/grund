@@ -67,4 +67,14 @@ final class Container {
   /// Injector of the module with [moduleId]; throws `UnknownModuleError`.
   Injector injectorFor(String moduleId) =>
       _injectors[moduleId] ?? (throw UnknownModuleError(moduleId));
+
+  Future<void>? _closing;
+
+  /// Whether [close] was called.
+  bool get isClosed => _closing != null;
+
+  /// Shuts the container down. Idempotent: every call returns the same
+  /// future. Providers have no shutdown hooks yet, so nothing else happens;
+  /// instances stay readable.
+  Future<void> close() => _closing ??= Future<void>.value();
 }
