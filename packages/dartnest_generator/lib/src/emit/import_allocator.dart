@@ -1,5 +1,7 @@
 import 'package:code_builder/code_builder.dart';
 
+import 'dart_string.dart';
+
 /// Prefixes every import of the generated library: `dartnest` for the
 /// core barrel, `i1`, `i2`, … for the others in order of first use;
 /// `dart:core` stays unprefixed. Declarations of `package:dartnest/src/`
@@ -15,7 +17,12 @@ final class ImportAllocator implements Allocator {
 
   @override
   String allocate(Reference reference) {
-    final symbol = reference.symbol ?? '';
+    final symbol = reference.symbol;
+    if (symbol == null) {
+      throw StateError(
+        'A reference to library ${reference.url} has no symbol.',
+      );
+    }
     final url = switch (reference.url) {
       final String url when url.startsWith('package:dartnest/') => dartnest,
       final url => url,
@@ -33,6 +40,6 @@ final class ImportAllocator implements Allocator {
   @override
   Iterable<Directive> get imports => [
     for (final MapEntry(key: url, value: prefix) in _prefixes.entries)
-      Directive.import(url, as: prefix),
+      Directive.import(DartString.escape(url), as: prefix),
   ];
 }

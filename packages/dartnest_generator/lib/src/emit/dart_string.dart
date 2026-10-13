@@ -2,15 +2,21 @@
 ///
 /// `code_builder`'s `literalString` escapes only quotes and newlines; a
 /// user string reaches generated code only through [literal], which also
-/// escapes `\`, `$` and every control character.
+/// escapes `\`, `$`, every control character (C0, DEL and C1), the line and
+/// paragraph separators and lone surrogates.
 abstract final class DartString {
   /// [value] as a single-quoted Dart literal.
   static String literal(String value) {
-    final buffer = StringBuffer("'");
+    return "'${escape(value)}'";
+  }
+
+  /// [value] escaped for the inside of a single-quoted literal, without the
+  /// quotes: the form for a URI in a directive.
+  static String escape(String value) {
+    final buffer = StringBuffer();
     for (final rune in value.runes) {
       buffer.write(_escape(rune));
     }
-    buffer.write("'");
     return '$buffer';
   }
 
@@ -21,7 +27,12 @@ abstract final class DartString {
     0x0A => r'\n',
     0x0D => r'\r',
     0x09 => r'\t',
-    < 0x20 || 0x7F || 0x2028 || 0x2029 => '\\u{${rune.toRadixString(16)}}',
+    < 0x20 ||
+    0x7F ||
+    >= 0x80 && <= 0x9F ||
+    0x2028 ||
+    0x2029 ||
+    >= 0xD800 && <= 0xDFFF => '\\u{${rune.toRadixString(16)}}',
     _ => String.fromCharCode(rune),
   };
 }
