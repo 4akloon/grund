@@ -4,7 +4,7 @@
 
 **Goal:** Етап 3 роадмапу: адаптери `dartnest_io` (`IoAdapter` на `dart:io` `HttpServer`) і `dartnest_shelf` (`ShelfAdapter` і `shelfHandler(app)` для вбудовування в наявний shelf-пайплайн); обидва проходять один спільний conformance-набір на реальних сокетах.
 
-**Architecture:** Чотири пакети робочого простору. `dartnest` (ядро) не змінюється, окрім нової бібліотеки `package:dartnest/adapter.dart`, яка відкриває адаптерам наявний `InFlightRequests`. `dartnest_conformance` (непублікований, лише тестова підтримка) містить застосунок-фікстуру, сирий HTTP-клієнт і три групи тестів (`requests`, `bodies`, `lifecycle`), які адаптерний пакет запускає одним рядком `AdapterConformance.run(name, factory)`. `dartnest_io` — три класи: `IoRequestMapper` (запит `dart:io` → `HttpRequest`), `IoResponseWriter` (`HttpResponse` → відповідь `dart:io`: обрамлення, потоки без буферизації, HEAD) і `IoAdapter` (життєвий цикл сервера, лічильник запитів у польоті, межі помилок). `dartnest_shelf` — `ShelfRequestMapper`/`ShelfResponseMapper`, `ShelfBridge` (shelf `Handler` над `RequestHandler`), `ShelfAdapter` (власний `HttpServer` + `shelf_io.handleRequest`) і функція `shelfHandler(app)`.
+**Architecture:** Чотири пакети робочого простору. `dartnest` (ядро) отримує нову бібліотеку `package:dartnest/adapter.dart`, яка відкриває адаптерам наявний `InFlightRequests`, і одну внутрішню зміну: `Application` не рахує запити, які доставив адаптер, — їх чекає `close()` адаптера (рішення 12); сигнатури ядра не змінюються. `dartnest_conformance` (непублікований, лише тестова підтримка) містить застосунок-фікстуру, сирий HTTP-клієнт і три групи тестів (`requests`, `bodies`, `lifecycle`), які адаптерний пакет запускає одним рядком `AdapterConformance.run(name, factory)`. `dartnest_io` — три класи: `IoRequestMapper` (запит `dart:io` → `HttpRequest`), `IoResponseWriter` (`HttpResponse` → відповідь `dart:io`: обрамлення, потоки без буферизації, HEAD) і `IoAdapter` (життєвий цикл сервера, лічильник запитів у польоті з `closeTimeout`, межі помилок). `dartnest_shelf` — `ShelfRequestMapper`/`ShelfResponseMapper`, `ShelfBridge` (shelf `Handler` над `RequestHandler`), `ShelfAdapter` (власний `HttpServer` + `shelf_io.handleRequest`) і функція `shelfHandler(app)`.
 
 **Tech Stack:** Dart SDK ^3.8.0 (без dot shorthands, null-aware elements і primary constructors), `dart:io`, `package:shelf` ^1.4.2 (лише `dartnest_shelf`), `package:test` ^1.25.0, `package:lints` ^5.1.0 + strict-casts/inference/raw-types.
 
@@ -13,7 +13,7 @@
 ## Рішення
 
 1. **Conformance-набір живе в окремому непублікованому пакеті `packages/dartnest_conformance`** (dev_dependency обох адаптерів), бо це єдина копія, яку обидва пакети резолвлять через workspace без відносних імпортів між пакетами і без тестового коду в публікованих `lib/`.
-2. **`InFlightRequests` відкривається через `package:dartnest/adapter.dart`.** `HttpServer.close()` не чекає активних з'єднань, а лічильник `Application` завершується, щойно `handle` повернув `HttpResponse`, — до того, як потокове тіло записано в сокет. Тому адаптер рахує власні запити (від прийому до закриття відповіді) і в `close()` чекає їх.
+2. **`InFlightRequests` відкривається через `package:dartnest/adapter.dart`.** `HttpServer.close()` не чекає активних з'єднань, а лічильник `Application` закінчив би запит, щойно `handle` повернув `HttpResponse`, — до того, як потокове тіло записано в сокет (і запитів адаптера він не рахує взагалі, рішення 12). Тому адаптер рахує власні запити (від прийому до закриття відповіді) і в `close()` чекає їх.
 3. **Адаптери і `shelfHandler` мають необов'язковий `onError: ErrorLogger`** (розширення сигнатур зі специфікації `IoAdapter({SecurityContext?})`, `ShelfAdapter()`, `shelfHandler(app)`): сюди йдуть збої, які вже не можна перетворити на відповідь (тіло-потік упав посеред відповіді, клієнт пішов) і збій самого `handler` (можливий лише коли кидає логер застосунку). Типово — друк у stderr.
 4. **Сервер шле рівно заголовки відповіді застосунку**: типові заголовки `dart:io` (`content-type: text/plain`, `x-frame-options`, `x-content-type-options`, `x-xss-protection`) очищаються, `x-powered-by` від shelf не додається.
 5. **Обрамлення — справа адаптера**: `transfer-encoding` від застосунку відкидається; `BytesBody` → `content-length`; `StreamBody` → chunked, якщо застосунок не задав `content-length`; потоки пишуться без буферизації (кожен чанк іде клієнту, щойно емітований); `connection` від застосунку передається як є (`connection: close` закриває з'єднання); `transfer-encoding` запиту не передається (тіло вже розкодоване).
@@ -21,11 +21,13 @@
 7. **Шлях для роутингу**: `IoAdapter` бере лише request-target (`Uri.parse`, тож dot-сегменти прибрані), `Host` ігнорується, ціль `//x/y`, яку `dart:io` читає як authority `x`, повертається в шлях. `shelfHandler` бере `request.url` відносно `handlerPath` (застосунок можна змонтувати під префіксом). `ShelfAdapter` бере те саме, що й `shelf_io` (`requestedUri`, побудований з `Host` і цілі).
 8. **Невалідне percent-кодування (`%FF`)**: `IoAdapter` віддає запит ядру, яке відповідає JSON 400; `shelf_io` сам відповідає 400 `text/plain` ще до адаптера. Conformance перевіряє лише статус 400.
 9. **503 після `close()`** спостерігається лише через `shelfHandler` (сервер належить користувачеві й живе далі); адаптери після `close()` просто не приймають з'єднань (порт звільнено).
-10. **Поза планом**: обмеження розміру тіла запиту (адаптери стрімлять тіло без ліміту; ліміт — middleware або пізніший етап), таймаут graceful close, WebSocket/hijack, HTTP/2.
+10. **Поза планом**: обмеження розміру тіла запиту (адаптери стрімлять тіло без ліміту; ліміт — middleware або пізніший етап), WebSocket/hijack, HTTP/2.
+11. **Graceful close має таймаут: `closeTimeout` у конструкторах `IoAdapter` і `ShelfAdapter`** (тип `Duration?`, типово `defaultCloseTimeout` = 30 с, `null` — чекати без обмеження). Не в `HttpAdapter` і не в `Application.close({bool force})`: їхні сигнатури не змінюються, таймаут — властивість сервера, як `securityContext`. `close()` без `force` перестає приймати з'єднання і чекає запити в польоті (разом із відповідями, що ще пишуться); коли `closeTimeout` минув, адаптер робить з рештою з'єднань те саме, що `close(force: true)` (`HttpServer.close(force: true)` обриває їх; порт звільнено ще першим `server.close()`), і `close()` завершується нормально, без помилки. `close(force: true)` не чекає взагалі. Лічильник адаптера після таймауту не обнуляється й не «відпускається»: покинуті запити лишаються в ньому, доки їхній хендлер колись не завершиться (тоді запис в уже обірване з'єднання піде в `onError` межею відповіді), але `close()` на них більше не чекає. Типово 30 с, а не `null`: graceful close, що може висіти вічно (нескінченний потік, завислий хендлер), гірший дефолт — процес не завершиться сам, а оркестратор однаково вб'є його (Kubernetes типово дає 30 с `terminationGracePeriodSeconds`). `null`, а не `Duration.zero`, означає «без ліміту», бо нуль читається як «одразу force». Таймаут зроблено через `Future.timeout(onTimeout:)`, без нового `catch`, тож список меж `on Object` у `CLAUDE.md` не змінюється.
+12. **`Application` не рахує запити, які доставив адаптер** (Task 1). Інакше `Application.close()` після `adapter.close()` чекав би свій лічильник, а хендлер, який адаптер покинув після `closeTimeout`, не завершиться ніколи, тож `app.close()` зависав би попри таймаут. `Application.listen` передає адаптеру не `handle`, а внутрішній `_handleForAdapter`: та сама відповідь (і 503 після `close`), але поза лічильником застосунку. Чекати доставлені запити — і так обов'язок `HttpAdapter.close` (без `force` він завершується після запису відповідей), тож лічильник застосунку лишається для прямих викликів `handle` (`TestClient`, `shelfHandler`), як і раніше. `HttpAdapter` змінюється лише в dartdoc контракту (адаптер може обмежити очікування таймаутом).
 
 ## Global Constraints
 
-- Ядро `dartnest` лишається без `dart:io` і shelf: нова `lib/adapter.dart` лише експортує `src/app/in_flight_requests.dart` (залежить від `dart:async`). Решта ядра не змінюється.
+- Ядро `dartnest` лишається без `dart:io` і shelf: нова `lib/adapter.dart` лише експортує `src/app/in_flight_requests.dart` (залежить від `dart:async`). Решта ядра змінюється лише в Task 1: `Application` не рахує запити, доставлені адаптером (рішення 12), а dartdoc `HttpAdapter` дозволяє адаптеру обмежити graceful close таймаутом. Сигнатури `HttpAdapter`, `Application.close({bool force})` і решти публічного API ядра не змінюються.
 - Пакети та залежності (специфікація, розділ 2): `dartnest_io` → `dartnest`; `dartnest_shelf` → `dartnest`, `shelf ^1.4.2`; `dartnest_conformance` → `dartnest`, `test`. Dev-залежності адаптерів: `dartnest_conformance`, `lints`, `test`. Інших залежностей немає. Усі пакети: `version: 0.1.0-dev`, `publish_to: none`, `sdk: ^3.8.0`, `resolution: workspace`; кожен додається в `workspace:` кореневого `pubspec.yaml` у задачі, що його створює.
 - `package:test` імпортується лише в `test/` і в `dartnest_conformance/lib` (непублікована тестова підтримка; Task 2 фіксує це в `CLAUDE.md`). У `lib/` адаптерів — ніколи.
 - `CLAUDE.md`: ≤ 300 рядків на файл у `lib/`, ≤ 500 на тестовий файл, ≤ 40 рядків на метод, ≤ 5 параметрів, ≤ 3 рівні вкладеності; один публічний клас на файл (виняток — функції, які специфікація робить публічним API: `shelfHandler`, `conformanceModule`); без `!`, `dynamic`, `late` без коментаря, `catch` без `on`. Кожна нова межа `on Object` у адаптерах додається до списку меж у `CLAUDE.md` у задачі, що її вводить (Task 5, Task 8).
@@ -34,7 +36,7 @@
 - Hot reload не блокується: адаптер тримає лише замикання `RequestHandler` (`app.handle`), яке на кожен запит читає поточну таблицю роутів; адаптер нічого не кешує з застосунку.
 - Перед кожним комітом: з кореня репо `dart analyze` — «No issues found!», `dart format --output=none --set-exit-if-changed packages` — 0 змінених файлів; `dart test` зелений у кожному пакеті, якого торкнулась задача.
 - `dart` не завжди в `PATH`: `export PATH="$HOME/fvm/versions/3.47.6/bin/cache/dart-sdk/bin:$PATH"`. Після зміни будь-якого `pubspec.yaml` — `dart pub get` з кореня.
-- Відхилення від специфікації, зафіксовані планом: `onError` в адаптерах і `shelfHandler` (рішення 3); геттер `port` в обох адаптерах (`HttpAdapter` не має способу повідомити порт, прив'язаний до `port: 0`); `ShelfAdapter` маршрутизує як `shelf_io` (рішення 7).
+- Відхилення від специфікації, зафіксовані планом: `onError` в адаптерах і `shelfHandler` (рішення 3); `closeTimeout` в обох адаптерах (рішення 11); геттер `port` в обох адаптерах (`HttpAdapter` не має способу повідомити порт, прив'язаний до `port: 0`); `ShelfAdapter` маршрутизує як `shelf_io` (рішення 7).
 
 ## Review Focus
 
@@ -43,6 +45,7 @@
 3. Ціль `//users//1`: `dart:io` розбирає `//users` як authority; очікується 200 від `GET /users/:id` (порожні сегменти відкидає роутер), а не 404 на `/`. Закріплено в Task 3 через групу `requests` (`reads a target that starts with // as a path`).
 4. Клієнт закриває сокет посеред потокової відповіді: адаптер не падає, потік скасовується, сервер обслуговує далі, лічильник у польоті повертається до нуля (наступний `close()` не зависає). Закріплено в Task 5 (`survives a client that leaves mid-response`).
 5. Застосунок сам ставить `transfer-encoding: chunked` (скопійовано з проксі): тіло має прийти коректно обрамленим, без подвійного chunked-кодування (shelf вважає таке тіло вже закодованим). Закріплено в Task 4 (`frames the body itself despite an app transfer-encoding`) і в Task 7 (`drops transfer-encoding set by the application`).
+6. Хендлер, що ніколи не завершується, і `app.close()` без `force`: після `closeTimeout` з'єднання обривається (клієнт бачить закрите з'єднання), порт вільний, і завершується не лише `close()` адаптера, а й `Application.close()` (не чекає свій лічильник на покинутому хендлері, рішення 12); хендлер, що встиг до таймауту, відповідає повністю; `closeTimeout: null` не діє як нуль. Закріплено в Task 1 (`does not wait for requests the adapter delivered`) і в Task 5 (`close gives up on a stuck handler after closeTimeout`, `close cuts a streaming response after closeTimeout`, `close lets a handler that finishes in time answer`, `close without a closeTimeout waits for a slow handler`).
 
 ---
 
@@ -54,13 +57,16 @@ CLAUDE.md                                        # conformance note (Task 2), ad
 docs/superpowers/ROADMAP.md                      # stage 3 row links this plan (Task 10)
 packages/dartnest/
   lib/adapter.dart                               # NEW: exports InFlightRequests for adapter packages
+  lib/src/app/application.dart                   # requests from the adapter are not counted (Task 1)
+  lib/src/app/http_adapter.dart                  # dartdoc: close may be bounded by a timeout (Task 1)
   test/app/in_flight_requests_test.dart          # NEW
+  test/app/application_lifecycle_test.dart       # + requests delivered by the adapter (Task 1)
   README.md                                      # last paragraph points to the adapters (Task 10)
 packages/dartnest_conformance/                   # NEW, publish_to: none, test support only
   pubspec.yaml, analysis_options.yaml
   lib/dartnest_conformance.dart                  # barrel
   lib/src/adapter_conformance.dart               # AdapterConformance.run(name, factory)
-  lib/src/adapter_under_test.dart                # AdapterFactory, AdapterUnderTest
+  lib/src/adapter_under_test.dart                # AdapterFactory(onError, closeTimeout), AdapterUnderTest
   lib/src/conformance_probe.dart                 # ConformanceProbe: completers the fixture signals
   lib/src/conformance_data.dart                  # ConformanceData: deterministic payloads, checksum, endless stream
   lib/src/conformance_app.dart                   # conformanceModule(probe): users API + /probe/* routes
@@ -100,17 +106,22 @@ packages/dartnest_shelf/                         # NEW
 
 Залежності задач: 1 → 5, 8; 2 → 3 → 4 → 5 → 6; 2 → 7 → 8 → 9; 10 — останньою. Task 7 може йти паралельно з 3–6, але Task 8 вимагає групи `bodies` і `lifecycle` (Tasks 4, 5).
 
-### Task 1: `package:dartnest/adapter.dart` — `InFlightRequests` для адаптерів
+### Task 1: Ядро для адаптерів: `InFlightRequests` у `package:dartnest/adapter.dart` і запити адаптера поза лічильником `Application`
 
 `InFlightRequests` (внутрішній клас ядра з етапу 2, `lib/src/app/in_flight_requests.dart`) уже рахує запити `Application`. Адаптерам потрібен такий самий лічильник для власного шару (відповідь у сокеті, рішення 2). Замість копії ядро відкриває його через окрему бібліотеку, яку застосункам імпортувати не потрібно; `package:dartnest/dartnest.dart` не змінюється. Сам клас не змінюється — задача додає точку входу і тести її контракту.
 
+Друга частина (рішення 12): `Application._shutdown` після `adapter.close()` чекає `_inFlight.idle`, а `Application.listen` віддає адаптеру `handle`, тобто кожен доставлений запит рахується і тут. Коли адаптер після `closeTimeout` (Tasks 5, 8) покидає хендлер, що не завершується, `app.close()` зависав би на цьому лічильнику назавжди. Тому `listen` передає адаптеру `_handleForAdapter` — ту саму відповідь без лічильника; `handle` для прямих викликів рахується, як і раніше. Сигнатури не змінюються; dartdoc `HttpAdapter.close` і `Application.close` описує, хто що чекає.
+
 **Files:**
 - Create: `packages/dartnest/lib/adapter.dart`
+- Modify: `packages/dartnest/lib/src/app/application.dart`
+- Modify: `packages/dartnest/lib/src/app/http_adapter.dart` (лише dartdoc)
 - Test: `packages/dartnest/test/app/in_flight_requests_test.dart`
+- Test: `packages/dartnest/test/app/application_lifecycle_test.dart`
 
 **Interfaces:**
-- Consumes: `InFlightRequests` (етап 2, `packages/dartnest/lib/src/app/in_flight_requests.dart`, без змін).
-- Produces: `package:dartnest/adapter.dart` експортує `final class InFlightRequests { int get count; Future<T> track<T>(Future<T> Function() handle); Future<void> get idle; }` (Tasks 5, 8).
+- Consumes: `InFlightRequests` (етап 2, `packages/dartnest/lib/src/app/in_flight_requests.dart`, без змін); `FakeAdapter`, `waitingModule`, `requestFor`, `appModule` (тестові хелпери етапу 2).
+- Produces: `package:dartnest/adapter.dart` експортує `final class InFlightRequests { int get count; Future<T> track<T>(Future<T> Function() handle); Future<void> get idle; }` (Tasks 5, 8). `Application.close()` не чекає запити, які доставив адаптер: їх чекає `HttpAdapter.close` (з `closeTimeout` у Tasks 5, 8), тож таймаут адаптера не підвішує `app.close()`.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -195,6 +206,189 @@ git add packages/dartnest/lib/adapter.dart packages/dartnest/test/app/in_flight_
 git commit -m "feat(core): expose InFlightRequests to adapter packages"
 ```
 
+- [ ] **Step 6: Write the failing tests for requests delivered by the adapter**
+
+У `packages/dartnest/test/app/application_lifecycle_test.dart` замінити
+
+```dart
+      expect(app.container.isClosed, isTrue);
+      gate.complete();
+    });
+  });
+```
+
+на
+
+```dart
+      expect(app.container.isClosed, isTrue);
+      gate.complete();
+    });
+
+    // Review Focus 6: an adapter that gave up on a request after its close
+    // timeout must not leave Application.close waiting for it. FakeAdapter
+    // closes at once, like an adapter whose timeout has expired.
+    test('does not wait for requests the adapter delivered', () async {
+      final gate = Completer<void>();
+      final adapter = FakeAdapter();
+      final app = await Application.create(
+        () => waitingModule(gate),
+        adapter: adapter,
+      );
+      await app.listen(port: 0);
+      unawaited(adapter.send(requestFor('GET', '/wait')));
+      await pumpEventQueue();
+
+      await app.close().timeout(const Duration(seconds: 1));
+
+      expect(app.container.isClosed, isTrue);
+      gate.complete();
+    });
+
+    test('answers 503 to a request the adapter delivers after close', () async {
+      final adapter = FakeAdapter();
+      final app = await Application.create(appModule, adapter: adapter);
+      await app.listen(port: 0);
+      await app.close();
+
+      final response = await adapter.send(requestFor('GET', '/users/1'));
+
+      expect(response.status, 503);
+    });
+  });
+```
+
+- [ ] **Step 7: Run tests to verify they fail**
+
+Run from `packages/dartnest`: `dart test test/app/application_lifecycle_test.dart`
+Expected: FAIL — `does not wait for requests the adapter delivered` падає з `TimeoutException` (`close()` чекає лічильник застосунку на хендлері, що не завершується). `answers 503 to a request the adapter delivers after close` проходить уже зараз і стереже нову гілку `_handleForAdapter`.
+
+- [ ] **Step 8: Leave requests delivered by the adapter to the adapter**
+
+У `packages/dartnest/lib/src/app/application.dart` замінити
+
+```dart
+  Future<HttpResponse> handle(HttpRequest request) {
+    if (isClosed) {
+      return Future.value(
+        _errors.respond(
+          const ServiceUnavailableException(
+            message: 'The application is shutting down.',
+          ),
+          StackTrace.current,
+        ),
+      );
+    }
+    final router = _router;
+```
+
+на
+
+```dart
+  Future<HttpResponse> handle(HttpRequest request) {
+    if (isClosed) return _unavailable();
+    final router = _router;
+```
+
+У тому ж файлі замінити
+
+```dart
+      await adapter.listen(handle, address: address, port: port);
+```
+
+на
+
+```dart
+      await adapter.listen(_handleForAdapter, address: address, port: port);
+```
+
+У тому ж файлі замінити
+
+```dart
+  /// Stops the application: the adapter stops accepting requests, new
+  /// [handle] calls answer 503, in-flight requests finish (unless [force]),
+  /// then the container closes. Every call returns the same future; [force]
+  /// of later calls is ignored.
+```
+
+на
+
+```dart
+  /// Stops the application: the adapter stops accepting requests, new
+  /// requests answer 503, in-flight requests finish (unless [force]), then
+  /// the container closes. Every call returns the same future; [force] of
+  /// later calls is ignored.
+  ///
+  /// The adapter's `close` waits for the requests it delivered and may give
+  /// up on them after a timeout of its own; this method then waits for the
+  /// [handle] calls made directly, e.g. by `TestClient`.
+```
+
+У тому ж файлі замінити
+
+```dart
+  Future<void> _shutdown({required bool force}) async {
+```
+
+на
+
+```dart
+  // Not counted in _inFlight: the adapter's close waits for the requests it
+  // delivered and may abandon them after its timeout; counting them here as
+  // well would leave close waiting for a handler the adapter gave up on.
+  Future<HttpResponse> _handleForAdapter(HttpRequest request) {
+    if (isClosed) return _unavailable();
+    return _answer(request, _router, List.of(_middleware));
+  }
+
+  Future<HttpResponse> _unavailable() => Future.value(
+    _errors.respond(
+      const ServiceUnavailableException(
+        message: 'The application is shutting down.',
+      ),
+      StackTrace.current,
+    ),
+  );
+
+  Future<void> _shutdown({required bool force}) async {
+```
+
+У `packages/dartnest/lib/src/app/http_adapter.dart` замінити
+
+```dart
+/// - [close] stops accepting connections. With `force: false` it completes
+///   after the responses in progress are written; with `force: true` it
+///   drops open connections. It is idempotent and completes at once if
+///   [listen] was never called. `Application.close` calls it before waiting
+///   for in-flight requests.
+```
+
+на
+
+```dart
+/// - [close] stops accepting connections. With `force: false` it completes
+///   after the responses in progress are written; an adapter may bound that
+///   wait (e.g. a `closeTimeout`) and then drop the remaining connections
+///   as `force: true` does. With `force: true` it drops open connections at
+///   once. It is idempotent and completes at once if [listen] was never
+///   called. `Application.close` calls it first and does not itself wait
+///   for the requests the adapter delivered: that wait is the adapter's.
+```
+
+- [ ] **Step 9: Run tests to verify they pass**
+
+Run from `packages/dartnest`: `dart test`
+Expected: `+241: All tests passed!` (239 після Step 4 + 2 нові).
+
+Run from repo root: `dart analyze && dart format --output=none --set-exit-if-changed packages`
+Expected: `No issues found!`, `0 changed`.
+
+- [ ] **Step 10: Commit**
+
+```bash
+git add packages/dartnest/lib/src/app packages/dartnest/test/app/application_lifecycle_test.dart
+git commit -m "fix(app): leave requests delivered by an adapter to the adapter's close"
+```
+
 ---
 
 ### Task 2: Пакет `dartnest_conformance`: фікстура, сирий HTTP, група `requests`
@@ -202,13 +396,13 @@ git commit -m "feat(core): expose InFlightRequests to adapter packages"
 Спільний conformance-набір (рішення 1). Адаптерний пакет пише один тестовий файл:
 
 ```dart
-void main() => AdapterConformance.run('IoAdapter', (onError) {
-  final adapter = IoAdapter(onError: onError);
+void main() => AdapterConformance.run('IoAdapter', (onError, closeTimeout) {
+  final adapter = IoAdapter(onError: onError, closeTimeout: closeTimeout);
   return AdapterUnderTest(adapter, boundPort: () => adapter.port);
 });
 ```
 
-Кожен тест групи створює свіжий `ConformanceServer`: `Application.create(() => conformanceModule(probe), adapter: ..., onError: ...)`, `app.listen(port: 0, address: InternetAddress.loopbackIPv4)`, `HttpClient` з `maxConnectionsPerHost = 1` (щоб повторне використання keep-alive з'єднання було видно за локальним портом) і записані помилки адаптера й застосунку. Фікстура — маленький users API (`GET /users/:id`, `POST /users` → 201 + `location`) і службові роути `/probe/*`: ехо запиту, сегмент, завантаження з контрольною сумою, потокове й in-memory скачування, потік на «воротах» `ConformanceProbe`, повільний хендлер, нескінченний потік, потік, що падає, кілька `set-cookie`, `transfer-encoding` і `connection: close` від застосунку, 204, хендлер, що кидає. `RawHttp` пише запити просто в сокет: конвеєрні запити, цілі `//users//1` і `%FF`, які `HttpClient` не відправить, обрив після перших байтів; `RawResponse` розбирає відповідь і розкодовує chunked, позначаючи обірвану.
+Фабрика отримує `onError` адаптера і `closeTimeout` (рішення 11), який тест може задати в `ConformanceServer.start`; типово — `ConformanceServer.defaultCloseTimeout` (30 с, більше за будь-яке очікування тестів). Кожен тест групи створює свіжий `ConformanceServer`: `Application.create(() => conformanceModule(probe), adapter: ..., onError: ...)`, `app.listen(port: 0, address: InternetAddress.loopbackIPv4)`, `HttpClient` з `maxConnectionsPerHost = 1` (щоб повторне використання keep-alive з'єднання було видно за локальним портом) і записані помилки адаптера й застосунку. Фікстура — маленький users API (`GET /users/:id`, `POST /users` → 201 + `location`) і службові роути `/probe/*`: ехо запиту, сегмент, завантаження з контрольною сумою, потокове й in-memory скачування, потік на «воротах» `ConformanceProbe`, повільний хендлер, нескінченний потік, потік, що падає, кілька `set-cookie`, `transfer-encoding` і `connection: close` від застосунку, 204, хендлер, що кидає. `RawHttp` пише запити просто в сокет: конвеєрні запити, цілі `//users//1` і `%FF`, які `HttpClient` не відправить, обрив після перших байтів; `RawResponse` розбирає відповідь і розкодовує chunked, позначаючи обірвану.
 
 У цій задачі `AdapterConformance.run` реєструє лише групу `requests`; `bodies` додає Task 4, `lifecycle` — Task 5. Групу `requests` уперше запускає адаптер у Task 3; тут вона лише компілюється. Власні тести пакета перевіряють фікстуру без сокетів (через `TestClient`) і `RawHttp` проти голого `dart:io`-сервера.
 
@@ -234,10 +428,10 @@ void main() => AdapterConformance.run('IoAdapter', (onError) {
 **Interfaces:**
 - Consumes: `Application.create(Module Function(), {HttpAdapter? adapter, ErrorLogger? onError})`, `Application.listen({required int port, Object address})`, `Application.close({bool force})`, `HttpAdapter`, `ErrorLogger`, `Module`, `Controller`, `Route`, `HttpResponse`, `HeaderMap`, `TestClient` (етап 2).
 - Produces (усе з `package:dartnest_conformance/dartnest_conformance.dart`):
-  - `typedef AdapterFactory = AdapterUnderTest Function(ErrorLogger onError);`
+  - `typedef AdapterFactory = AdapterUnderTest Function(ErrorLogger onError, Duration? closeTimeout);`
   - `final class AdapterUnderTest { const AdapterUnderTest(HttpAdapter adapter, {required int Function() boundPort}); }`
   - `abstract final class AdapterConformance { static void run(String name, AdapterFactory factory); }` — реєструє `group('$name conformance', ...)`.
-  - `final class ConformanceServer { static Future<ConformanceServer> start(AdapterFactory factory, {ErrorLogger? applicationLogger}); Application app; int port; ConformanceProbe probe; HttpClient client; List<Object> adapterErrors; List<Object> applicationErrors; Future<Object> firstAdapterError; Uri uri(String target); Future<ClientResponse> send(String method, String target, {Map<String, String> headers, List<int>? body}); Future<void> close(); }`
+  - `final class ConformanceServer { static const Duration defaultCloseTimeout; static Future<ConformanceServer> start(AdapterFactory factory, {ErrorLogger? applicationLogger, Duration? closeTimeout = defaultCloseTimeout}); Application app; int port; ConformanceProbe probe; HttpClient client; List<Object> adapterErrors; List<Object> applicationErrors; Future<Object> firstAdapterError; Uri uri(String target); Future<ClientResponse> send(String method, String target, {Map<String, String> headers, List<int>? body}); Future<void> close(); }`
   - `final class ConformanceProbe { Completer<void> entered, release, firstUploadChunk, endlessCancelled; }`
   - `abstract final class ConformanceData { static const chunkSize; static Uint8List bytes(int); static Stream<List<int>> chunks(int); static int checksum(Iterable<int>); static Stream<List<int>> endless(void Function() onCancel); }`
   - `Module conformanceModule(ConformanceProbe probe)`
@@ -512,8 +706,11 @@ Expected: FAIL на компіляції — `package:dartnest_conformance/dartn
 import 'package:dartnest/dartnest.dart';
 
 /// Creates the adapter under test; [onError] receives the failures the
-/// adapter reports itself (a throwing handler, a failing body stream).
-typedef AdapterFactory = AdapterUnderTest Function(ErrorLogger onError);
+/// adapter reports itself (a throwing handler, a failing body stream), and
+/// [closeTimeout] is the adapter's limit for a graceful close (`null`: no
+/// limit).
+typedef AdapterFactory =
+    AdapterUnderTest Function(ErrorLogger onError, Duration? closeTimeout);
 
 /// An adapter for the conformance suite and how to read the port it bound;
 /// the suite always listens on port 0.
@@ -871,16 +1068,22 @@ import 'conformance_probe.dart';
 final class ConformanceServer {
   ConformanceServer._(this.app, this.port, this.probe, this._errors);
 
+  /// The adapter's `closeTimeout` unless a test sets one: longer than any
+  /// wait in the suite, so only the timeout tests reach it.
+  static const defaultCloseTimeout = Duration(seconds: 30);
+
   /// Creates the application with the adapter from [factory] and listens.
   /// [applicationLogger] replaces the recording `onError` of the
-  /// application (to test a logger that throws).
+  /// application (to test a logger that throws); [closeTimeout] goes to
+  /// the adapter.
   static Future<ConformanceServer> start(
     AdapterFactory factory, {
     ErrorLogger? applicationLogger,
+    Duration? closeTimeout = defaultCloseTimeout,
   }) async {
     final probe = ConformanceProbe();
     final errors = _ReportedErrors();
-    final underTest = factory(errors.adapter);
+    final underTest = factory(errors.adapter, closeTimeout);
     final app = await Application.create(
       () => conformanceModule(probe),
       adapter: underTest.adapter,
@@ -1323,8 +1526,11 @@ import 'groups/request_conformance.dart';
 /// ```dart
 /// void main() => AdapterConformance.run(
 ///   'IoAdapter',
-///   (onError) {
-///     final adapter = IoAdapter(onError: onError);
+///   (onError, closeTimeout) {
+///     final adapter = IoAdapter(
+///       onError: onError,
+///       closeTimeout: closeTimeout,
+///     );
 ///     return AdapterUnderTest(adapter, boundPort: () => adapter.port);
 ///   },
 /// );
@@ -1458,13 +1664,13 @@ Expected: `Got dependencies!`
 
 - [ ] **Step 2: Write the failing tests**
 
-`packages/dartnest_io/test/io_adapter_conformance_test.dart` (поки без `onError`: його додає Task 5):
+`packages/dartnest_io/test/io_adapter_conformance_test.dart` (поки без `onError` і `closeTimeout`: їх додає Task 5):
 
 ```dart
 import 'package:dartnest_conformance/dartnest_conformance.dart';
 import 'package:dartnest_io/dartnest_io.dart';
 
-void main() => AdapterConformance.run('IoAdapter', (_) {
+void main() => AdapterConformance.run('IoAdapter', (_, _) {
   final adapter = IoAdapter();
   return AdapterUnderTest(adapter, boundPort: () => adapter.port);
 });
@@ -1955,8 +2161,11 @@ import 'groups/request_conformance.dart';
 /// ```dart
 /// void main() => AdapterConformance.run(
 ///   'IoAdapter',
-///   (onError) {
-///     final adapter = IoAdapter(onError: onError);
+///   (onError, closeTimeout) {
+///     final adapter = IoAdapter(
+///       onError: onError,
+///       closeTimeout: closeTimeout,
+///     );
 ///     return AdapterUnderTest(adapter, boundPort: () => adapter.port);
 ///   },
 /// );
@@ -2125,9 +2334,9 @@ git commit -m "feat(io): stream bodies unbuffered and answer HEAD without a body
 
 ### Task 5: Життєвий цикл: `close`, запити в польоті, межі помилок (група `lifecycle`)
 
-Група `lifecycle`: `close()` чекає відповідь, що ще стрімиться, і повільний хендлер; після `close()` нові з'єднання відхиляються, а порт можна прив'язати знову; `close(force: true)` обриває запит у польоті; якщо логер застосунку кидає, адаптер відповідає 500 без тіла і працює далі; потік, що падає посеред відповіді, обриває з'єднання (клієнт бачить незавершене chunked-тіло), а збій іде в `onError`; клієнт, що пішов посеред відповіді, не валить сервер і не підвішує `close()` (Review Focus 4).
+Група `lifecycle`: `close()` чекає відповідь, що ще стрімиться, і повільний хендлер; після `close()` нові з'єднання відхиляються, а порт можна прив'язати знову; `close(force: true)` обриває запит у польоті; якщо логер застосунку кидає, адаптер відповідає 500 без тіла і працює далі; потік, що падає посеред відповіді, обриває з'єднання (клієнт бачить незавершене chunked-тіло), а збій іде в `onError`; клієнт, що пішов посеред відповіді, не валить сервер і не підвішує `close()` (Review Focus 4); `closeTimeout` (рішення 11, Review Focus 6): завислий хендлер і потік, що ще пишеться, обриваються після таймауту, `app.close()` завершується, порт вільний; хендлер, що встиг, відповідає повністю; `null` чекає без ліміту.
 
-`HttpServer.close()` повертається, не чекаючи активних з'єднань, а `Application` перестає рахувати запит, щойно `handle` повернув відповідь. Тому `IoAdapter` обгортає кожен запит у `InFlightRequests.track` (Task 1) і в `close()` після `server.close()` чекає `idle` (крім `force`). Межі `on Object`:
+`HttpServer.close()` повертається, не чекаючи активних з'єднань, а `Application` не рахує запити, які доставив адаптер (Task 1). Тому `IoAdapter` обгортає кожен запит у `InFlightRequests.track` (Task 1) і в `close()` після `server.close()` чекає `idle` (крім `force`) не довше за `closeTimeout`: `Future.timeout` з `onTimeout: () => server.close(force: true)` обриває решту з'єднань, і `close()` завершується без помилки. Нового `catch` немає. Межі `on Object`:
 - **запиту** (`_answer`): `handler` кидає лише тоді, коли кидає логер застосунку; адаптер віддає збій в `onError` і відповідає 500 без тіла;
 - **відповіді** (`_serve`): запис тіла (код користувача) або сокет падає; `dart:io` вже обірвав з'єднання, тож лишається повідомити `onError`.
 
@@ -2142,8 +2351,8 @@ git commit -m "feat(io): stream bodies unbuffered and answer HEAD without a body
 - Modify: `CLAUDE.md` (список меж помилок)
 
 **Interfaces:**
-- Consumes: `InFlightRequests` з `package:dartnest/adapter.dart` (Task 1); `ConformanceServer.firstAdapterError`, `adapterErrors`, `applicationErrors`, `start(..., applicationLogger:)`, `RawHttp.abortAfterFirstBytes` (Task 2); `IoResponseWriter.write(..., isHead:)` (Task 4).
-- Produces: `static void LifecycleConformance.register(AdapterFactory factory)` (група `lifecycle`); `IoAdapter({ErrorLogger? onError})`, `final ErrorLogger onError`, `static void IoAdapter.printError(Object error, StackTrace stackTrace)`.
+- Consumes: `InFlightRequests` з `package:dartnest/adapter.dart` і `Application`, що не рахує запити адаптера (Task 1); `ConformanceServer.firstAdapterError`, `adapterErrors`, `applicationErrors`, `start(..., applicationLogger:, closeTimeout:)`, `RawHttp.exchange`, `RawHttp.abortAfterFirstBytes` (Task 2); `IoResponseWriter.write(..., isHead:)` (Task 4).
+- Produces: `static void LifecycleConformance.register(AdapterFactory factory)` (група `lifecycle`); `IoAdapter({Duration? closeTimeout = IoAdapter.defaultCloseTimeout, ErrorLogger? onError})`, `static const Duration IoAdapter.defaultCloseTimeout` (30 с), `final Duration? closeTimeout`, `final ErrorLogger onError`, `static void IoAdapter.printError(Object error, StackTrace stackTrace)`.
 
 - [ ] **Step 1: Write the `lifecycle` group**
 
@@ -2169,6 +2378,9 @@ abstract final class LifecycleConformance {
 
   /// How long a test watches that something does not happen.
   static const settle = Duration(milliseconds: 200);
+
+  /// The adapter's `closeTimeout` in the tests that let it expire.
+  static const shortCloseTimeout = Duration(milliseconds: 250);
 
   /// Registers the group for [factory].
   static void register(AdapterFactory factory) {
@@ -2231,6 +2443,78 @@ abstract final class LifecycleConformance {
         await server.app.close(force: true).timeout(stepTimeout);
 
         await expectLater(response, throwsA(isA<IOException>()));
+      });
+
+      // Review Focus 6: the adapter drops the connection after the timeout
+      // and Application.close does not wait for the abandoned handler.
+      test('close gives up on a stuck handler after closeTimeout', () async {
+        await server.close();
+        server = await ConformanceServer.start(
+          factory,
+          closeTimeout: shortCloseTimeout,
+        );
+        final response = server.send('GET', '/probe/slow');
+        await server.probe.entered.future.timeout(stepTimeout);
+        final stopwatch = Stopwatch()..start();
+
+        await server.app.close().timeout(stepTimeout);
+
+        expect(stopwatch.elapsed, greaterThan(shortCloseTimeout ~/ 2));
+        await expectLater(response, throwsA(isA<IOException>()));
+        final rebound = await ServerSocket.bind(
+          InternetAddress.loopbackIPv4,
+          server.port,
+        );
+        await rebound.close();
+      });
+
+      test('close cuts a streaming response after closeTimeout', () async {
+        await server.close();
+        server = await ConformanceServer.start(
+          factory,
+          closeTimeout: shortCloseTimeout,
+        );
+        final streamed = RawHttp.exchange(
+          server.port,
+          RawHttp.head('GET', '/probe/gated-stream'),
+        );
+        await server.probe.entered.future.timeout(stepTimeout);
+
+        await server.app.close().timeout(stepTimeout);
+
+        final response = await streamed;
+        expect((response.status, response.isComplete), (200, false));
+      });
+
+      test('close lets a handler that finishes in time answer', () async {
+        await server.close();
+        server = await ConformanceServer.start(
+          factory,
+          closeTimeout: shortCloseTimeout,
+        );
+        final response = server.send('GET', '/probe/slow');
+        await server.probe.entered.future.timeout(stepTimeout);
+        final closing = server.app.close();
+
+        server.probe.release.complete();
+
+        expect((await response).text, 'done');
+        await closing.timeout(stepTimeout);
+      });
+
+      test('close without a closeTimeout waits for a slow handler', () async {
+        await server.close();
+        server = await ConformanceServer.start(factory, closeTimeout: null);
+        final response = server.send('GET', '/probe/slow');
+        await server.probe.entered.future.timeout(stepTimeout);
+        var closed = false;
+        final closing = server.app.close().then((_) => closed = true);
+
+        await Future<void>.delayed(settle);
+        expect(closed, isFalse);
+        server.probe.release.complete();
+        expect((await response).text, 'done');
+        await closing.timeout(stepTimeout);
       });
 
       test('answers 500 without a body when the app logger throws', () async {
@@ -2299,8 +2583,11 @@ import 'groups/request_conformance.dart';
 /// ```dart
 /// void main() => AdapterConformance.run(
 ///   'IoAdapter',
-///   (onError) {
-///     final adapter = IoAdapter(onError: onError);
+///   (onError, closeTimeout) {
+///     final adapter = IoAdapter(
+///       onError: onError,
+///       closeTimeout: closeTimeout,
+///     );
 ///     return AdapterUnderTest(adapter, boundPort: () => adapter.port);
 ///   },
 /// );
@@ -2318,7 +2605,7 @@ abstract final class AdapterConformance {
 }
 ```
 
-- [ ] **Step 2: Pass `onError` to the adapter in the tests**
+- [ ] **Step 2: Pass `onError` and `closeTimeout` to the adapter in the tests**
 
 `packages/dartnest_io/test/io_adapter_conformance_test.dart`:
 
@@ -2326,8 +2613,8 @@ abstract final class AdapterConformance {
 import 'package:dartnest_conformance/dartnest_conformance.dart';
 import 'package:dartnest_io/dartnest_io.dart';
 
-void main() => AdapterConformance.run('IoAdapter', (onError) {
-  final adapter = IoAdapter(onError: onError);
+void main() => AdapterConformance.run('IoAdapter', (onError, closeTimeout) {
+  final adapter = IoAdapter(onError: onError, closeTimeout: closeTimeout);
   return AdapterUnderTest(adapter, boundPort: () => adapter.port);
 });
 ```
@@ -2362,9 +2649,9 @@ void main() => AdapterConformance.run('IoAdapter', (onError) {
 - [ ] **Step 3: Run tests to verify they fail**
 
 Run from `packages/dartnest_io`: `dart test`
-Expected: FAIL на компіляції — `IoAdapter` не має параметра `onError`. Після Step 4 без `InFlightRequests` і меж (перевірка: тимчасово закоментувати `if (!force) await _inFlight.idle;`) падає `close waits for a response that is still streaming`; без меж падають `answers 500 without a body when the app logger throws` і `aborts the connection when the body stream fails`.
+Expected: FAIL на компіляції — `IoAdapter` не має параметрів `onError` і `closeTimeout`. Після Step 4 без очікування `InFlightRequests` (перевірка: тимчасово замінити все після `if (force) return;` у `_shutdown` на `return;`) падає `close waits for a response that is still streaming`; без меж падають `answers 500 without a body when the app logger throws` і `aborts the connection when the body stream fails`; без таймауту (тимчасово `return _inFlight.idle;` замість `return _inFlight.idle.timeout(...)`) падають з `TimeoutException` `close gives up on a stuck handler after closeTimeout` і `close cuts a streaming response after closeTimeout`; якщо `null` діяв би як нуль (тимчасово `if (limit == null) return;`), падає `close without a closeTimeout waits for a slow handler`.
 
-- [ ] **Step 4: Track requests and add the error boundaries**
+- [ ] **Step 4: Track requests, bound the wait and add the error boundaries**
 
 `packages/dartnest_io/lib/src/io_adapter.dart`:
 
@@ -2393,11 +2680,22 @@ import 'io_response_writer.dart';
 /// `Host`. Each request runs in its own `Future`; a failure in one never
 /// stops the server.
 final class IoAdapter implements HttpAdapter {
-  /// Creates the adapter. [onError] receives failures the adapter cannot
-  /// turn into a response (a handler that throws, a body stream that fails
-  /// mid-response, a broken connection); it defaults to [printError] and
-  /// must not throw.
-  IoAdapter({ErrorLogger? onError}) : onError = onError ?? printError;
+  /// Creates the adapter. [closeTimeout] bounds how long a graceful
+  /// `close` waits for the requests in flight. [onError] receives failures
+  /// the adapter cannot turn into a response (a handler that throws, a body
+  /// stream that fails mid-response, a broken connection); it defaults to
+  /// [printError] and must not throw.
+  IoAdapter({this.closeTimeout = defaultCloseTimeout, ErrorLogger? onError})
+    : onError = onError ?? printError;
+
+  /// The default [closeTimeout].
+  static const defaultCloseTimeout = Duration(seconds: 30);
+
+  /// How long `close()` without `force` waits for the requests in flight,
+  /// responses still being written included; then it drops the remaining
+  /// connections as `close(force: true)` does and completes normally.
+  /// `null` waits without a limit.
+  final Duration? closeTimeout;
 
   /// Where the adapter reports failures.
   final ErrorLogger onError;
@@ -2443,7 +2741,15 @@ final class IoAdapter implements HttpAdapter {
     final server = _server;
     if (server == null) return;
     await server.close(force: force);
-    if (!force) await _inFlight.idle;
+    if (force) return;
+    final limit = closeTimeout;
+    if (limit == null) return _inFlight.idle;
+    // Past the limit, drop the remaining connections as force does; their
+    // requests stay counted, but nothing waits for them any more.
+    return _inFlight.idle.timeout(
+      limit,
+      onTimeout: () => server.close(force: true),
+    );
   }
 
   Future<void> _serve(io.HttpRequest native, RequestHandler handler) async {
@@ -2481,7 +2787,7 @@ final class IoAdapter implements HttpAdapter {
 - [ ] **Step 5: Run tests to verify they pass**
 
 Run from `packages/dartnest_io`: `dart test`
-Expected: `+36: All tests passed!` (14 `requests`, 9 `bodies`, 7 `lifecycle`, 6 `IoAdapter`).
+Expected: `+40: All tests passed!` (14 `requests`, 9 `bodies`, 11 `lifecycle`, 6 `IoAdapter`).
 
 - [ ] **Step 6: Add the adapter boundaries to `CLAUDE.md`**
 
@@ -2510,7 +2816,7 @@ Expected: `No issues found!`, `0 changed`.
 
 ```bash
 git add CLAUDE.md packages/dartnest_conformance/lib/src packages/dartnest_io
-git commit -m "feat(io): wait for responses on close and report failures"
+git commit -m "feat(io): wait for responses on close with a timeout and report failures"
 ```
 
 ---
@@ -2527,7 +2833,7 @@ git commit -m "feat(io): wait for responses on close and report failures"
 
 **Interfaces:**
 - Consumes: `IoAdapter` (Task 5).
-- Produces: `IoAdapter({io.SecurityContext? securityContext, ErrorLogger? onError})`, `final io.SecurityContext? securityContext`.
+- Produces: `IoAdapter({io.SecurityContext? securityContext, Duration? closeTimeout = IoAdapter.defaultCloseTimeout, ErrorLogger? onError})`, `final io.SecurityContext? securityContext`.
 
 - [ ] **Step 1: Generate the test certificate**
 
@@ -2625,14 +2931,28 @@ import 'io_response_writer.dart';
 /// stops the server.
 final class IoAdapter implements HttpAdapter {
   /// Creates the adapter; with [securityContext] it serves HTTPS.
-  /// [onError] receives failures the adapter cannot turn into a response
-  /// (a handler that throws, a body stream that fails mid-response, a
-  /// broken connection); it defaults to [printError] and must not throw.
-  IoAdapter({this.securityContext, ErrorLogger? onError})
-    : onError = onError ?? printError;
+  /// [closeTimeout] bounds how long a graceful `close` waits for the
+  /// requests in flight. [onError] receives failures the adapter cannot
+  /// turn into a response (a handler that throws, a body stream that fails
+  /// mid-response, a broken connection); it defaults to [printError] and
+  /// must not throw.
+  IoAdapter({
+    this.securityContext,
+    this.closeTimeout = defaultCloseTimeout,
+    ErrorLogger? onError,
+  }) : onError = onError ?? printError;
+
+  /// The default [closeTimeout].
+  static const defaultCloseTimeout = Duration(seconds: 30);
 
   /// TLS configuration; `null` serves plain HTTP.
   final io.SecurityContext? securityContext;
+
+  /// How long `close()` without `force` waits for the requests in flight,
+  /// responses still being written included; then it drops the remaining
+  /// connections as `close(force: true)` does and completes normally.
+  /// `null` waits without a limit.
+  final Duration? closeTimeout;
 
   /// Where the adapter reports failures.
   final ErrorLogger onError;
@@ -2681,7 +3001,15 @@ final class IoAdapter implements HttpAdapter {
     final server = _server;
     if (server == null) return;
     await server.close(force: force);
-    if (!force) await _inFlight.idle;
+    if (force) return;
+    final limit = closeTimeout;
+    if (limit == null) return _inFlight.idle;
+    // Past the limit, drop the remaining connections as force does; their
+    // requests stay counted, but nothing waits for them any more.
+    return _inFlight.idle.timeout(
+      limit,
+      onTimeout: () => server.close(force: true),
+    );
   }
 
   Future<void> _serve(io.HttpRequest native, RequestHandler handler) async {
@@ -2719,7 +3047,7 @@ final class IoAdapter implements HttpAdapter {
 - [ ] **Step 5: Run tests to verify they pass**
 
 Run from `packages/dartnest_io`: `dart test`
-Expected: `+37: All tests passed!`
+Expected: `+41: All tests passed!`
 
 Run from repo root: `dart analyze && dart format --output=none --set-exit-if-changed packages`
 Expected: `No issues found!`, `0 changed`.
@@ -3103,7 +3431,7 @@ git commit -m "feat(shelf): map shelf requests and responses to dartnest"
 
 ### Task 8: `ShelfAdapter` і conformance для shelf
 
-`ShelfBridge` — shelf `Handler` над `RequestHandler`: відображає запит, викликає `handler`, відображає відповідь (з `isHead`). Межа запиту: якщо `handler` кидає (лише коли кидає логер застосунку), збій іде в `onError`, відповідь — 500 без тіла. `ShelfAdapter` сам прив'язує `HttpServer` (а не `shelf_io.serve`), щоб очистити типові заголовки `dart:io`, тримати порт і рахувати запити в `InFlightRequests`, і на кожен запит викликає `shelf_io.handleRequest(request, bridge, poweredByHeader: null)`. Межа відповіді: збій `handleRequest` під час запису тіла йде в `onError`. Семантика `listen`/`close`/`port` така сама, як в `IoAdapter`. Адаптер проходить увесь conformance-набір; відмінності від `IoAdapter` лише ті, що набір дозволяє: `%FF` отримує 400 від самого `shelf_io` (рішення 8), маршрутизація — за `requestedUri` (рішення 7).
+`ShelfBridge` — shelf `Handler` над `RequestHandler`: відображає запит, викликає `handler`, відображає відповідь (з `isHead`). Межа запиту: якщо `handler` кидає (лише коли кидає логер застосунку), збій іде в `onError`, відповідь — 500 без тіла. `ShelfAdapter` сам прив'язує `HttpServer` (а не `shelf_io.serve`), щоб очистити типові заголовки `dart:io`, тримати порт і рахувати запити в `InFlightRequests`, і на кожен запит викликає `shelf_io.handleRequest(request, bridge, poweredByHeader: null)`. Межа відповіді: збій `handleRequest` під час запису тіла йде в `onError`. Семантика `listen`/`close`/`port` і `closeTimeout` (рішення 11) така сама, як в `IoAdapter`: той самий `_shutdown` з `Future.timeout`, після таймауту `server.close(force: true)` обриває з'єднання, на яких `shelf_io.handleRequest` ще чекає хендлер або пише тіло. Адаптер проходить увесь conformance-набір; відмінності від `IoAdapter` лише ті, що набір дозволяє: `%FF` отримує 400 від самого `shelf_io` (рішення 8), маршрутизація — за `requestedUri` (рішення 7).
 
 **Files:**
 - Create: `packages/dartnest_shelf/lib/src/shelf_bridge.dart`
@@ -3114,10 +3442,10 @@ git commit -m "feat(shelf): map shelf requests and responses to dartnest"
 - Test: `packages/dartnest_shelf/test/shelf_adapter_test.dart`
 
 **Interfaces:**
-- Consumes: `InFlightRequests` (Task 1); `AdapterConformance.run`, `AdapterUnderTest` з усіма трьома групами (Tasks 2, 4, 5); `ShelfRequestMapper`, `ShelfResponseMapper` (Task 7).
+- Consumes: `InFlightRequests` і `Application`, що не рахує запити адаптера (Task 1); `AdapterConformance.run`, `AdapterUnderTest` з усіма трьома групами (Tasks 2, 4, 5); `ShelfRequestMapper`, `ShelfResponseMapper` (Task 7).
 - Produces:
   - `final class ShelfBridge { ShelfBridge(RequestHandler handler, {required ErrorLogger onError}); Future<shelf.Response> call(shelf.Request request); }`
-  - `final class ShelfAdapter implements HttpAdapter { ShelfAdapter({ErrorLogger? onError}); final ErrorLogger onError; int get port; Future<void> listen(RequestHandler handler, {required Object address, required int port}); Future<void> close({bool force = false}); static void printError(Object error, StackTrace stackTrace); }`
+  - `final class ShelfAdapter implements HttpAdapter { ShelfAdapter({Duration? closeTimeout = ShelfAdapter.defaultCloseTimeout, ErrorLogger? onError}); static const Duration defaultCloseTimeout; final Duration? closeTimeout; final ErrorLogger onError; int get port; Future<void> listen(RequestHandler handler, {required Object address, required int port}); Future<void> close({bool force = false}); static void printError(Object error, StackTrace stackTrace); }`
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -3127,8 +3455,8 @@ git commit -m "feat(shelf): map shelf requests and responses to dartnest"
 import 'package:dartnest_conformance/dartnest_conformance.dart';
 import 'package:dartnest_shelf/dartnest_shelf.dart';
 
-void main() => AdapterConformance.run('ShelfAdapter', (onError) {
-  final adapter = ShelfAdapter(onError: onError);
+void main() => AdapterConformance.run('ShelfAdapter', (onError, closeTimeout) {
+  final adapter = ShelfAdapter(onError: onError, closeTimeout: closeTimeout);
   return AdapterUnderTest(adapter, boundPort: () => adapter.port);
 });
 ```
@@ -3323,10 +3651,22 @@ import 'shelf_bridge.dart';
 /// application's response: no `x-powered-by`, and the `dart:io` defaults
 /// are cleared.
 final class ShelfAdapter implements HttpAdapter {
-  /// Creates the adapter. [onError] receives failures the adapter cannot
-  /// turn into a response (a handler that throws, a body stream that fails
-  /// mid-response); it defaults to [printError] and must not throw.
-  ShelfAdapter({ErrorLogger? onError}) : onError = onError ?? printError;
+  /// Creates the adapter. [closeTimeout] bounds how long a graceful
+  /// `close` waits for the requests in flight. [onError] receives failures
+  /// the adapter cannot turn into a response (a handler that throws, a body
+  /// stream that fails mid-response); it defaults to [printError] and must
+  /// not throw.
+  ShelfAdapter({this.closeTimeout = defaultCloseTimeout, ErrorLogger? onError})
+    : onError = onError ?? printError;
+
+  /// The default [closeTimeout].
+  static const defaultCloseTimeout = Duration(seconds: 30);
+
+  /// How long `close()` without `force` waits for the requests in flight,
+  /// responses still being written included; then it drops the remaining
+  /// connections as `close(force: true)` does and completes normally.
+  /// `null` waits without a limit.
+  final Duration? closeTimeout;
 
   /// Where the adapter reports failures.
   final ErrorLogger onError;
@@ -3374,7 +3714,15 @@ final class ShelfAdapter implements HttpAdapter {
     final server = _server;
     if (server == null) return;
     await server.close(force: force);
-    if (!force) await _inFlight.idle;
+    if (force) return;
+    final limit = closeTimeout;
+    if (limit == null) return _inFlight.idle;
+    // Past the limit, drop the remaining connections as force does; their
+    // requests stay counted, but nothing waits for them any more.
+    return _inFlight.idle.timeout(
+      limit,
+      onTimeout: () => server.close(force: true),
+    );
   }
 
   Future<void> _serve(io.HttpRequest request, shelf.Handler handler) async {
@@ -3401,7 +3749,7 @@ export 'src/shelf_adapter.dart';
 - [ ] **Step 5: Run tests to verify they pass**
 
 Run from `packages/dartnest_shelf`: `dart test`
-Expected: `+47: All tests passed!` (30 conformance: 14 `requests`, 9 `bodies`, 7 `lifecycle`; 6 `ShelfAdapter`; 11 mappers). `shelf_io` друкує в stderr `ERROR` на тест `%FF` — це його власний лог відмови, не збій.
+Expected: `+51: All tests passed!` (34 conformance: 14 `requests`, 9 `bodies`, 11 `lifecycle`; 6 `ShelfAdapter`; 11 mappers). `shelf_io` друкує в stderr `ERROR` на тест `%FF` — це його власний лог відмови, не збій.
 
 - [ ] **Step 6: Add the shelf boundaries to `CLAUDE.md`**
 
@@ -3623,7 +3971,7 @@ export 'src/shelf_handler.dart';
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run from `packages/dartnest_shelf`: `dart test`
-Expected: `+51: All tests passed!`
+Expected: `+55: All tests passed!`
 
 Run from repo root: `dart analyze && dart format --output=none --set-exit-if-changed packages`
 Expected: `No issues found!`, `0 changed`.
@@ -3639,7 +3987,7 @@ git commit -m "feat(shelf): add shelfHandler to embed an application in a shelf 
 
 ### Task 10: Документація: quick start адаптерів і роадмап
 
-README обох адаптерів (quick start і правила, які користувач має знати: заголовки, обрамлення, HEAD, `close`, `onError`, відсутність ліміту тіла), останній абзац README ядра (він каже, що адаптери «planned in later milestones») і рядок етапу 3 у роадмапі з посиланням на цей план, як у етапів 1 і 2. Коду немає; перевірка — повний прогін усіх пакетів.
+README обох адаптерів (quick start і правила, які користувач має знати: заголовки, обрамлення, HEAD, `close` і `closeTimeout`, `onError`, відсутність ліміту тіла), останній абзац README ядра (він каже, що адаптери «planned in later milestones») і рядок етапу 3 у роадмапі з посиланням на цей план, як у етапів 1 і 2. Коду немає; перевірка — повний прогін усіх пакетів.
 
 **Files:**
 - Create: `packages/dartnest_io/README.md`
@@ -3648,7 +3996,7 @@ README обох адаптерів (quick start і правила, які кор
 - Modify: `docs/superpowers/ROADMAP.md` (рядок етапу 3)
 
 **Interfaces:**
-- Consumes: `IoAdapter({SecurityContext? securityContext, ErrorLogger? onError})`, `IoAdapter.port` (Tasks 3–6); `ShelfAdapter({ErrorLogger? onError})`, `shelfHandler(Application app, {ErrorLogger? onError})` (Tasks 8, 9).
+- Consumes: `IoAdapter({SecurityContext? securityContext, Duration? closeTimeout, ErrorLogger? onError})`, `IoAdapter.port`, `IoAdapter.defaultCloseTimeout` (Tasks 3–6); `ShelfAdapter({Duration? closeTimeout, ErrorLogger? onError})`, `shelfHandler(Application app, {ErrorLogger? onError})` (Tasks 8, 9).
 - Produces: нічого для інших задач.
 
 - [ ] **Step 1: Write the `dartnest_io` README**
@@ -3694,7 +4042,11 @@ Rules:
   is a 400.
 - `app.close()` stops accepting connections, waits for the responses being
   written (streams included) and then closes the application;
-  `app.close(force: true)` drops them.
+  `app.close(force: true)` drops them at once. The wait is bounded by
+  `IoAdapter(closeTimeout: ...)`, 30 seconds by default: when it expires,
+  the remaining connections are dropped as with `force: true` and
+  `app.close()` still completes normally. `closeTimeout: null` waits
+  without a limit (an endless stream then keeps `close` waiting).
 - Failures that can no longer become a response (a body stream that fails
   mid-response, a client that goes away) go to `IoAdapter(onError: ...)`;
   the default prints them to stderr.
@@ -3751,7 +4103,9 @@ Rules:
 - `ShelfAdapter` behaves like `IoAdapter` from `dartnest_io`: exactly the
   application's headers (no `x-powered-by`, no `dart:io` defaults), byte
   bodies with `content-length`, streams chunked and unbuffered, `HEAD`
-  without a body, and `app.close()` waits for the responses being written.
+  without a body, and `app.close()` waits for the responses being written,
+  for at most `ShelfAdapter(closeTimeout: ...)` (30 seconds by default;
+  `null` waits without a limit) before it drops the remaining connections.
   It routes on the URI `shelf_io` builds from `Host` and the target, and
   `shelf_io` itself answers 400 to invalid percent-encoding.
 - Failures that can no longer become a response go to the `onError` of
@@ -3806,7 +4160,7 @@ Run from repo root: `dart analyze && dart format --output=none --set-exit-if-cha
 Expected: `No issues found!`, `0 changed`.
 
 Run from each package directory: `dart test`
-Expected: `packages/dartnest` — `+239`, `packages/dartnest_conformance` — `+13`, `packages/dartnest_io` — `+37`, `packages/dartnest_shelf` — `+51`; усі `All tests passed!`
+Expected: `packages/dartnest` — `+241`, `packages/dartnest_conformance` — `+13`, `packages/dartnest_io` — `+41`, `packages/dartnest_shelf` — `+55`; усі `All tests passed!`
 
 - [ ] **Step 6: Commit**
 
@@ -3832,22 +4186,22 @@ git commit -m "docs: add adapter quick starts and link the stage 3 plan"
 | conformance: ціль запиту як у `TestClient`, dot-сегменти, `//`, `%2F` у сегменті, `%FF` → 400 | 2, 3 |
 | conformance: потокові тіла в обидва боки без буферизації, великі тіла, `content-length` vs chunked, HEAD без тіла, `transfer-encoding`/`connection` | 4 (`bodies`), 7 |
 | conformance: коректне закриття (не приймає нових, чекає запити в польоті, `force`, порт звільнено), 503 після `close` | 5 (`lifecycle`), 9 |
+| рішення автора: graceful close з `closeTimeout` в обох адаптерах; `Application.close` не зависає на покинутому хендлері | 1, 5, 6, 8 |
 | збої: логер застосунку кидає → 500 і сервер працює далі; потік падає; клієнт пішов — без падіння і без зависання лічильника | 5, 8, 9 |
 | 10.1: hot reload не блокується (адаптер тримає лише `RequestHandler`) | Global Constraints, 3 |
 | роадмап, етап 3 «Готово, коли» | 3–9, 10 |
 
-Поза планом (рішення 10): ліміт розміру тіла запиту, таймаут graceful close, WebSocket/hijack, HTTP/2.
+Поза планом (рішення 10): ліміт розміру тіла запиту, WebSocket/hijack, HTTP/2.
 
-**Плейсхолдери.** Пошук `TBD`, `TODO`, «similar to Task», «add error handling», «implement later» — нічого. Кожен крок з кодом містить повний файл; зміни `CLAUDE.md`, кореневого `pubspec.yaml`, README і роадмапу дано точним «було → стало». Проміжні версії файлів, які змінюються кількома задачами (`adapter_conformance.dart` у Tasks 2/4/5, `io_adapter.dart` у Tasks 3/4/5/6, `io_response_writer.dart` у Tasks 3/4, `dartnest_shelf.dart` у Tasks 8/9), наведено повністю в кожній задачі.
+**Плейсхолдери.** Пошук `TBD`, `TODO`, «similar to Task», «add error handling», «implement later» — нічого. Кожен крок з кодом містить повний файл; зміни `CLAUDE.md`, кореневого `pubspec.yaml`, README, роадмапу і наявних файлів ядра (`application.dart`, `http_adapter.dart`, `application_lifecycle_test.dart` у Task 1) дано точним «було → стало». Проміжні версії файлів, які змінюються кількома задачами (`adapter_conformance.dart` у Tasks 2/4/5, `io_adapter.dart` у Tasks 3/4/5/6, `io_response_writer.dart` у Tasks 3/4, `dartnest_shelf.dart` у Tasks 8/9), наведено повністю в кожній задачі.
 
-**Узгодженість типів.** Імена між задачами звірено з кодом: `InFlightRequests.track/idle/count`; `AdapterFactory`, `AdapterUnderTest(adapter, boundPort:)`, `AdapterConformance.run`, `RequestConformance/BodyConformance/LifecycleConformance.register`; `ConformanceServer.start/send/uri/close/firstAdapterError/adapterErrors/applicationErrors`; `ConformanceProbe.entered/release/firstUploadChunk/endlessCancelled`; `ConformanceData.bytes/chunks/checksum/endless`; `conformanceModule`; `RawHttp.head/exchange/abortAfterFirstBytes`; `RawResponse.parse/isComplete`; `IoRequestMapper.map/target`; `IoResponseWriter.write(..., isHead:)`; `IoAdapter({securityContext, onError}).port/printError`; `ShelfRequestMapper.map`, `ShelfResponseMapper.map(..., isHead:)`; `ShelfBridge(handler, onError:).call`; `ShelfAdapter({onError}).port/printError`; `shelfHandler(app, {onError})`. З ядра використано лише наявні `Application.create/listen/close/handle`, `HttpAdapter`, `RequestHandler`, `ErrorLogger`, `HttpRequest`, `HttpResponse`, `BytesBody`, `StreamBody`, `RequestBody`, `HeaderMap`, `ConnectionInfo`, `StatusCode`, `TestClient`.
+**Узгодженість типів.** Імена між задачами звірено з кодом: `InFlightRequests.track/idle/count`; `AdapterFactory(onError, closeTimeout)`, `AdapterUnderTest(adapter, boundPort:)`, `AdapterConformance.run`, `RequestConformance/BodyConformance/LifecycleConformance.register`; `ConformanceServer.start(..., applicationLogger:, closeTimeout:)/defaultCloseTimeout/send/uri/close/firstAdapterError/adapterErrors/applicationErrors`; `ConformanceProbe.entered/release/firstUploadChunk/endlessCancelled`; `ConformanceData.bytes/chunks/checksum/endless`; `conformanceModule`; `RawHttp.head/exchange/abortAfterFirstBytes`; `RawResponse.parse/isComplete`; `IoRequestMapper.map/target`; `IoResponseWriter.write(..., isHead:)`; `IoAdapter({securityContext, closeTimeout, onError}).port/printError/defaultCloseTimeout`; `ShelfRequestMapper.map`, `ShelfResponseMapper.map(..., isHead:)`; `ShelfBridge(handler, onError:).call`; `ShelfAdapter({closeTimeout, onError}).port/printError/defaultCloseTimeout`; `shelfHandler(app, {onError})`. З ядра використано лише наявні `Application.create/listen/close/handle` (Task 1 змінює лише внутрішню поведінку `listen`/`close` і dartdoc `HttpAdapter`), `HttpAdapter`, `RequestHandler`, `ErrorLogger`, `HttpRequest`, `HttpResponse`, `BytesBody`, `StreamBody`, `RequestBody`, `HeaderMap`, `ConnectionInfo`, `StatusCode`, `TestClient`.
 
-**Перевірка.** Код кожної задачі зібрано в чистій копії `master` (d1e7dc3) у стані після Tasks 3, 4, 5, 7, 8 і після останньої: `dart pub get --offline`, `dart analyze` — «No issues found!», `dart format` — 0 змінених файлів. Тести під час написання плану не запускались (лише компіляція й аналіз); кількості в кроках «Expected» пораховано з коду. Якщо при виконанні кількість або стан тесту в кроці «verify it fails» не збігається, це сигнал перевірити задачу, а не підганяти число. Найбільший файл у `lib/` — `conformance_app.dart` (189 рядків), у `test/` — `conformance_app_test.dart` (121 рядок).
+**Перевірка.** Код кожної задачі зібрано в чистій копії `master` (d1e7dc3) у стані після Tasks 3, 4, 5, 7, 8 і після останньої: `dart pub get --offline`, `dart analyze` — «No issues found!», `dart format` — 0 змінених файлів. Тести під час написання плану не запускались (лише компіляція й аналіз); кількості в кроках «Expected» пораховано з коду. Якщо при виконанні кількість або стан тесту в кроці «verify it fails» не збігається, це сигнал перевірити задачу, а не підганяти число. Після додавання `closeTimeout` (рішення 11, 12) код знову зібрано так само (стан після Tasks 3, 5 і після останньої; Task 1 — накладанням «було → стало» на `master`) і цього разу тести запущено: нові тести Task 1 і групи `lifecycle` проходять для обох адаптерів (група `lifecycle` — 5 прогонів поспіль без флейків) і падають без відповідного коду так, як описано в кроках «verify it fails» Tasks 1 і 5; кількості `+241`/`+40`/`+41`/`+55` збіглися. Той самий прогін показав два дефекти тестів, не пов'язані з таймаутом, які треба виправити до виконання: `serves the users app` (група `requests`) порівнює запис `(status, json)` через `==`, а `Map` усередині запису порівнюється за ідентичністю, тож тест падає завжди; `RawHttp reads a content-length response` (`raw_http_test.dart`) чекає `content-length: 5`, а голий `dart:io`-сервер після `write('hello')` шле `transfer-encoding: chunked`. Найбільший файл у `lib/` — `conformance_app.dart` (189 рядків), у `test/` — `conformance_app_test.dart` (121 рядок).
 
-**Review Focus.** Кожен пункт закріплено тестом із коментарем `// Review Focus N`: 1 → Task 4 (`bodies`) і Task 7; 2 → Task 4; 3 → Task 2/3 (`requests`, уперше запускається в Task 3); 4 → Task 5 (`lifecycle`); 5 → Task 4 і Task 7.
+**Review Focus.** Кожен пункт закріплено тестом із коментарем `// Review Focus N`: 1 → Task 4 (`bodies`) і Task 7; 2 → Task 4; 3 → Task 2/3 (`requests`, уперше запускається в Task 3); 4 → Task 5 (`lifecycle`); 5 → Task 4 і Task 7; 6 → Task 1 і Task 5 (`lifecycle`).
 
 ## Відкриті питання для автора
 
-1. **Таймаут graceful close.** `app.close()` без `force` чекає відповіді в польоті без обмеження (нескінченний потік триматиме його вічно); таймаут залишено поза планом. Додати `close(timeout:)` в адаптерах чи лишити на lifecycle-етап (v1.1, graceful shutdown)?
-2. **Маршрутизація `ShelfAdapter` за `Host`.** `ShelfAdapter` бере шлях з `requestedUri`, як `shelf_io` (рішення 7), а `IoAdapter` ігнорує `Host`. Вирівняти `ShelfAdapter` на ціль запиту (власний розбір, як в `IoAdapter`) чи лишити поведінку shelf?
-3. **`onError` адаптера vs логер застосунку.** Адаптер має власний `onError` (типово stderr), окремий від `Application.create(onError:)`. Чи варто, щоб `Application.listen` передавав свій логер адаптеру (зміна контракту `HttpAdapter`), щоб користувач налаштовував логування в одному місці?
+1. **Маршрутизація `ShelfAdapter` за `Host`.** `ShelfAdapter` бере шлях з `requestedUri`, як `shelf_io` (рішення 7), а `IoAdapter` ігнорує `Host`. Вирівняти `ShelfAdapter` на ціль запиту (власний розбір, як в `IoAdapter`) чи лишити поведінку shelf?
+2. **`onError` адаптера vs логер застосунку.** Адаптер має власний `onError` (типово stderr), окремий від `Application.create(onError:)`. Чи варто, щоб `Application.listen` передавав свій логер адаптеру (зміна контракту `HttpAdapter`), щоб користувач налаштовував логування в одному місці?
