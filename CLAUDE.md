@@ -148,10 +148,10 @@ producing a response):
   `onError` and answers 500 without a body; `ShelfAdapter` reports a failure
   of `shelf_io.handleRequest` while writing the response to its `onError`
   and drops the connection the same way;
-- the `IoAdapter` and `ShelfAdapter` reporter boundaries and the one in
-  `shelfHandler` (added by the adapters work) catch a failure of their own
-  `onError` and write it to stderr, so reporting never stops the 500 or the
-  server.
+- the reporter boundaries (added by the adapters work): `IoAdapter` and
+  `GuardedReporter` (shared by `ShelfAdapter` and `shelfHandler`) catch a
+  failure of their own `onError` and write it to stderr, so reporting never
+  stops the 500 or the server.
 `rethrow` keeps the stack trace. Never silence a lint: no `// ignore:`
 without a comment on why, and no rule removed from `analysis_options.yaml`
 to make a change pass.

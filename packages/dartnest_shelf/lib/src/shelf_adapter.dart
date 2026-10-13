@@ -6,6 +6,7 @@ import 'package:dartnest/dartnest.dart';
 import 'package:shelf/shelf.dart' as shelf;
 import 'package:shelf/shelf_io.dart' as shelf_io;
 
+import 'guarded_reporter.dart';
 import 'shelf_bridge.dart';
 
 /// Serves a dartnest application through shelf on a `dart:io` server.
@@ -32,7 +33,12 @@ final class ShelfAdapter implements HttpAdapter {
   /// stream that fails mid-response); it defaults to [printError] and must
   /// not throw.
   ShelfAdapter({this.closeTimeout = defaultCloseTimeout, ErrorLogger? onError})
-    : onError = onError ?? printError;
+    : onError = onError ?? printError,
+      _report = GuardedReporter(onError ?? printError),
+      _lifecycle = AdapterLifecycle(
+        name: 'ShelfAdapter',
+        closeTimeout: closeTimeout,
+      );
 
   /// The default [closeTimeout].
   static const defaultCloseTimeout = Duration(seconds: 30);
@@ -51,16 +57,13 @@ final class ShelfAdapter implements HttpAdapter {
     io.stderr.writeln('dartnest_shelf: $error\n$stackTrace');
   }
 
-  final InFlightRequests _inFlight = InFlightRequests();
-  io.HttpServer? _server;
-  final Completer<void> _forced = Completer<void>();
-  Future<void>? _binding;
-  Future<void>? _closing;
+  final AdapterLifecycle<io.HttpServer> _lifecycle;
+  final GuardedReporter _report;
 
   /// The bound port, useful after listening on port 0; a [StateError]
   /// before `listen` completed or after `close`.
-  int get port => switch (_server) {
-    final server? when _closing == null => server.port,
+  int get port => switch (_lifecycle.server) {
+    final server? => server.port,
     _ => throw StateError('ShelfAdapter is not listening.'),
   };
 
@@ -69,59 +72,26 @@ final class ShelfAdapter implements HttpAdapter {
     RequestHandler handler, {
     required Object address,
     required int port,
-  }) async {
-    if (_closing != null) throw StateError('ShelfAdapter is closed.');
-    if (_binding != null) {
-      throw StateError('ShelfAdapter.listen can be called only once.');
-    }
-    // Claimed before the await: a second listen or a close that arrives
-    // while the bind is pending must see it.
-    final bound = Completer<void>();
-    _binding = bound.future;
-    try {
-      final server = await io.HttpServer.bind(address, port);
-      if (_closing != null) {
-        await server.close(force: true);
-        throw StateError('ShelfAdapter was closed while binding.');
-      }
-      server.defaultResponseHeaders.clear();
-      _server = server;
-      final bridge = ShelfBridge(handler, onError: _report).call;
-      server.listen(
-        (request) => unawaited(_inFlight.track(() => _serve(request, bridge))),
-      );
-    } finally {
-      bound.complete();
-    }
+  }) {
+    final bridge = ShelfBridge(handler, onError: _report.call).call;
+    return _lifecycle.start(
+      () => _bind(address, port),
+      stop: (server, {required force}) => server.close(force: force),
+      serve: (server) => server.listen(
+        (request) =>
+            unawaited(_lifecycle.inFlight.track(() => _serve(request, bridge))),
+      ),
+    );
+  }
+
+  Future<io.HttpServer> _bind(Object address, int port) async {
+    final server = await io.HttpServer.bind(address, port);
+    server.defaultResponseHeaders.clear();
+    return server;
   }
 
   @override
-  Future<void> close({bool force = false}) {
-    final closing = _closing;
-    if (closing == null) return _closing = _shutdown(force: force);
-    // A forced close escalates a graceful one that is still waiting.
-    if (force && !_forced.isCompleted) {
-      _forced.complete();
-      unawaited(_server?.close(force: true));
-    }
-    return closing;
-  }
-
-  Future<void> _shutdown({required bool force}) async {
-    // A pending bind closes its own server once it sees the close.
-    await _binding;
-    final server = _server;
-    if (server == null) return;
-    await server.close(force: force);
-    if (force) return;
-    // A later close(force: true) ends the wait; it drops the connections.
-    final wait = Future.any([_inFlight.idle, _forced.future]);
-    final limit = closeTimeout;
-    if (limit == null) return wait;
-    // Past the limit, drop the remaining connections as force does; their
-    // requests stay counted, but nothing waits for them any more.
-    return wait.timeout(limit, onTimeout: () => server.close(force: true));
-  }
+  Future<void> close({bool force = false}) => _lifecycle.close(force: force);
 
   Future<void> _serve(io.HttpRequest request, shelf.Handler handler) async {
     // Response boundary: shelf_io writes the body stream (user code) to a
@@ -144,16 +114,6 @@ final class ShelfAdapter implements HttpAdapter {
       socket.destroy();
     } on StateError {
       // The head was sent: dart:io has already dropped the connection.
-    }
-  }
-
-  void _report(Object error, StackTrace stackTrace) {
-    // Reporter boundary: onError is user code; a failing reporter must not
-    // stop the 500 or crash the server, so its failure goes to stderr.
-    try {
-      onError(error, stackTrace);
-    } on Object catch (reporterError) {
-      io.stderr.writeln('dartnest_shelf: onError failed: $reporterError');
     }
   }
 }

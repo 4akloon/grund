@@ -25,6 +25,15 @@ void main() {
       expect(await response.map(String.fromCharCodes).join(), 'ok');
     });
 
+    test('close is idempotent and forgets the port', () async {
+      final adapter = ShelfAdapter();
+      await adapter.listen(answerOk, address: loopback, port: 0);
+
+      expect(identical(adapter.close(), adapter.close()), isTrue);
+      await adapter.close();
+      expect(() => adapter.port, throwsStateError);
+    });
+
     test('sends no x-powered-by and no dart:io default headers', () async {
       final adapter = ShelfAdapter();
       await adapter.listen(answerOk, address: loopback, port: 0);

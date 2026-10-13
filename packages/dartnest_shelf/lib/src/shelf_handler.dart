@@ -1,8 +1,7 @@
-import 'dart:io' as io;
-
 import 'package:dartnest/dartnest.dart';
 import 'package:shelf/shelf.dart' as shelf;
 
+import 'guarded_reporter.dart';
 import 'shelf_adapter.dart';
 import 'shelf_bridge.dart';
 
@@ -23,18 +22,8 @@ import 'shelf_bridge.dart';
 ///     .addHandler(shelfHandler(app));
 /// await shelf_io.serve(handler, 'localhost', 8080);
 /// ```
-shelf.Handler shelfHandler(Application app, {ErrorLogger? onError}) {
-  final report = onError ?? ShelfAdapter.printError;
-  return ShelfBridge(
-    app.handle,
-    onError: (error, stackTrace) {
-      // Reporter boundary: onError is user code; a failing reporter must not
-      // stop the 500, so its failure goes to stderr.
-      try {
-        report(error, stackTrace);
-      } on Object catch (reporterError) {
-        io.stderr.writeln('dartnest_shelf: onError failed: $reporterError');
-      }
-    },
-  ).call;
-}
+shelf.Handler shelfHandler(Application app, {ErrorLogger? onError}) =>
+    ShelfBridge(
+      app.handle,
+      onError: GuardedReporter(onError ?? ShelfAdapter.printError).call,
+    ).call;

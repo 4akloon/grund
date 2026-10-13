@@ -60,7 +60,7 @@ Request-scoped провайдери, lifecycle-хуки, GraphQL (v2), WebSocket
 
 | Пакет | Відповідальність | Залежності |
 |---|---|---|
-| `dartnest` | Ядро: `Module`, `Provider`, `Token`, `Injector`, `Controller`, `Route`, роутер, конвеєр, `ExecutionContext`, `Application`, інтерфейс `HttpAdapter`, моделі `HttpRequest`/`HttpResponse`, `TestClient` | Dart SDK; бібліотека `package:dartnest/adapter.dart` відкриває адаптерам `InFlightRequests` |
+| `dartnest` | Ядро: `Module`, `Provider`, `Token`, `Injector`, `Controller`, `Route`, роутер, конвеєр, `ExecutionContext`, `Application`, інтерфейс `HttpAdapter`, моделі `HttpRequest`/`HttpResponse`, `TestClient` | Dart SDK; бібліотека `package:dartnest/adapter.dart` відкриває адаптерам `InFlightRequests` і `AdapterLifecycle` (спільний автомат listen/close) |
 | `dartnest_annotations` | Лише `const`-класи анотацій | — |
 | `dartnest_io` | Адаптер на `dart:io` `HttpServer` | `dartnest` |
 | `dartnest_shelf` | Адаптер на shelf; `shelfHandler(app)` для вбудовування | `dartnest`, `shelf` |
@@ -306,7 +306,8 @@ await app.close();
 ```
 
 `Application.listen` передає адаптеру handler без власного лічильника
-запитів: адаптер сам рахує запити в польоті (`InFlightRequests`), щоб
+запитів: адаптер сам рахує запити в польоті (`InFlightRequests`; автомат
+listen/close спільний для адаптерів: `AdapterLifecycle`), щоб
 `close` не чекав покинутий хендлер довше за `closeTimeout` адаптера.
 
 `app.handle(HttpRequest)` працює без адаптера; `TestClient(app)` дає
