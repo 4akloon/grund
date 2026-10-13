@@ -20,16 +20,23 @@ import 'io_response_writer.dart';
 /// `x-frame-options`; add them with middleware). Requests are routed on
 /// their target only, never on `Host`.
 final class IoAdapter implements HttpAdapter {
-  /// Creates the adapter. [closeTimeout] bounds how long a graceful
-  /// `close` waits for the requests in flight. [onError] receives failures
-  /// the adapter cannot turn into a response (a handler that throws, a body
-  /// stream that fails mid-response, a broken connection); it defaults to
-  /// [printError] and must not throw.
-  IoAdapter({this.closeTimeout = defaultCloseTimeout, ErrorLogger? onError})
-    : onError = onError ?? printError;
+  /// Creates the adapter; with [securityContext] it serves HTTPS.
+  /// [closeTimeout] bounds how long a graceful `close` waits for the
+  /// requests in flight. [onError] receives failures the adapter cannot
+  /// turn into a response (a handler that throws, a body stream that fails
+  /// mid-response, a broken connection); it defaults to [printError] and
+  /// must not throw.
+  IoAdapter({
+    this.securityContext,
+    this.closeTimeout = defaultCloseTimeout,
+    ErrorLogger? onError,
+  }) : onError = onError ?? printError;
 
   /// The default [closeTimeout].
   static const defaultCloseTimeout = Duration(seconds: 30);
+
+  /// TLS configuration; `null` serves plain HTTP.
+  final io.SecurityContext? securityContext;
 
   /// How long `close()` without `force` waits for the requests in flight,
   /// responses still being written included; then it drops the remaining
@@ -73,7 +80,10 @@ final class IoAdapter implements HttpAdapter {
     final bound = Completer<void>();
     _binding = bound.future;
     try {
-      final server = await io.HttpServer.bind(address, port);
+      final context = securityContext;
+      final server = context == null
+          ? await io.HttpServer.bind(address, port)
+          : await io.HttpServer.bindSecure(address, port, context);
       if (_closing != null) {
         await server.close(force: true);
         throw StateError('IoAdapter was closed while binding.');
