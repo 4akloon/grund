@@ -16,7 +16,9 @@ import 'io_response_writer.dart';
 /// print('listening on ${adapter.port}');
 /// ```
 ///
-/// The server adds no x-powered-by and no dart:io default headers (such as
+/// With a [securityContext] it serves HTTPS.
+///
+/// The server adds no `x-powered-by` and no dart:io default headers (such as
 /// `x-frame-options`; add them with middleware). Requests are routed on
 /// their target only, never on `Host`.
 final class IoAdapter implements HttpAdapter {
@@ -24,8 +26,9 @@ final class IoAdapter implements HttpAdapter {
   /// [closeTimeout] bounds how long a graceful `close` waits for the
   /// requests in flight. [onError] receives failures the adapter cannot
   /// turn into a response (a handler that throws, a body stream that fails
-  /// mid-response, a broken connection); it defaults to [printError] and
-  /// must not throw.
+  /// mid-response, a broken connection); it defaults to [printError]. If
+  /// [onError] throws, the adapter keeps serving and that failure goes to
+  /// stderr with its stack trace.
   IoAdapter({
     this.securityContext,
     this.closeTimeout = defaultCloseTimeout,
@@ -140,8 +143,10 @@ final class IoAdapter implements HttpAdapter {
     // stop the 500 or crash the server, so its failure goes to stderr.
     try {
       onError(error, stackTrace);
-    } on Object catch (reporterError) {
-      io.stderr.writeln('dartnest_io: onError failed: $reporterError');
+    } on Object catch (reporterError, reporterStackTrace) {
+      io.stderr.writeln(
+        'dartnest_io: onError failed: $reporterError\n$reporterStackTrace',
+      );
     }
   }
 }

@@ -5,6 +5,8 @@ import 'package:dartnest/dartnest.dart';
 import 'package:dartnest_io/dartnest_io.dart';
 import 'package:test/test.dart';
 
+import 'helpers/captured_stderr.dart';
+
 /// Answers every request with `ok`.
 Future<HttpResponse> answerOk(HttpRequest request) async =>
     HttpResponse.text('ok');
@@ -110,6 +112,29 @@ void main() {
       final next = await status();
 
       expect((failed, next), (500, 200));
+    });
+
+    test('writes a failing onError with its stack trace to stderr', () async {
+      final written = await captureStderr(() async {
+        final adapter = IoAdapter(
+          onError: (_, _) => throw StateError('reporter failed'),
+        );
+        await adapter.listen(
+          (request) async => throw StateError('handler failed'),
+          address: loopback,
+          port: 0,
+        );
+        final client = io.HttpClient();
+        try {
+          await (await client.get('127.0.0.1', adapter.port, '/')).close();
+        } finally {
+          client.close();
+          await adapter.close(force: true);
+        }
+      });
+
+      expect(written, contains('onError failed: Bad state: reporter failed'));
+      expect(written, contains('io_adapter_test.dart'));
     });
   });
 }

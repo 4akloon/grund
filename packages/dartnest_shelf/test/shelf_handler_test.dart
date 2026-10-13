@@ -93,10 +93,9 @@ void main() {
       return failing;
     }
 
-    final failRequest = shelf.Request(
-      'GET',
-      Uri.parse('http://localhost/probe/fail'),
-    );
+    // A function: a request body can be read only once.
+    shelf.Request failRequest() =>
+        shelf.Request('GET', Uri.parse('http://localhost/probe/fail'));
 
     test('answers 500 without a body when the app logger throws', () async {
       final errors = <Object>[];
@@ -104,7 +103,7 @@ void main() {
       final response = await shelfHandler(
         await failingLoggerApp(),
         onError: (error, _) => errors.add(error),
-      )(failRequest);
+      )(failRequest());
 
       expect(response.statusCode, 500);
       expect(await response.readAsString(), isEmpty);
@@ -115,7 +114,7 @@ void main() {
       final response = await shelfHandler(
         await failingLoggerApp(),
         onError: (error, _) => throw StateError('reporter failed'),
-      )(failRequest);
+      )(failRequest());
 
       expect(response.statusCode, 500);
     });

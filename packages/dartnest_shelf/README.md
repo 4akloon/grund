@@ -72,6 +72,9 @@ Future<void> main() async {
   `app.close()` still completes normally. `closeTimeout: null` waits
   without a limit. `app.close(force: true)` drops the connections at once,
   also when a graceful close is already waiting.
+- `shelf_io` itself prints a stack trace to stderr for every malformed
+  request (for example `%FF` in the path, answered with 400); that output
+  bypasses `onError`.
 - Failures that can no longer become a response go to the optional
   `onError` of `ShelfAdapter` (default: stderr). If `onError` throws, the
   server keeps running and that failure goes to stderr.

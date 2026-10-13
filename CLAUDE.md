@@ -145,12 +145,15 @@ producing a response):
   drops it once the head was sent), and the adapter keeps serving;
 - `ShelfBridge` and `ShelfAdapter` (added by the adapters work) do the same
   for shelf: `ShelfBridge` reports a failure of the request handler to its
-  `onError` and answers 500 without a body; `ShelfAdapter` reports a failure
+  `onError` and answers 500 without a body, and reports a failure while
+  discarding the body stream of a `HEAD` response (a throwing `onCancel`, a
+  stream already listened to) and still answers; `ShelfAdapter` reports a failure
   of `shelf_io.handleRequest` while writing the response to its `onError`
   and drops the connection the same way;
 - the reporter boundaries (added by the adapters work): `IoAdapter` and
   `GuardedReporter` (shared by `ShelfAdapter` and `shelfHandler`) catch a
-  failure of their own `onError` and write it to stderr, so reporting never
+  failure of their own `onError` and write it to stderr with its stack
+  trace, so reporting never
   stops the 500 or the server.
 `rethrow` keeps the stack trace. Never silence a lint: no `// ignore:`
 without a comment on why, and no rule removed from `analysis_options.yaml`

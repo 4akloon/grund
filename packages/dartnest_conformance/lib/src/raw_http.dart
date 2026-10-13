@@ -31,17 +31,20 @@ abstract final class RawHttp {
   /// 127.0.0.1:[port] and reads until the server closes the connection.
   static Future<RawResponse> exchange(int port, String request) async {
     final socket = await Socket.connect(InternetAddress.loopbackIPv4, port);
-    socket.add(latin1.encode(request));
-    await socket.flush();
     final received = BytesBuilder(copy: false);
-    // The server may reset the connection after a failed body; what was
-    // received until then is the result.
-    await socket
-        .listen(received.add, cancelOnError: true)
-        .asFuture<void>()
-        .catchError((Object _) {}, test: (error) => error is SocketException)
-        .timeout(timeout);
-    socket.destroy();
+    try {
+      socket.add(latin1.encode(request));
+      await socket.flush();
+      // The server may reset the connection after a failed body; what was
+      // received until then is the result.
+      await socket
+          .listen(received.add, cancelOnError: true)
+          .asFuture<void>()
+          .catchError((Object _) {}, test: (error) => error is SocketException)
+          .timeout(timeout);
+    } finally {
+      socket.destroy();
+    }
     return RawResponse.parse(received.takeBytes());
   }
 
@@ -49,9 +52,12 @@ abstract final class RawHttp {
   /// closes the socket, like a client that goes away mid-response.
   static Future<void> abortAfterFirstBytes(int port, String request) async {
     final socket = await Socket.connect(InternetAddress.loopbackIPv4, port);
-    socket.add(latin1.encode(request));
-    await socket.flush();
-    await socket.first.timeout(timeout);
-    socket.destroy();
+    try {
+      socket.add(latin1.encode(request));
+      await socket.flush();
+      await socket.first.timeout(timeout);
+    } finally {
+      socket.destroy();
+    }
   }
 }

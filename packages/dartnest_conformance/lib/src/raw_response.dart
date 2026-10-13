@@ -32,6 +32,7 @@ final class RawResponse {
     final headers = HeaderMap();
     for (final line in lines.skip(1)) {
       final colon = line.indexOf(':');
+      if (colon < 0) continue;
       headers.add(
         line.substring(0, colon).trim(),
         line.substring(colon + 1).trim(),
@@ -54,7 +55,8 @@ final class RawResponse {
   /// Status code of the first response; 0 without a complete head.
   final int status;
 
-  /// Header lines of the first response; a folded line is one value.
+  /// Header lines of the first response; a line without a colon is skipped
+  /// (folded continuation lines are not supported).
   final HeaderMap headers;
 
   /// The body after content-length or chunked decoding.

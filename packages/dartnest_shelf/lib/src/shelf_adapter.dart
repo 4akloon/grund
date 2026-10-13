@@ -21,7 +21,7 @@ import 'target_request.dart';
 /// Use it to run shelf on the wire; to put an application into a shelf
 /// pipeline you already have, use `shelfHandler(app)` instead.
 ///
-/// The server adds no x-powered-by and no dart:io default headers (such as
+/// The server adds no `x-powered-by` and no dart:io default headers (such as
 /// `x-frame-options`; add them with middleware). It does not send exactly
 /// the application's headers though: `shelf_io` itself adds a `date`
 /// header. Requests are routed on their target only, like `IoAdapter`
@@ -32,8 +32,9 @@ final class ShelfAdapter implements HttpAdapter {
   /// Creates the adapter. [closeTimeout] bounds how long a graceful
   /// `close` waits for the requests in flight. [onError] receives failures
   /// the adapter cannot turn into a response (a handler that throws, a body
-  /// stream that fails mid-response); it defaults to [printError] and must
-  /// not throw.
+  /// stream that fails mid-response); it defaults to [printError]. If
+  /// [onError] throws, the adapter keeps serving and that failure goes to
+  /// stderr with its stack trace.
   ShelfAdapter({this.closeTimeout = defaultCloseTimeout, ErrorLogger? onError})
     : onError = onError ?? printError,
       _report = GuardedReporter(onError ?? printError),

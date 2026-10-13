@@ -4,7 +4,7 @@ import 'package:dartnest/dartnest.dart';
 import 'package:dartnest_shelf/dartnest_shelf.dart';
 import 'package:test/test.dart';
 
-import 'shelf_adapter_support.dart';
+import 'helpers/shelf_adapter_support.dart';
 
 void main() {
   group('ShelfAdapter', () {

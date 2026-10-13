@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:dartnest/dartnest.dart';
 import 'package:shelf/shelf.dart' as shelf;
 
@@ -15,8 +13,9 @@ abstract final class ShelfResponseMapper {
   /// - Bytes get `content-length`; a stream is chunked unless the
   ///   application set `content-length`, and is not buffered by
   ///   `shelf_io`, so each chunk reaches the client when it is emitted.
-  /// - For `HEAD` ([isHead]) the body is empty, `content-length` of a bytes
-  ///   body is kept, and a stream is cancelled unread.
+  /// - For `HEAD` ([isHead]) the body is empty and `content-length` of a
+  ///   bytes body is kept; a stream body is not read (the caller cancels
+  ///   it).
   static shelf.Response map(HttpResponse response, {required bool isHead}) {
     final headers = <String, Object>{
       for (final name in response.headers.names)
@@ -28,8 +27,7 @@ abstract final class ShelfResponseMapper {
         return shelf.Response(response.status, headers: headers);
       case BytesBody(:final bytes):
         return shelf.Response(response.status, body: bytes, headers: headers);
-      case StreamBody(:final stream) when isHead:
-        unawaited(stream.listen(null).cancel());
+      case StreamBody() when isHead:
         return shelf.Response(
           response.status,
           body: const Stream<List<int>>.empty(),

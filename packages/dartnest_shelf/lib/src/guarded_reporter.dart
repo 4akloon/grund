@@ -18,8 +18,10 @@ final class GuardedReporter {
     // stop the 500 or crash the server, so its failure goes to stderr.
     try {
       onError(error, stackTrace);
-    } on Object catch (reporterError) {
-      io.stderr.writeln('dartnest_shelf: onError failed: $reporterError');
+    } on Object catch (reporterError, reporterStackTrace) {
+      io.stderr.writeln(
+        'dartnest_shelf: onError failed: $reporterError\n$reporterStackTrace',
+      );
     }
   }
 }

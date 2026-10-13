@@ -37,6 +37,7 @@ abstract final class IoRequestMapper {
   /// the authority; it is put back into the path. The first segment of a
   /// `//` target is case-folded because `Uri.parse` treats it as an
   /// authority. `Host` is not used, so it cannot change the routed path.
+  /// A malformed `//x:/y` loses the empty port of its first segment.
   static Uri target(Uri parsed) {
     final path = parsed.hasAuthority && !parsed.hasScheme
         ? '//${parsed.authority}${parsed.path}'

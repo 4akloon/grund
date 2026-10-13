@@ -60,17 +60,16 @@ void main() {
       expect(await response.readAsString(), isEmpty);
     });
 
-    test('HEAD cancels a stream body unread', () async {
-      final cancelled = Completer<void>();
-      final source = StreamController<List<int>>(onCancel: cancelled.complete);
+    test('HEAD sends no body for a stream body', () async {
+      final source = StreamController<List<int>>();
 
       final response = ShelfResponseMapper.map(
         HttpResponse.stream(source.stream),
         isHead: true,
       );
 
-      await cancelled.future;
       expect(await response.readAsString(), isEmpty);
+      expect(source.hasListener, isFalse);
     });
   });
 }
