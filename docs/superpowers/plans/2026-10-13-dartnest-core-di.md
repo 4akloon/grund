@@ -19,6 +19,8 @@
 - All providers are singletons, created eagerly at `Container.create`; no request scope, no lifecycle hooks (spec: "Поза межами v1").
 - Spec deviations locked in by this plan: module `id` is a `String` (not `Symbol`) for readable diagnostics; `Token` equality is by `name` + type parameter (no `Token.byName` switch); the spec's `NotExportedError` is folded into `MissingProviderError.definedIn` (the hint names modules that declare the key).
 - `lints/recommended.yaml` must pass (`dart analyze` reports no issues) before every commit.
+- Follow `CLAUDE.md` (code rules, size limits: 300 lines per `lib/` file, 40 per method, one public class or sealed family per file; `dart format` changes 0 files).
+- `DartnestError` is `abstract base` (not sealed) so other libraries can add error families; `InjectionError` is sealed.
 
 ## Review Focus
 
@@ -494,7 +496,7 @@ git commit -m "feat(core): add Provider<T> and Injector interface"
 **Interfaces:**
 - Consumes: `Provider`, `Token`.
 - Produces:
-  - `final class Module { Module({required String id, List<Module> imports = const [], List<Provider<Object>> providers = const [], List<Object> exports = const [], bool global = false}); }` — `exports` entries are a `Type`, a `Token`, or a `Module` from `imports`.
+  - `final class Module { Module({required String id, List<Module> imports = const [], List<ProviderSpec> providers = const [], List<Object> exports = const [], bool global = false}); }` (`ProviderSpec` is the non-generic interface `Provider<T>` implements; see ruling in the SDD ledger: `List<Provider<Object>>` makes Dart infer `T = Object` inside the list) — `exports` entries are a `Type`, a `Token`, or a `Module` from `imports`.
   - Errors (all `implements Exception`, all with `String get message`): `DartnestError` (sealed root), `InjectionError` (sealed), `DuplicateModuleIdError(id)`, `CircularModuleImportError(cycle: List<String>)`, `DuplicateProviderError(key, moduleId)`, `InvalidExportError(export, moduleId)`, `MissingProviderError(key, moduleId, chain: List<Object>, definedIn: List<String>)`, `CircularDependencyError(cycle: List<Object>)`, `AsyncProviderNotReadyError(key, chain: List<Object>)`, `ProviderCreationError(key, moduleId, chain, error, stackTrace)`, `UnknownModuleError(id)`.
   - Helper `String describeKey(Object key)` → `'UsersRepo'` for a `Type`, `'Token<String>(db.url)'` for a token.
 
@@ -618,7 +620,7 @@ final class Module {
   /// Providers declared by this module. Within one module, declaration order
   /// matters only for async providers: a provider may only use an async
   /// provider that is declared before it (or in an imported module).
-  final List<Provider<Object>> providers;
+  final List<ProviderSpec> providers;
 
   /// What importers of this module can see: a [Type] or [Token] of one of
   /// [providers], or a [Module] from [imports] (re-export).
@@ -653,7 +655,7 @@ String describeKey(Object key) => key is Token ? key.toString() : '$key';
 import 'module.dart';
 
 /// Root of every error raised by dartnest itself.
-sealed class DartnestError implements Exception {
+abstract base class DartnestError implements Exception {
   const DartnestError();
 
   /// Human-readable explanation, suitable for logs.
@@ -1552,7 +1554,7 @@ final class ResolutionTrace {
 final class _Slot {
   _Slot(this.provider, this.owner);
 
-  final Provider<Object> provider;
+  final ProviderSpec provider;
   final ModuleInjector owner;
   Object? instance;
   bool created = false;
