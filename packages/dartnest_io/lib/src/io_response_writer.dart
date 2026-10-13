@@ -13,7 +13,8 @@ abstract final class IoResponseWriter {
   /// - A stream is written chunk by chunk, unbuffered, so each chunk
   ///   reaches the client when the stream emits it.
   /// - For `HEAD` ([isHead]) no body is written and a stream is cancelled
-  ///   unread; the headers stay those of the `GET` response.
+  ///   unread; the headers are those of the handler's response (a stream
+  ///   body has no `content-length` unless the application set one).
   ///
   /// Fails when the body stream fails, the head cannot be written or the
   /// connection breaks; the caller reports it and drops the connection.

@@ -54,7 +54,7 @@ Future<void> main() async {
   itself adds a `date` header. Add security headers with middleware.
 - Sends byte bodies with `content-length`, streams unbuffered, and `HEAD`
   without a body. A `transfer-encoding` header from the application is
-  dropped; framing is not left to the application.
+  dropped; the adapter sets the framing.
 - Routes on the request target only, like `IoAdapter` from `dartnest_io`:
   neither `Host` nor the client-controlled `X-Forwarded-Host` /
   `X-Forwarded-Proto` headers can change the routed path (plain `shelf_io`
@@ -63,15 +63,18 @@ Future<void> main() async {
   percent-encoding.
 - `adapter.port` is the bound port (useful with `port: 0`); it throws a
   `StateError` before `listen` completes and after `close`. `listen` can be
-  called once; a second call, or a call after `close`, throws a
-  `StateError`.
+  called once; a second call after it succeeded, or a call after `close`,
+  throws a `StateError`. A `listen` that failed to bind (port in use) can be
+  retried, e.g. on another port.
 - `app.close()` stops accepting connections, waits for the requests in
   flight (responses still being written included) and then closes the
   application, for at most `ShelfAdapter(closeTimeout: ...)`, 30 seconds by
   default; after that the remaining connections are dropped and
   `app.close()` still completes normally. `closeTimeout: null` waits
-  without a limit. `app.close(force: true)` drops the connections at once,
-  also when a graceful close is already waiting.
+  without a limit. `app.close(force: true)` drops the connections at once;
+  when a graceful `app.close()` is already waiting, a later
+  `app.close(force: true)` does not end it (the application returns the
+  first close), only `adapter.close(force: true)` does.
 - `shelf_io` itself prints a stack trace to stderr for every malformed
   request (for example `%FF` in the path, answered with 400); that output
   bypasses `onError`.
