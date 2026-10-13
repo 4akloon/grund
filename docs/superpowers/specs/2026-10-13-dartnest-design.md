@@ -88,7 +88,7 @@ Request-scoped провайдери, lifecycle-хуки, GraphQL (v2), WebSocket
 const dbUrl = Token<String>('db.url');
 
 final usersModule = Module(
-  id: #users,
+  id: 'users',
   imports: [databaseModule(url: env('DB_URL'))],
   providers: [
     Provider((i) => UsersRepo(i.get())),       // T виводиться з повернення
@@ -102,7 +102,7 @@ final usersModule = Module(
 );
 
 Module databaseModule({required String url}) => Module(
-  id: #database,
+  id: 'database',
   providers: [Provider.value(url, token: dbUrl)],
   exports: [dbUrl],
 );
@@ -116,9 +116,9 @@ Module databaseModule({required String url}) => Module(
 - `Provider<T>` — фабрика `FutureOr<T> Function(Injector i)` плюс ключ:
   `Type` (за замовчуванням `T`) або `Token<T>`. Конструктори: `Provider(fn)`,
   `Provider.value(v, {token})`, `Provider.async(fn, {token})`.
-- `Token<T>` — `const` клас з ім'ям для діагностики; ідентичність — за
-  посиланням на екземпляр (`const` канонізація) або за ім'ям, якщо ввімкнено
-  `Token.byName`. Рядкових токенів немає.
+- `Token<T>` — `const` клас з ім'ям; рівність — за типом `T` і за ім'ям
+  (симетрична, узгоджена з `hashCode`), тож два `Token<String>('db.url')`
+  з різних файлів — один ключ. Рядкових токенів немає.
 - `Injector` — `T get<T>([Token<T>? token])`, `T? maybeGet<T>(...)`.
   Синхронний, незмінний після старту.
 
@@ -136,11 +136,15 @@ Module databaseModule({required String url}) => Module(
   Дедуплікація за `id`: повторний імпорт із тим самим `id` дає один
   екземпляр; два модулі з одним `id`, але різними конфігураціями (різний
   набір провайдерів/імпортів за структурним порівнянням) — помилка на старті.
-- **Валідація до створення** будь-чого: відсутній провайдер,
-  цикл, спроба взяти неекспортований провайдер, дублікат ключа в модулі,
-  конфлікт `id`. Повідомлення містять ланцюжок: `UsersService ← UsersRepo
-  ← Db (модуль #users): Db не знайдено. Експортують Db: #database (не
-  імпортовано в #users)`.
+- **Валідація у два кроки.** Структура — до створення будь-чого
+  (`ModuleGraph.build`): конфлікт `id`, цикл імпортів, дублікат ключа в
+  модулі, некоректний export, неоднозначний export (один ключ з двох різних
+  модулів-власників). Залежності фабрик ядро без mirrors не бачить, тому
+  відсутній провайдер, цикл залежностей і неекспортований провайдер
+  виявляються fail-fast під час eager-старту, до повернення контейнера;
+  повну статичну перевірку робить генератор (етап 4). Повідомлення містять
+  ланцюжок: `UsersService ← UsersRepo ← Db (модуль 'users'): Db не
+  знайдено. Експортують Db: 'database' (не імпортовано в 'users')`.
 
 ### Анотаційний еквівалент
 
@@ -376,8 +380,11 @@ description)`, `@ApiProperty(...)` з `dartnest_annotations` лише допов
 
 ## 7. Помилки
 
-- Старт: ієрархія `DartnestError` → `InjectionError` (`MissingProvider`,
-  `CircularDependency`, `NotExported`, `DuplicateModuleId`), `RoutingError`
+- Старт: ієрархія `DartnestError` → `InjectionError` (`MissingProvider` з підказкою
+  `definedIn` замість окремого `NotExported`, `CircularDependency`,
+  `DuplicateModuleId`, `CircularModuleImport`, `DuplicateProvider`,
+  `InvalidExport`, `AmbiguousProvider`, `AsyncProviderNotReady`,
+  `ProviderCreation`), `RoutingError`
   (`DuplicateRoute`). Fail-fast, без часткового старту.
 - Рантайм: `HttpException(status, {message, details})` і підкласи
   (`NotFound`, `BadRequest`, `Unauthorized`, `Forbidden`). Дефолтний фільтр →
