@@ -59,6 +59,10 @@ final class IoAdapter implements HttpAdapter {
 
   Future<void> _serve(io.HttpRequest native, RequestHandler handler) async {
     final response = await handler(IoRequestMapper.map(native));
-    await IoResponseWriter.write(response, native.response);
+    await IoResponseWriter.write(
+      response,
+      native.response,
+      isHead: native.method == 'HEAD',
+    );
   }
 }
