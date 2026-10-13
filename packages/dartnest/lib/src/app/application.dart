@@ -51,7 +51,8 @@ final class Application {
   /// [root] is a function so that the module graph can be rebuilt after a
   /// hot reload. [enhancers] are the application-level components, resolved
   /// through the root module. [debug] adds error details to 500 responses;
-  /// [onError] receives unexpected errors (default: print).
+  /// [onError] receives unexpected errors (default: print); it must not
+  /// throw, or [handle] fails.
   ///
   /// Fails fast: a `RoutingError` before any provider is created, an
   /// `InjectionError` or `ApplicationError` before the application is
@@ -137,10 +138,11 @@ final class Application {
     return _inFlight.track(() => _answer(request, router, chain));
   }
 
-  /// Serves [handle] through the adapter on [address] and [port]; throws
+  /// Serves [handle] through the adapter on [address] and [port]; fails with
   /// [ApplicationStateError] without an adapter, after [close], or when
-  /// already listening.
-  Future<void> listen({required int port, Object address = 'localhost'}) {
+  /// already listening. When the adapter fails to start, the error is passed
+  /// on and [listen] can be called again, e.g. on another port.
+  Future<void> listen({required int port, Object address = 'localhost'}) async {
     final adapter = _adapter;
     if (adapter == null) {
       throw const ApplicationStateError(
@@ -161,7 +163,14 @@ final class Application {
       );
     }
     _listening = true;
-    return adapter.listen(handle, address: address, port: port);
+    // A failed start must not block a retry, e.g. on another port.
+    var started = false;
+    try {
+      await adapter.listen(handle, address: address, port: port);
+      started = true;
+    } finally {
+      if (!started) _listening = false;
+    }
   }
 
   /// Stops the application: the adapter stops accepting requests, new
@@ -178,9 +187,12 @@ final class Application {
 
   Future<void> _shutdown({required bool force}) async {
     final adapter = _adapter;
-    if (_listening && adapter != null) await adapter.close(force: force);
-    if (!force) await _inFlight.idle;
-    await container.close();
+    try {
+      if (_listening && adapter != null) await adapter.close(force: force);
+      if (!force) await _inFlight.idle;
+    } finally {
+      await container.close();
+    }
   }
 
   Future<HttpResponse> _answer(

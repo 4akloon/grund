@@ -74,6 +74,24 @@ void main() {
         );
       },
     );
+
+    test('a failed listen can be retried', () async {
+      final adapter = FakeAdapter()..listenFailure = StateError('port in use');
+      final app = await Application.create(appModule, adapter: adapter);
+
+      await expectLater(app.listen(port: 80), throwsStateError);
+      await app.listen(port: 8080);
+
+      expect(adapter.port, 8080);
+    });
+
+    test('state errors are failed futures, not synchronous throws', () async {
+      final bare = await Application.create(appModule);
+
+      final result = bare.listen(port: 0);
+
+      await expectLater(result, throwsA(isA<ApplicationStateError>()));
+    });
   });
 
   // Review Focus 5: close is repeatable and graceful.
@@ -130,6 +148,19 @@ void main() {
       expect(app.container.isClosed, isTrue);
       gate.complete();
     });
+  });
+
+  test('closes the container even when the adapter close throws', () async {
+    final adapter = FakeAdapter()..closeFailure = StateError('close failed');
+    final app = await Application.create(appModule, adapter: adapter);
+    await app.listen(port: 0);
+
+    final first = app.close();
+    final second = app.close();
+
+    await expectLater(first, throwsStateError);
+    await expectLater(second, throwsStateError);
+    expect(app.container.isClosed, isTrue);
   });
 
   group('Container.close', () {

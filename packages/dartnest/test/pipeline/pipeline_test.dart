@@ -128,6 +128,26 @@ void main() {
       expect(log, ['handler', 'filter map', 'filter http']);
     });
 
+    test('a throwing catches passes the new error to later filters', () async {
+      final log = <String>[];
+      final endpoint = endpointWith(
+        log,
+        handler: () => throw StateError('db down'),
+        enhancers: ResolvedEnhancers(
+          filters: [
+            _ThrowingCatches(NotFoundException()),
+            LogFilter<StateError>(log, 'skipped'),
+            LogFilter<HttpException>(log, 'http'),
+          ],
+        ),
+      );
+
+      final result = await Pipeline.run(endpoint, plainContext(), identity);
+
+      expect(result, startsWith('http handled NotFoundException(404)'));
+      expect(log, ['handler', 'filter http']);
+    });
+
     test('guard and finish errors reach the filters too', () async {
       final log = <String>[];
       final endpoint = endpointWith(
@@ -187,4 +207,15 @@ final class _Wrap implements Interceptor {
     ExecutionContext context,
     Next<Object?> next,
   ) async => {'data': await next()};
+}
+
+final class _ThrowingCatches extends ExceptionFilter<StateError> {
+  _ThrowingCatches(this.failure);
+  final Object failure;
+
+  @override
+  bool catches(Object error) => throw failure;
+
+  @override
+  Object? handle(StateError error, ExecutionContext context) => 'unreached';
 }

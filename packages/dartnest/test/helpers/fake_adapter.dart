@@ -8,19 +8,34 @@ final class FakeAdapter implements HttpAdapter {
   int? port;
   final List<bool> closeCalls = [];
 
+  /// Thrown (once) by the next `listen` when set, e.g. a port in use.
+  Object? listenFailure;
+
+  /// Thrown by `close` after it is recorded when set.
+  Object? closeFailure;
+
   @override
   Future<void> listen(
     RequestHandler handler, {
     required Object address,
     required int port,
   }) async {
+    final failure = listenFailure;
+    if (failure != null) {
+      listenFailure = null;
+      throw failure;
+    }
     this.handler = handler;
     this.address = address;
     this.port = port;
   }
 
   @override
-  Future<void> close({bool force = false}) async => closeCalls.add(force);
+  Future<void> close({bool force = false}) async {
+    closeCalls.add(force);
+    final failure = closeFailure;
+    if (failure != null) throw failure;
+  }
 
   /// Delivers [request] the way a server would.
   Future<HttpResponse> send(HttpRequest request) {

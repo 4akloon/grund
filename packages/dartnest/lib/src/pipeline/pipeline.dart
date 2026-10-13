@@ -63,10 +63,10 @@ abstract final class Pipeline {
   ) async {
     var (error, stackTrace) = failure;
     for (final filter in filters) {
-      if (!filter.catches(error)) continue;
-      // Same boundary as in [run]: a throwing filter hands its error to the
-      // filters after it.
+      // Same boundary as in [run]: a filter that throws, in `catches` or in
+      // `handle`, hands its error to the filters after it.
       try {
+        if (!filter.catches(error)) continue;
         return await finish(await filter.handle(error, context));
       } on Object catch (next, nextStackTrace) {
         (error, stackTrace) = (next, nextStackTrace);
