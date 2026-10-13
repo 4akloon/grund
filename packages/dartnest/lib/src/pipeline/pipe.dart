@@ -12,6 +12,9 @@ import 'pipeline_component.dart';
 /// requested type runs after the pipes, and only when the value is not
 /// already of that type. Throw `BadRequestException` to reject a value.
 ///
+/// A pipe with a typed input must tolerate `null` for absent query
+/// parameters, so declare `Pipe<String?, O>`.
+///
 /// Pipes listed in `Enhancers` see every argument, so they should implement
 /// `Pipe<Object?, Object?>` and pass through values they do not handle.
 abstract interface class Pipe<I, O> implements PipelineComponent {

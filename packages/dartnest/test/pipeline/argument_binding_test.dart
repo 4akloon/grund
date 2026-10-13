@@ -44,6 +44,23 @@ final class LengthPipe implements Pipe<String, int> {
   int transform(String value, ArgumentMeta meta) => value.length;
 }
 
+/// Appends a suffix, so the order of pipes is observable.
+final class AppendPipe implements Pipe<Object?, Object?> {
+  const AppendPipe(this.suffix);
+  final String suffix;
+
+  @override
+  Object? transform(Object? value, ArgumentMeta meta) => '$value$suffix';
+}
+
+/// Typed input that tolerates an absent (null) value.
+final class OrZeroPipe implements Pipe<String?, int> {
+  const OrZeroPipe();
+
+  @override
+  int transform(String? value, ArgumentMeta meta) => value?.length ?? 0;
+}
+
 ExecutionContext contextWithPipes(
   String target, {
   Map<String, String> pathParameters = const {},
@@ -103,6 +120,20 @@ void main() {
         badRequest('Invalid path parameter "id": expected int, got "abc".'),
       );
       await expectLater(context.param<bool>('id'), badRequest('expected bool'));
+    });
+
+    test('bad double, DateTime and nullable values are 400', () async {
+      final context = contextWithPipes('/', pathParameters: {'v': 'abc'});
+
+      await expectLater(
+        context.param<double>('v'),
+        badRequest('expected double'),
+      );
+      await expectLater(
+        context.param<DateTime>('v'),
+        badRequest('expected DateTime'),
+      );
+      await expectLater(context.param<int?>('v'), badRequest('expected int?'));
     });
 
     test('unknown parameter name is a programming error', () async {
@@ -171,33 +202,30 @@ void main() {
   group('pipes', () {
     test('configured pipes run before call pipes, on the raw value', () async {
       final upper = UpperPipe();
-      final context = contextWithPipes('/?name=ann', pipes: [upper]);
+      final context = contextWithPipes(
+        '/?name=ann',
+        pipes: [upper, const AppendPipe('-a')],
+      );
 
       final name = await context.query<String>(
         'name',
-        pipes: [const DefaultPipe('nobody')],
+        pipes: [const AppendPipe('-b')],
       );
 
-      expect(name, 'ANN');
+      expect(name, 'ANN-a-b');
       expect(upper.seen, ['query:name:String']);
     });
 
-    test('a typed Pipe<String, int> works when the input matches', () async {
-      final context = contextWithPipes('/?name=anna');
+    test('a typed Pipe<String, int> works on a path parameter', () async {
+      final context = contextWithPipes('/', pathParameters: {'name': 'anna'});
 
-      expect(await context.query<int>('name', pipes: [const LengthPipe()]), 4);
+      expect(await context.param<int>('name', pipes: [const LengthPipe()]), 4);
     });
 
-    test('a typed pipe fed a mismatched input fails with a TypeError', () {
+    test('a Pipe<String?, int> receives null for an absent query', () async {
       final context = contextWithPipes('/');
 
-      // The absent query parameter reaches the pipe as null, not a String.
-      // The failure is a TypeError raised at the pipe call, not a silent
-      // wrong result; it is not a friendly pipeline error.
-      expect(
-        context.query<int>('name', pipes: [const LengthPipe()]),
-        throwsA(isA<TypeError>()),
-      );
+      expect(await context.query<int>('n', pipes: [const OrZeroPipe()]), 0);
     });
 
     test('a pipe may supply a value for an absent parameter', () async {
