@@ -6,3 +6,4 @@ workspace:
   - packages/dartnest
   - packages/dartnest_conformance
   - packages/dartnest_io
+  - packages/dartnest_shelf
