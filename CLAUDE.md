@@ -143,7 +143,10 @@ to make a change pass.
 **Tests.** Tests come in the same commit as the code; a new branch of logic
 has a test that fails without it. A test names the behaviour, builds its
 input in the test or a named helper, and checks one thing. Set-up of more
-than about 5 lines repeated becomes a helper.
+than about 5 lines repeated becomes a helper. `packages/dartnest_conformance`
+is unpublished test support for the adapter packages: its `lib/` may import
+`package:test`, and the `register` methods of its test groups are held to the
+test-file limits, not to the 40-line method limit.
 
 **Self-review before saying "done".**
 
