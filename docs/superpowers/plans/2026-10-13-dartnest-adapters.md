@@ -632,10 +632,15 @@ void main() {
     });
 
     test('reads a content-length response', () async {
+      // Written by hand: dart:io frames even a short body as chunked. A
+      // second pipelined response follows, so only content-length tells
+      // where the first body ends.
       final server = await serve((request) async {
-        request.response.headers.add('x-multi', 'a');
-        request.response.write('hello');
-        await request.response.close();
+        final socket = await request.response.detachSocket(writeHeaders: false);
+        socket.write('HTTP/1.1 200 OK\r\ncontent-length: 5\r\n\r\nhello');
+        socket.write('HTTP/1.1 200 OK\r\ncontent-length: 2\r\n\r\nno');
+        await socket.flush();
+        socket.destroy();
       });
 
       final response = await RawHttp.exchange(
@@ -1366,7 +1371,9 @@ abstract final class RequestConformance {
         );
         final missing = await server.send('GET', '/users/9');
 
-        expect((found.status, found.json), (200, {'id': 1, 'name': 'ann'}));
+        // Separate checks: a record compares a Map inside it by identity.
+        expect(found.status, 200);
+        expect(found.json, {'id': 1, 'name': 'ann'});
         expect(
           (created.status, created.headers.value('location')),
           (201, '/users/3'),
@@ -4197,7 +4204,7 @@ git commit -m "docs: add adapter quick starts and link the stage 3 plan"
 
 **Узгодженість типів.** Імена між задачами звірено з кодом: `InFlightRequests.track/idle/count`; `AdapterFactory(onError, closeTimeout)`, `AdapterUnderTest(adapter, boundPort:)`, `AdapterConformance.run`, `RequestConformance/BodyConformance/LifecycleConformance.register`; `ConformanceServer.start(..., applicationLogger:, closeTimeout:)/defaultCloseTimeout/send/uri/close/firstAdapterError/adapterErrors/applicationErrors`; `ConformanceProbe.entered/release/firstUploadChunk/endlessCancelled`; `ConformanceData.bytes/chunks/checksum/endless`; `conformanceModule`; `RawHttp.head/exchange/abortAfterFirstBytes`; `RawResponse.parse/isComplete`; `IoRequestMapper.map/target`; `IoResponseWriter.write(..., isHead:)`; `IoAdapter({securityContext, closeTimeout, onError}).port/printError/defaultCloseTimeout`; `ShelfRequestMapper.map`, `ShelfResponseMapper.map(..., isHead:)`; `ShelfBridge(handler, onError:).call`; `ShelfAdapter({closeTimeout, onError}).port/printError/defaultCloseTimeout`; `shelfHandler(app, {onError})`. З ядра використано лише наявні `Application.create/listen/close/handle` (Task 1 змінює лише внутрішню поведінку `listen`/`close` і dartdoc `HttpAdapter`), `HttpAdapter`, `RequestHandler`, `ErrorLogger`, `HttpRequest`, `HttpResponse`, `BytesBody`, `StreamBody`, `RequestBody`, `HeaderMap`, `ConnectionInfo`, `StatusCode`, `TestClient`.
 
-**Перевірка.** Код кожної задачі зібрано в чистій копії `master` (d1e7dc3) у стані після Tasks 3, 4, 5, 7, 8 і після останньої: `dart pub get --offline`, `dart analyze` — «No issues found!», `dart format` — 0 змінених файлів. Тести під час написання плану не запускались (лише компіляція й аналіз); кількості в кроках «Expected» пораховано з коду. Якщо при виконанні кількість або стан тесту в кроці «verify it fails» не збігається, це сигнал перевірити задачу, а не підганяти число. Після додавання `closeTimeout` (рішення 11, 12) код знову зібрано так само (стан після Tasks 3, 5 і після останньої; Task 1 — накладанням «було → стало» на `master`) і цього разу тести запущено: нові тести Task 1 і групи `lifecycle` проходять для обох адаптерів (група `lifecycle` — 5 прогонів поспіль без флейків) і падають без відповідного коду так, як описано в кроках «verify it fails» Tasks 1 і 5; кількості `+241`/`+40`/`+41`/`+55` збіглися. Той самий прогін показав два дефекти тестів, не пов'язані з таймаутом, які треба виправити до виконання: `serves the users app` (група `requests`) порівнює запис `(status, json)` через `==`, а `Map` усередині запису порівнюється за ідентичністю, тож тест падає завжди; `RawHttp reads a content-length response` (`raw_http_test.dart`) чекає `content-length: 5`, а голий `dart:io`-сервер після `write('hello')` шле `transfer-encoding: chunked`. Найбільший файл у `lib/` — `conformance_app.dart` (189 рядків), у `test/` — `conformance_app_test.dart` (121 рядок).
+**Перевірка.** Код кожної задачі зібрано в чистій копії `master` (d1e7dc3) у стані після Tasks 3, 4, 5, 7, 8 і після останньої: `dart pub get --offline`, `dart analyze` — «No issues found!», `dart format` — 0 змінених файлів. Тести під час написання плану не запускались (лише компіляція й аналіз); кількості в кроках «Expected» пораховано з коду. Якщо при виконанні кількість або стан тесту в кроці «verify it fails» не збігається, це сигнал перевірити задачу, а не підганяти число. Після додавання `closeTimeout` (рішення 11, 12) код знову зібрано так само (стан після Tasks 3, 5 і після останньої; Task 1 — накладанням «було → стало» на `master`) і цього разу тести запущено: нові тести Task 1 і групи `lifecycle` проходять для обох адаптерів (група `lifecycle` — 5 прогонів поспіль без флейків) і падають без відповідного коду так, як описано в кроках «verify it fails» Tasks 1 і 5; кількості `+241`/`+40`/`+41`/`+55` збіглися. Той самий прогін показав два дефекти тестів, не пов'язані з таймаутом; їх виправлено: `serves the users app` (група `requests`) порівнював запис `(status, json)`, а `Map` усередині запису порівнюється за ідентичністю — тепер статус і JSON перевіряються окремо; `RawHttp reads a content-length response` (`raw_http_test.dart`) чекав `content-length: 5` від голого `dart:io`-сервера, який для `write('hello')` шле chunked — тепер відповідь пишеться вручну в сокет (`content-length: 5` + друга конвеєрна відповідь), тож тест падає, якщо `RawResponse` ігнорує `content-length`. Після виправлення в чистій копії (стан після Task 3) `dart test` у `dartnest_conformance` дає `+13`, у `dartnest_io` — `+19`, `dart analyze` і `dart format` чисті; інших записів із `Map`/`List` в `expect` у плані немає. Найбільший файл у `lib/` — `conformance_app.dart` (189 рядків), у `test/` — `conformance_app_test.dart` (121 рядок).
 
 **Review Focus.** Кожен пункт закріплено тестом із коментарем `// Review Focus N`: 1 → Task 4 (`bodies`) і Task 7; 2 → Task 4; 3 → Task 2/3 (`requests`, уперше запускається в Task 3); 4 → Task 5 (`lifecycle`); 5 → Task 4 і Task 7; 6 → Task 1 і Task 5 (`lifecycle`).
 
