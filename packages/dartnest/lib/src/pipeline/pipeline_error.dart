@@ -54,3 +54,22 @@ final class UnknownRouteParameterError extends PipelineError {
       'Handler "$handlerName" reads path parameter "$name", but its route '
       'declares ${declared.isEmpty ? 'none' : declared.join(', ')}.';
 }
+
+/// A handler result cannot be encoded as JSON.
+final class SerializationError extends PipelineError {
+  /// Creates the error.
+  const SerializationError({required this.valueType, this.cause});
+
+  /// Runtime type of the value that could not be encoded.
+  final Type valueType;
+
+  /// What the JSON encoder reported, if anything.
+  final Object? cause;
+
+  @override
+  String get message =>
+      'Cannot serialize $valueType to JSON'
+      '${cause == null ? '' : ' ($cause)'}. Give it a toJson() method, '
+      'return an HttpResponse, or register a serializer with '
+      'app.serializers.register<$valueType>(...).';
+}
