@@ -121,7 +121,8 @@ returns. No `catch` without `on`; never catch `Error`. The exceptions are
 the boundaries where user code runs; each catches `on Object` (except where
 the entry names the exact `Error` subtype it catches), has a comment naming
 the boundary, and never swallows the failure silently (it wraps, rethrows,
-turns it into an error response, or degrades visibly as its entry says):
+turns it into an error response, or degrades as its entry says while still
+producing a response):
 - factory boundaries: `ModuleInjector` (provider factories) and
   `Controller.instantiate` wrap the failure in `ProviderCreationError` /
   `ControllerCreationError` with its cause and original stack trace;
