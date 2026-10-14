@@ -35,4 +35,8 @@ final class ReportPrinter {
       WriteOutcome.kept => '${report.output} was not changed.',
     });
   }
+
+  /// Prints that [directory] (relative to the package root) is watched.
+  void watching(String directory) =>
+      out.writeln('Watching $directory/ for changes; press Ctrl+C to stop.');
 }

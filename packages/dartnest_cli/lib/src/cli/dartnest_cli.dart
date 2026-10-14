@@ -14,13 +14,16 @@ import 'gen_command.dart';
 /// `DartnestCli(generator: DartnestGenerator([...])).run(arguments)`.
 final class DartnestCli {
   /// Creates the command line; output goes to [out] and [err] (stdout and
-  /// stderr by default) and `gen` runs [generator].
+  /// stderr by default), `gen` runs [generator] and `gen --watch` stops
+  /// when [untilStopped] completes (the first Ctrl+C by default).
   DartnestCli({
     StringSink? out,
     StringSink? err,
     this.generator = const DartnestGenerator.core(),
+    Future<void> Function()? untilStopped,
   }) : out = out ?? stdout,
-       err = err ?? stderr;
+       err = err ?? stderr,
+       untilStopped = untilStopped ?? _interrupted;
 
   /// Where results and usage go.
   final StringSink out;
@@ -30,6 +33,10 @@ final class DartnestCli {
 
   /// The constructs `gen` runs.
   final DartnestGenerator generator;
+
+  /// Called when `gen --watch` starts; watching ends when the future
+  /// completes.
+  final Future<void> Function() untilStopped;
 
   /// Runs the command in [arguments] and returns the process exit code
   /// (see [CliExitCode]).
@@ -48,6 +55,8 @@ final class DartnestCli {
       return failure.exitCode.code;
     }
   }
+
+  static Future<void> _interrupted() => ProcessSignal.sigint.watch().first;
 }
 
 final class _Runner extends CommandRunner<int> {
