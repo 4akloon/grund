@@ -6,6 +6,7 @@ import 'package:analyzer/error/error.dart';
 import 'package:dartnest_cli/dartnest_cli.dart';
 import 'package:dartnest_cli/src/cli/shell_word.dart';
 import 'package:dartnest_cli/src/init/project_scaffold.dart';
+import 'package:dartnest_cli/src/init/reserved_names.dart';
 import 'package:test/test.dart';
 
 import 'helpers/cli_run.dart';
@@ -79,6 +80,7 @@ void main() {
     ('class', 'a Dart reserved word'),
     ('in', 'a Dart reserved word'),
     ('dartnest', 'a dependency of the new package'),
+    ('lints', 'a dependency of the new package'),
   ]) {
     test('init rejects the package name "$name"', () async {
       final dir = TempDir.create();
@@ -91,6 +93,12 @@ void main() {
       expect(dir.exists(name), isFalse);
     });
   }
+
+  test('init accepts the names of packages the template does not use', () {
+    for (final name in ['test', 'dartnest_generator']) {
+      expect(ReservedNames.reasonFor(name), isNull);
+    }
+  });
 
   test('init leaves nothing behind when writing fails midway', () async {
     final dir = TempDir.create();

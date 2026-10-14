@@ -49,9 +49,7 @@ abstract final class ReservedNames {
     'dartnest',
     'dartnest_annotations',
     'dartnest_cli',
-    'dartnest_generator',
     'dartnest_io',
     'lints',
-    'test',
   };
 }
