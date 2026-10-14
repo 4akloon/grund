@@ -73,7 +73,7 @@ final class DartnestCli {
 
 final class _Runner extends CommandRunner<int> {
   _Runner(this._out)
-    : super('dartnest_cli', 'Generates and scaffolds dartnest applications.');
+    : super('dartnest', 'Generates and scaffolds dartnest applications.');
 
   final StringSink _out;
 

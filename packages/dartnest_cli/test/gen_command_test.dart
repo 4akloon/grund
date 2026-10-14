@@ -99,7 +99,7 @@ void main() {
     for (final run in [unknown, option, positional]) {
       expect(run.exitCode, CliExitCode.usage.code);
       expect(run.out, isEmpty);
-      expect(run.err, contains('Usage: dartnest_cli'));
+      expect(run.err, contains('Usage: dartnest '));
     }
     expect(positional.err, startsWith('gen takes no positional arguments.'));
   });

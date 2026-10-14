@@ -2,8 +2,10 @@ name: dartnest_annotations
 description: >-
   Annotations for dartnest applications; dartnest_generator turns them into
   the explicit dartnest API. No dependencies.
-version: 0.1.0-dev
-publish_to: none
+version: 0.1.0
+repository: https://github.com/4akLoon/dartnest/tree/master/packages/dartnest_annotations
+issue_tracker: https://github.com/4akLoon/dartnest/issues
+topics: [server, framework, annotations, codegen]
 environment:
   sdk: ^3.8.0
 resolution: workspace

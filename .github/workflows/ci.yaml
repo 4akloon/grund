@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+# Every package and the example, on the SDK floor (3.8.0) and on stable.
+# Formatting, lints and the publish dry-run use stable only: the formatter's
+# output and the lint set change between SDKs, and pub's checks are those of
+# the SDK a release is published with.
+jobs:
+  test:
+    name: Test (Dart ${{ matrix.sdk }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        sdk: ['3.8.0', stable]
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: ${{ matrix.sdk }}
+
+      - name: Install dependencies (workspace)
+        run: dart pub get
+
+      - name: Verify formatting
+        if: matrix.sdk == 'stable'
+        run: dart format --output=none --set-exit-if-changed packages example
+
+      - name: Analyze
+        if: matrix.sdk == 'stable'
+        run: dart analyze --fatal-infos
+
+      - name: Unit tests
+        run: |
+          for dir in packages/*/ example/; do
+            echo "::group::$dir"
+            (cd "$dir" && dart test) || exit 1
+            echo "::endgroup::"
+          done
+
+      - name: Integration tests (dev, build_runner)
+        run: |
+          (cd packages/dartnest_cli && dart test integration)
+          (cd packages/dartnest_build && dart test integration)
+
+      - name: Generation benchmark
+        run: cd packages/dartnest_cli && dart test benchmark
+
+  publish-dry-run:
+    name: Publish dry-run
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Install dependencies (workspace)
+        run: dart pub get
+
+      # In the order of docs/RELEASING.md; any warning fails the job.
+      - name: dart pub publish --dry-run
+        run: |
+          for package in dartnest_annotations dartnest dartnest_io dartnest_shelf \
+              dartnest_generator dartnest_cli dartnest_build; do
+            echo "::group::$package"
+            (cd "packages/$package" && dart pub publish --dry-run) || exit 1
+            echo "::endgroup::"
+          done

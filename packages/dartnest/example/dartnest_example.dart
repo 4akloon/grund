@@ -1,4 +1,5 @@
 import 'package:dartnest/dartnest.dart';
+import 'package:dartnest/testing.dart';
 
 /// A typed token for a primitive value.
 const dbUrl = Token<String>('db.url');
@@ -44,11 +45,42 @@ final greetingModule = Module(
   exports: [Greeter],
 );
 
-/// The root module of the example application.
+/// The root module of the dependency injection example.
 final appModule = Module(id: 'app', imports: [greetingModule]);
 
-/// Starts the container and prints a greeting.
+/// Serves `GET /hello?name=...` with a [Greeter].
+final helloController = Controller<Greeter>(
+  path: '/hello',
+  create: (i) => i.get(),
+  routes: [
+    Route.get(
+      '/',
+      (greeter, ctx) async => {
+        'message': greeter.greet(await ctx.query<String>('name')),
+      },
+    ),
+  ],
+);
+
+/// The root module of the HTTP example: [greetingModule] plus a controller.
+Module httpModule() => Module(
+  id: 'http',
+  imports: [greetingModule],
+  controllers: [helloController],
+);
+
+/// Resolves a service from a container, then answers one request in memory.
+///
+/// To serve over a socket, pass `IoAdapter()` from `dartnest_io` or
+/// `ShelfAdapter()` from `dartnest_shelf` to `Application.create` and call
+/// `app.listen(port: 8080)`.
 Future<void> main() async {
   final container = await Container.create(appModule);
   print(container.root.get<Greeter>().greet('dartnest'));
+  await container.close();
+
+  final app = await Application.create(httpModule);
+  final response = await TestClient(app).get('/hello?name=you');
+  print('${response.status} ${response.text}');
+  await app.close();
 }

@@ -1,0 +1,21 @@
+name: tasks_api
+description: The dartnest example application, a small tasks API; see README.md.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.8.0
+
+resolution: workspace
+
+dependencies:
+  dartnest: ^0.1.0
+  dartnest_annotations: ^0.1.0
+  dartnest_io: ^0.1.0
+  dartnest_shelf: ^0.1.0
+
+dev_dependencies:
+  dartnest_cli: ^0.1.0
+  lints: ^5.1.0
+  path: ^1.9.0
+  test: ^1.25.0
