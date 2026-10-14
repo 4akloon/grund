@@ -5,14 +5,24 @@ NestJS-style modular backend framework for Dart without `dart:mirrors`.
 Modules are values and providers are typed factories. The module structure
 is validated before any provider is created; missing or circular dependencies
 fail fast during startup, and `Container.create` never returns a partially
-started container. Static validation of the full graph is planned for the
-generator in a later milestone. Annotations and code generation are an
-optional layer on top (coming in later milestones); everything works without
-them.
+started container. Annotations (`dartnest_annotations`) and an analyzer-based
+generator (`dartnest_generator`, run by `dartnest_cli` or `dartnest_build`)
+are an optional layer on top that also validates the graph at build time;
+everything works without them, and both styles produce the same values.
+
+| Package | What it adds |
+| --- | --- |
+| `dartnest` | This package: modules, DI, controllers, the request pipeline, `TestClient` |
+| `dartnest_io` | `IoAdapter`, a `dart:io` `HttpServer` adapter |
+| `dartnest_shelf` | `ShelfAdapter` and `shelfHandler` for shelf |
+| `dartnest_annotations` | `@Module`, `@Controller`, `@Get`, `@Injectable`, ... |
+| `dartnest_generator` | The analyzer-based generator behind the annotations |
+| `dartnest_cli` | `dartnest gen`, `dartnest dev` (hot reload), `dartnest init` |
+| `dartnest_build` | The same generator as a `build_runner` builder |
 
 ## Dependency injection
 
-Excerpt; the full runnable version is `example/di_example.dart`:
+Excerpt; the full runnable version is `example/dartnest_example.dart`:
 
 ```dart
 const dbUrl = Token<String>('db.url');
@@ -163,6 +173,6 @@ This package has no server of its own: `app.handle(request)` answers an
 HTTP, pass an adapter to `Application.create`: `IoAdapter` from
 `dartnest_io` (a `dart:io` `HttpServer`) or `ShelfAdapter` from
 `dartnest_shelf`; `shelfHandler(app)` from `dartnest_shelf` embeds an
-application in an existing shelf pipeline. Annotations and an
-analyzer-based generator are planned in later milestones; see the
-repository's `docs/` directory for the roadmap.
+application in an existing shelf pipeline. The repository's `docs/`
+directory has the guides, and its `example/` directory a complete
+application written in both styles.
