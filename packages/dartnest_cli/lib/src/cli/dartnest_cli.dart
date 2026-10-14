@@ -10,6 +10,7 @@ import 'cli_failure.dart';
 import 'dev_command.dart';
 import 'gen_command.dart';
 import 'init_command.dart';
+import 'interruption.dart';
 
 /// The `dartnest_cli` command line.
 ///
@@ -19,18 +20,18 @@ import 'init_command.dart';
 final class DartnestCli {
   /// Creates the command line; output goes to [out] and [err] (stdout and
   /// stderr by default), `gen` runs [generator], `gen --watch` and `dev`
-  /// stop when [untilStopped] completes (the first Ctrl+C, or `SIGTERM`
+  /// stop on the first interrupt of [interruption] (Ctrl+C, or `SIGTERM`
   /// outside Windows, by default) and `dev` reads its `r` and `R` from
   /// [keys] (the terminal by default).
   DartnestCli({
     StringSink? out,
     StringSink? err,
     this.generator = const DartnestGenerator.core(),
-    Future<void> Function()? untilStopped,
+    Interruption? interruption,
     Stream<String> Function()? keys,
   }) : out = out ?? stdout,
        err = err ?? stderr,
-       untilStopped = untilStopped ?? interrupted,
+       interruption = interruption ?? Interruption(),
        keys = keys ?? TerminalKeys.read;
 
   /// Where results and usage go.
@@ -42,9 +43,8 @@ final class DartnestCli {
   /// The constructs `gen` runs.
   final DartnestGenerator generator;
 
-  /// Called when `gen --watch` or `dev` starts; watching ends when the
-  /// future completes.
-  final Future<void> Function() untilStopped;
+  /// How `gen --watch` and `dev` are stopped.
+  final Interruption interruption;
 
   /// Called when `dev` starts: the keys pressed while it runs.
   final Stream<String> Function() keys;
@@ -68,26 +68,6 @@ final class DartnestCli {
       err.writeln(failure.message);
       return failure.exitCode.code;
     }
-  }
-
-  /// Completes on the first `SIGINT` (Ctrl+C) or, outside Windows, where
-  /// it cannot be watched, `SIGTERM`; then stops watching both.
-  static Future<void> interrupted() {
-    final stopped = Completer<void>();
-    final subscriptions = [
-      for (final signal in [
-        ProcessSignal.sigint,
-        if (!Platform.isWindows) ProcessSignal.sigterm,
-      ])
-        signal.watch().listen((_) {
-          if (!stopped.isCompleted) stopped.complete();
-        }),
-    ];
-    return stopped.future.whenComplete(
-      () => Future.wait([
-        for (final subscription in subscriptions) subscription.cancel(),
-      ]),
-    );
   }
 }
 

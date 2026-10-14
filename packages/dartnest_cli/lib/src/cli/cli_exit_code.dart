@@ -13,8 +13,15 @@ enum CliExitCode {
   /// The package to work on is missing or unreadable.
   noInput(66),
 
+  /// An internal failure: a generation run, the application process or a key
+  /// action of `dev` failed in a way the tool does not handle.
+  software(70),
+
   /// A file cannot be written.
-  cannotCreate(73);
+  cannotCreate(73),
+
+  /// `dev` was interrupted a second time while it was shutting down.
+  interrupted(130);
 
   const CliExitCode(this.code);
 

@@ -24,6 +24,25 @@ Future<void> until(
 
 bool isListening(String line) => HelloApp.portIn(line) != null;
 
+/// Kills the application processes `dev` reported in [lines] (`Started ...
+/// (pid N`) that are still running, so a failing test leaves none behind.
+void killStrays(LineSink lines) {
+  final started = RegExp(r'^Started .* \(pid (\d+),');
+  for (final line in lines.lines) {
+    final pid = int.tryParse(started.firstMatch(line)?[1] ?? '');
+    if (pid == null || !_isApplication(pid)) continue;
+    Process.killPid(pid, ProcessSignal.sigkill);
+  }
+}
+
+// The pid may have been reused after a clean shutdown; where /proc tells
+// what it runs, only a child VM with the VM service is killed.
+bool _isApplication(int pid) {
+  final command = File('/proc/$pid/cmdline');
+  return !command.existsSync() ||
+      command.readAsStringSync().contains('--enable-vm-service');
+}
+
 /// A loopback port that was free a moment ago.
 Future<int> freePort() async {
   final socket = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
@@ -50,10 +69,11 @@ final class DevRun {
     final exit = DartnestCli(
       out: lines,
       err: lines,
-      untilStopped: () => stop.future,
+      interruption: Interruption(untilStopped: () => stop.future),
       keys: () => keys.stream,
     ).run(['dev', '-C', app.package.dir.path, '--', '$port']);
     final run = DevRun._(app, port, lines, keys, stop, exit);
+    addTearDown(() => killStrays(lines));
     addTearDown(run.stop);
     await until(lines, (line) => line.startsWith('Watching lib/ and bin/'));
     await until(lines, isListening);
@@ -172,8 +192,9 @@ void main() {
       '--',
       '$port',
     ]);
-    addTearDown(() => process.kill(ProcessSignal.sigkill));
     final lines = LineSink();
+    addTearDown(() => killStrays(lines));
+    addTearDown(() => process.kill(ProcessSignal.sigkill));
     process.stdout.transform(utf8.decoder).listen(lines.write);
     process.stderr.transform(utf8.decoder).listen(lines.write);
     await until(lines, isListening);

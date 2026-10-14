@@ -94,7 +94,7 @@ Git commands run from the repo root. Commit messages are Conventional Commits
   `dartnest_cli` tests build packages in a `TempDir` and resolve them
   against this workspace with `WorkspacePackageConfig` (no `pub get`); they
   run the command line in-process (`CliRun`, `DartnestCli(out:, err:,
-  untilStopped:, keys:)`), never as a child process. The exceptions are
+  interruption:, keys:)`), never as a child process. The exceptions are
   `dev`'s: its tests start the user's application as a child process with
   the VM service on loopback (`AppProcess`, `DevSession`), and
   `integration/dev_test.dart` (run with `dart test integration`, not part

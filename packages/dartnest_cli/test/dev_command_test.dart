@@ -1,7 +1,12 @@
+import 'dart:async';
+
 import 'package:dartnest_cli/dartnest_cli.dart';
+import 'package:dartnest_generator/dartnest_generator.dart';
 import 'package:test/test.dart';
 
 import 'helpers/cli_run.dart';
+import 'helpers/exploding_construct.dart';
+import 'helpers/line_sink.dart';
 import 'helpers/dev_sources.dart';
 import 'helpers/temp_package.dart';
 
@@ -67,5 +72,44 @@ void main() {
 
     expect(run.exitCode, CliExitCode.usage.code);
     expect(run.err, contains('Could not find an option named "--port"'));
+  });
+
+  test('a failure of a run ends dev with the software exit code', () async {
+    final package = await TempPackage.create('hello', DevSources.files);
+    final out = StringBuffer();
+    final err = StringBuffer();
+
+    final code = await DartnestCli(
+      out: out,
+      err: err,
+      generator: const DartnestGenerator([ExplodingConstruct()]),
+      interruption: Interruption(untilStopped: () => Completer<void>().future),
+      keys: () => const Stream<String>.empty(),
+    ).run(['dev', '-C', package.dir.path]);
+
+    expect(code, CliExitCode.software.code);
+    expect(err.toString(), contains('dev stopped: FormatException: boom'));
+    expect(out.toString(), isNot(contains('Started ')));
+  });
+
+  test('dev -t lib/main.dart watches lib/ only', () async {
+    final package = await TempPackage.create('hello', {
+      ...DevSources.files,
+      'lib/main.dart': DevSources.files['bin/main.dart'] ?? '',
+    });
+    final out = LineSink();
+    final stop = Completer<void>();
+    final done = DartnestCli(
+      out: out,
+      err: out,
+      interruption: Interruption(untilStopped: () => stop.future),
+      keys: () => const Stream<String>.empty(),
+    ).run(['dev', '-C', package.dir.path, '-t', 'lib/main.dart']);
+
+    await out.nextWhere((line) => line.startsWith('Watching '));
+    stop.complete();
+    await done;
+
+    expect(out.lines, contains(startsWith('Watching lib/ for changes')));
   });
 }

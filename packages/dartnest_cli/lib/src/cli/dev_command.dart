@@ -9,6 +9,7 @@ import '../dev/dev_printer.dart';
 import '../dev/dev_session.dart';
 import '../dev/dev_target.dart';
 import '../dev/merged_watcher.dart';
+import '../dev/terminal_keys.dart';
 import '../generate/generation_session.dart';
 import '../package/package_root.dart';
 import '../watch/watch_loop.dart';
@@ -52,7 +53,8 @@ final class DevCommand extends Command<int> {
 
   @override
   String get description =>
-      'Runs the application and hot reloads it on every change.';
+      'Runs the application and hot reloads it on every change.\n'
+      'In a terminal, r reloads and R restarts it now.';
 
   @override
   String get invocation =>
@@ -67,27 +69,75 @@ final class DevCommand extends Command<int> {
     final package = PackageRoot.open(options.option('directory') ?? '.');
     final target = _target(package, options.option('target') ?? '');
     final session = GenerationSession(package, generator: cli.generator);
-    final dev = DevSession(
-      DevTarget(package, entry: target, arguments: options.rest),
-      printer: DevPrinter(package.display(target), cli.out, cli.err),
-      out: cli.out,
-    );
+    final dev = _session(package, target, options.rest);
     final failure = Completer<void>();
     final keys = cli.keys().listen((key) => _press(dev, key, failure));
+    // Stopping the session at the interrupt itself, not after the watch
+    // loop ended: the terminal's Ctrl+C reaches the application too, and its
+    // exit must not be reported as a crash.
+    final interrupted = cli.interruption.untilStopped().whenComplete(dev.stop);
+    final stop = Future.any([interrupted, failure.future]);
+    final interrupts = _forceOnSecond(dev, failure.future);
     try {
       final (watcher, watched) = _watch(package, target);
-      await WatchLoop.custom(
-        generate: (changed) => session.run(changed: changed),
-        watched: watched,
-        printer: ReportPrinter(cli.out, cli.err),
-        afterRun: dev.apply,
-      ).run(watcher, Future.any([cli.untilStopped(), failure.future]));
+      await _loop(session, dev, watched).run(watcher, stop);
+    } on CliFailure {
+      rethrow;
+    } on Exception catch (error) {
+      // Anything a run, the application process or a key action failed
+      // with (an Error is a bug and stays loud) ends dev with a message
+      // and the software exit code, not an unmapped exception.
+      throw CliFailure(CliExitCode.software, 'dev stopped: $error');
     } finally {
       await keys.cancel();
       await dev.stop();
       await session.close();
+      await interrupts.cancel();
     }
     return CliExitCode.success.code;
+  }
+
+  DevSession _session(PackageRoot package, String entry, List<String> rest) {
+    if (TerminalKeys.isInteractive) {
+      cli.out.writeln('Press r to hot reload, R to hot restart.');
+    }
+    return DevSession(
+      DevTarget(package, entry: entry, arguments: rest),
+      printer: DevPrinter(package.display(entry), cli.out, cli.err),
+      out: cli.out,
+    );
+  }
+
+  WatchLoop _loop(GenerationSession session, DevSession dev, String watched) =>
+      WatchLoop.custom(
+        generate: (changed) => session.run(changed: changed),
+        watched: watched,
+        printer: ReportPrinter(cli.out, cli.err),
+        afterRun: dev.apply,
+      );
+
+  /// Listens for interrupts from the start: the first stops `dev` (through
+  /// [Interruption.untilStopped]) and takes `SIGINT`'s default away, so
+  /// that a second one, while the application is still closing, can end the
+  /// process at once instead of killing it half-way (child orphaned,
+  /// terminal left in raw mode): kill the child, restore the terminal, exit
+  /// 130. An interrupt after a failed key action ([failure]) counts as the
+  /// second, since `dev` is shutting down already. Cancel the subscription
+  /// when `dev` is done.
+  StreamSubscription<void> _forceOnSecond(
+    DevSession dev,
+    Future<void> failure,
+  ) {
+    var received = 0;
+    var failed = false;
+    unawaited(failure.then((_) {}, onError: (Object _) => failed = true));
+    return cli.interruption.signals().listen((_) {
+      received++;
+      if (received < 2 && !failed) return;
+      dev.kill();
+      TerminalKeys.restore();
+      cli.interruption.forceExit(CliExitCode.interrupted.code);
+    });
   }
 
   static String _target(PackageRoot package, String relative) {
