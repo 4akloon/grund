@@ -11,6 +11,8 @@ resolution: workspace
 dependencies:
   dartnest: ^0.1.0
   dartnest_annotations: ^0.1.0
+  dartnest_io: ^0.1.0
+  dartnest_shelf: ^0.1.0
 
 dev_dependencies:
   dartnest_cli: ^0.1.0
