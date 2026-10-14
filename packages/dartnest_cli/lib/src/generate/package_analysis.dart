@@ -25,14 +25,25 @@ final class PackageAnalysis {
 
   /// Absolute paths of the Dart files of `lib/` except generated
   /// `*.dartnest.dart` files, sorted.
+  ///
+  /// Throws a [CliFailure] with [CliExitCode.noInput] when `lib/` or one of
+  /// its directories cannot be listed (deleted meanwhile, unreadable).
   List<String> sourceFiles() {
-    final files = [
-      for (final entity in Directory(
-        package.libPath,
-      ).listSync(recursive: true, followLinks: false))
-        if (entity is File && _isSource(entity.path)) entity.path,
-    ];
-    return files..sort();
+    try {
+      final files = [
+        for (final entity in Directory(
+          package.libPath,
+        ).listSync(recursive: true, followLinks: false))
+          if (entity is File && _isSource(entity.path)) entity.path,
+      ];
+      return files..sort();
+    } on FileSystemException catch (error) {
+      throw CliFailure(
+        CliExitCode.noInput,
+        'Cannot list ${package.display(error.path ?? package.libPath)}: '
+        '${error.osError?.message ?? error.message}.',
+      );
+    }
   }
 
   /// Tells the analyzer that [paths] were added, modified or removed, and

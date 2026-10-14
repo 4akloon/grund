@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:dartnest_cli/src/cli/cli_exit_code.dart';
+import 'package:dartnest_cli/src/cli/cli_failure.dart';
 import 'package:dartnest_cli/src/generate/package_analysis.dart';
 import 'package:dartnest_generator/dartnest_generator.dart';
 import 'package:test/test.dart';
@@ -14,6 +16,21 @@ PackageAnalysis _open(TempPackage package) {
 }
 
 void main() {
+  test('a lib/ that disappears is a no-input failure naming it', () async {
+    final package = await TempPackage.create('shop', {'lib/a.dart': ''});
+    final analysis = _open(package);
+    Directory(package.dir.resolve('lib')).deleteSync(recursive: true);
+
+    expect(
+      analysis.sourceFiles,
+      throwsA(
+        isA<CliFailure>()
+            .having((f) => f.exitCode, 'exitCode', CliExitCode.noInput)
+            .having((f) => f.message, 'message', contains('lib')),
+      ),
+    );
+  });
+
   test(
     'source files are the Dart files of lib/ except generated ones',
     () async {
