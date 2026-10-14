@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:dartnest_cli/src/cli/cli_exit_code.dart';
+import 'package:dartnest_cli/src/cli/cli_failure.dart';
 import 'package:dartnest_cli/src/cli/report_printer.dart';
 import 'package:dartnest_cli/src/generate/generation_report.dart';
 import 'package:dartnest_cli/src/generate/write_outcome.dart';
@@ -23,8 +25,9 @@ final class _Harness {
   _Harness() {
     loop = WatchLoop.custom(
       generate: _generate,
-      display: (path) => 'lib',
+      watched: 'lib',
       printer: ReportPrinter(lines, lines),
+      afterRun: _afterRun,
       debounce: _debounce,
     );
     stop = Completer<void>();
@@ -55,6 +58,14 @@ final class _Harness {
     final failure = failWith;
     if (failure != null) throw failure;
     return _report;
+  }
+
+  /// Each call of `afterRun`: the changed paths and the last line printed
+  /// before it.
+  final afterRuns = <String>[];
+
+  Future<void> _afterRun(List<String> changed, GenerationReport report) async {
+    afterRuns.add('${changed.join(',')} after ${lines.lines.last}');
   }
 
   Future<void> start() => loop.run(watcher, stop.future);
@@ -97,6 +108,34 @@ void main() {
     ]);
     h.stop.complete();
     await done;
+  });
+
+  test('afterRun follows the printed report of every run', () async {
+    final h = _Harness();
+    final done = h.start();
+    await h.lines.next();
+    await h.lines.next();
+
+    await h.changed('/pkg/lib/a.dart');
+    await h.lines.next();
+    h.stop.complete();
+    await done;
+
+    expect(h.afterRuns, [
+      ' after Generated lib/x.dartnest.dart in 0 ms.',
+      '/pkg/lib/a.dart after Generated lib/x.dartnest.dart in 0 ms.',
+    ]);
+  });
+
+  test('afterRun is not called for a run that failed to write', () async {
+    final h = _Harness()
+      ..failWith = const CliFailure(CliExitCode.cannotCreate, 'No write.');
+    final done = h.start();
+
+    expect(await h.lines.next(), 'No write.');
+    h.stop.complete();
+    await done;
+    expect(h.afterRuns, isEmpty);
   });
 
   test('a failure of a run ends run() without waiting for stop', () async {
