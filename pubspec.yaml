@@ -5,6 +5,7 @@ environment:
 workspace:
   - packages/dartnest
   - packages/dartnest_annotations
+  - packages/dartnest_build
   - packages/dartnest_cli
   - packages/dartnest_conformance
   - packages/dartnest_generator
