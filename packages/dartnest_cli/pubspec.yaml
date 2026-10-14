@@ -1,7 +1,8 @@
 name: dartnest_cli
 description: >-
   Command line tool of dartnest: generates the code of annotated packages
-  (gen, gen --watch) and scaffolds new applications (init).
+  (gen, gen --watch), runs them with hot reload (dev) and scaffolds new
+  applications (init).
 version: 0.1.0-dev
 publish_to: none
 environment:

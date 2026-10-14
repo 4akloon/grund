@@ -2,19 +2,22 @@
 
 The command line tool of dartnest. `gen` writes `lib/<package>.dartnest.dart`
 from the annotations of a package, `gen --watch` keeps it up to date while
-you edit, and `init` scaffolds a new application.
+you edit, `dev` runs the application and hot reloads it on every change, and
+`init` scaffolds a new application.
 
 ```sh
 dart run dartnest_cli gen                    # in the package directory
 dart run dartnest_cli gen --watch            # regenerate on every change, Ctrl+C stops
 dart run dartnest_cli gen --directory packages/shop
+dart run dartnest_cli dev                    # run bin/main.dart, hot reload on every change
+dart run dartnest_cli dev -t bin/server.dart -- --port 8080
 dart run dartnest_cli init my_app            # a new package in ./my_app
 ```
 
-`--directory` is `-C` and `--watch` is `-w`. Installed as an executable (the
+`--directory` is `-C`, `--watch` is `-w` and `--target` is `-t`. Installed as an executable (the
 package declares `dartnest`, for example
 `dart pub global activate --source path packages/dartnest_cli`), the same
-commands are `dartnest gen` and `dartnest init`. Without a command the tool
+commands are `dartnest gen`, `dartnest dev` and `dartnest init`. Without a command the tool
 prints its usage and exits with 0.
 
 ## gen
@@ -66,6 +69,52 @@ prints its usage and exits with 0.
   about 2.5 s cold and 0.35 s for an incremental run when this was written;
   the test fails above 10 s and 1 s.
 
+## dev
+
+`dev` generates like `gen --watch` and runs the application next to it:
+`dart --enable-vm-service=0 --no-dds <target> <arguments>` in the package
+directory, where the target is `bin/main.dart` or `--target` (`-t`, also
+`--entry`) and the arguments are the ones after `--`. The VM service listens
+on an ephemeral port of the loopback interface. The application's output is
+passed through unchanged; `dev` adds one line per event:
+
+```text
+Started bin/main.dart (pid 4242, VM service http://127.0.0.1:40107/abc=/).
+Reloaded 3 libraries in 180 ms, 2 routes changed.
+Restarting bin/main.dart: lib/src/greeter.dart changed a field, a constructor or a top-level variable.
+```
+
+- `lib/` and the directory of the target are watched; the target must be
+  in a directory of the package (`bin/main.dart`, not `main.dart`).
+- After every run without problems, the application is hot reloaded (the
+  VM's `reloadSources`) and then reassembled (`ext.dartnest.reassemble`, see
+  the `dartnest` README): provider instances keep their state, controllers
+  and routes are rebuilt, the process and its port stay.
+- It is hot restarted instead (the dartnest applications close, requests in
+  flight finish, the process ends, then a new one starts) when a file
+  changed a field, a constructor, a top-level or static variable or an enum
+  value: a reload would keep instances without the new field. It is also
+  restarted when the VM refuses the reload (for example a changed type
+  parameter). The restart reason is printed.
+- A reload does not run `main` again: a change of the server setup in
+  `main` itself takes effect after a restart (`R`).
+- While the sources have problems, nothing is reloaded: the application
+  keeps running the previous code. A reload that does not compile (an error
+  outside `lib/`) is printed and changes nothing either; the application is
+  not restarted. A reassemble that fails keeps the previous modules and
+  routes and prints the error.
+- An application that exits (or does not start) is started again after the
+  next change, never in a loop.
+- In a terminal, `r` reloads and `R` restarts (they start the application
+  when it is not running). Ctrl+C (or `SIGTERM` outside Windows) stops
+  `dev`: the application closes and ends first (`SIGTERM`, then `SIGKILL`
+  after 2 s). If `dev` itself is killed (`SIGKILL`), the application keeps
+  running: Dart has no parent-death signal, so stop the orphan yourself.
+- `dev` runs the target with `dart <target>`, not `dart run`: no implicit
+  `pub get` on every restart, and one process whose `pid` is the
+  application's. Run `dart pub get` after editing `pubspec.yaml`, then
+  restart with `R`.
+
 ## init
 
 `init <directory>` writes a new package into a new or empty directory; the
@@ -82,6 +131,9 @@ dart run dartnest_cli gen
 dart run bin/main.dart    # GET http://localhost:8080/hello?name=you
 ```
 
+The scaffold's entry point is `bin/main.dart`, so `dart run dartnest_cli dev`
+runs it without `--target`.
+
 The scaffold depends on `dartnest`, `dartnest_annotations`, `dartnest_io`
 and `dartnest_cli` at `^0.1.0`. The workspace packages are `0.1.0-dev`, so
 `dart pub get` resolves them only once 0.1.0 is published.
@@ -90,10 +142,10 @@ and `dartnest_cli` at `^0.1.0`. The workspace packages are `0.1.0-dev`, so
 
 | Code | When |
 | --- | --- |
-| 0 | done (also when there is nothing to generate, when no command is given, and after `--watch` stops) |
+| 0 | done (also when there is nothing to generate, when no command is given, and after `--watch` or `dev` stops) |
 | 1 | problems in the sources: diagnostics or syntax errors |
-| 64 | wrong command line (unknown command or option, `init` without exactly one directory, or with a name that is not a valid package name) |
-| 66 | no `pubspec.yaml` with a valid `name`, or no `lib/` |
+| 64 | wrong command line (unknown command or option, `init` without exactly one directory, or with a name that is not a valid package name, a `dev` target outside a directory of the package) |
+| 66 | no `pubspec.yaml` with a valid `name`, no `lib/`, or no `dev` target |
 | 73 | a file cannot be written, a foreign file is in the way of the output, or `init` into a directory that is not empty |
 
 ## Own constructs

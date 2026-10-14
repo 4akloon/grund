@@ -467,7 +467,9 @@ description)`, `@ApiProperty(...)` з `dartnest_annotations` лише допов
 
 `dart run dartnest_cli dev [--entry bin/main.dart]`:
 
-1. Запускає `dart run --enable-vm-service` для entry-файлу дочірнім процесом.
+1. Запускає `dart --enable-vm-service=0 --no-dds <entry>` дочірнім процесом
+   (не `dart run`: без неявного `pub get` на кожен restart і з одним
+   процесом, PID якого є PID застосунку).
 2. Стежить за `lib/` і `bin/`; на зміну спершу запускає генератор (у тому ж
    процесі CLI), потім:
    - клавіша `r` або автоматично при змінах, що підтримує reload: підключається
@@ -476,6 +478,8 @@ description)`, `@ApiProperty(...)` з `dartnest_annotations` лише допов
      реєструє в debug-режимі;
    - клавіша `R`, невдалий reload або зміна, що reload не підтримує (CLI
      визначає за відповіддю `reloadSources`): hot restart дочірнього процесу.
+     Виняток: reload, що не компілюється, не призводить до restart —
+     друкується помилка, а попередній застосунок продовжує працювати.
 3. Виводить результат одним рядком: `reloaded 3 libraries in 180 ms, 2 routes
    changed` або причину, чому зроблено restart.
 
