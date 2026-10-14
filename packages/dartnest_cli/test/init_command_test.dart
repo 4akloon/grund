@@ -46,6 +46,8 @@ void main() {
     expect(init.exitCode, 0, reason: init.err);
     expect(init.out, startsWith('Created package my_app in $target:\n'));
     expect(init.out, contains('  dart run dartnest_cli gen\n'));
+    expect(init.out, contains('  dart run bin/main.dart\n'));
+    expect(dir.exists('my_app/bin/main.dart'), isTrue);
     expect(dir.read('my_app/pubspec.yaml'), contains('name: my_app\n'));
     expect(gen.exitCode, 0, reason: gen.err);
     expect(dir.exists('my_app/lib/my_app.dartnest.dart'), isTrue);

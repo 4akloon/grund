@@ -72,14 +72,14 @@ prints its usage and exits with 0.
 directory name is the package name (lowercase_with_underscores, not a Dart
 reserved word, and not one of the packages the template depends on):
 `pubspec.yaml`, `analysis_options.yaml`, `.gitignore`, `lib/src/hello.dart`
-(a service, a controller and the root `AppModule`) and `bin/server.dart`.
+(a service, a controller and the root `AppModule`) and `bin/main.dart`.
 If writing fails, the files `init` created are removed again. Then:
 
 ```sh
 cd my_app
 dart pub get
 dart run dartnest_cli gen
-dart run bin/server.dart    # GET http://localhost:8080/hello?name=you
+dart run bin/main.dart    # GET http://localhost:8080/hello?name=you
 ```
 
 The scaffold depends on `dartnest`, `dartnest_annotations`, `dartnest_io`
