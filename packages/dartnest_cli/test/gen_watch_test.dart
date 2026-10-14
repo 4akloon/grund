@@ -14,6 +14,9 @@ void main() {
     final package = await TempPackage.create('shop', ShopSources.files);
     final lines = LineSink();
     final stop = Completer<void>();
+    addTearDown(() {
+      if (!stop.isCompleted) stop.complete();
+    });
     final exitCode = DartnestCli(
       out: lines,
       err: lines,

@@ -73,7 +73,8 @@ void main() {
       times: 5,
     );
 
-    expect(await loop.lines.after(_quiet), [matches(_generated)]);
+    expect(await loop.lines.next(), matches(_generated));
+    expect(await loop.lines.after(_quiet), isEmpty);
     expect(loop.package.dir.read(ShopSources.output), contains("'/now'"));
   });
 
