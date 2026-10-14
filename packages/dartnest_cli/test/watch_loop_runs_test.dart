@@ -38,6 +38,7 @@ final class _Harness {
   final calls = <List<String>>[];
   final _gates = <Completer<void>>[];
   Object? failWith;
+  // Both are set in the constructor body, before any method reads them.
   late final WatchLoop loop;
   late final Completer<void> stop;
 
