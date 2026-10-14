@@ -14,6 +14,7 @@ dependencies:
   args: ^2.7.0
   dartnest_generator: ^0.1.0-dev
   path: ^1.9.0
+  vm_service: ^15.2.0
   watcher: ^1.2.1
   yaml: ^3.1.3
 dev_dependencies:
