@@ -39,8 +39,9 @@ planned milestone.
 
 **Which Dart versions are supported?**
 The packages declare `sdk: ^3.8.0` and use no language feature newer than
-Dart 3.8. Development and the tests ran on Dart 3.13; CI runs the
-oldest supported SDK (3.8.0) and the current stable.
+Dart 3.8. Development and the tests ran on Dart 3.13. The CI workflow is
+set up to test 3.8.0 and stable, but it has never run, so the 3.8 floor is
+unverified.
 
 ## Not in 0.1.0
 

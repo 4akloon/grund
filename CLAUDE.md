@@ -57,7 +57,9 @@ dart run dartnest_cli gen --directory ../dartnest_generator/test/fixtures/users_
 
 Git commands run from the repo root. Commit messages are Conventional Commits
 (`feat(core): ...`, `fix(...)`, `refactor(...)`, `docs: ...`, `test(...)`).
-`.github/workflows/ci.yaml` runs these commands on Dart 3.8.0 and stable.
+`.github/workflows/ci.yaml` is set up to run these: tests on Dart 3.8.0 and
+stable; format, analyze (`--fatal-infos`) and the publish dry-run on stable
+only. It has not run yet.
 
 ## Releases
 

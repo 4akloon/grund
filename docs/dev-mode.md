@@ -20,6 +20,7 @@ The process, its port, its open connections and the state of your
 providers survive. One line per event tells you what happened:
 
 ```text
+# Example output: the timings and the library count vary.
 Started bin/main.dart (pid 4242, VM service http://127.0.0.1:40107/abc=/).
 Reloaded 7 libraries in 82 ms, 0 routes changed.
 Reloaded 7 libraries in 95 ms, 1 route changed.

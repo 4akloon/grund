@@ -50,6 +50,18 @@ and pub ignores the dev dependencies of a dependency.
    shows on pub.dev instead of a personal account. It can be added after
    the first upload with `dart pub` and the pub.dev admin page.
 
+## Known risks / check before first publish
+
+- **Dev dependencies on unpublished packages.** `dartnest_generator` has dev
+  dependencies on `cases_app`/`users_app` (test fixtures) and `dartnest_io`
+  and `dartnest_shelf` on `dartnest_conformance`; none of them is published.
+  `dart pub publish --dry-run` accepts this, but pub.dev scoring may fail to
+  resolve them. After the first upload check the package's scoring page; if
+  it reports a resolution failure, drop those dev dependencies from the
+  published pubspecs in a release commit (the tests that need them stay in
+  the repository).
+- **The SDK floor 3.8 is unverified** until CI has run once (see above).
+
 ## Every release
 
 1. Pick the version (see "Versions" below) and set it in all seven

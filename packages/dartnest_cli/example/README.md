@@ -10,7 +10,7 @@ dart run dartnest_cli gen             # writes lib/my_app.dartnest.dart
 dart run dartnest_cli dev             # runs bin/main.dart, reloads on every save
 ```
 
-`dev` prints one line per change:
+`dev` prints one line per change (timings and library counts vary):
 
 ```text
 Reloaded 7 libraries in 82 ms, 0 routes changed.

@@ -23,6 +23,7 @@ in its `dev_dependencies` (the scaffold has).
 my_app/
   pubspec.yaml            dartnest, dartnest_annotations, dartnest_io; dev: dartnest_cli
   analysis_options.yaml
+  .gitignore              .dart_tool/
   bin/main.dart           creates the application and listens on port 8080
   lib/src/hello.dart      HelloService, HelloController, AppModule
 ```
