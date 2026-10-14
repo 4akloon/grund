@@ -46,6 +46,41 @@ Future<Map<String, Object?>> callExtension(String method) async {
   return jsonDecode(result) as Map<String, Object?>;
 }
 
+/// An adapter whose [close] fails with [label], after [delay].
+final class FailingAdapter implements HttpAdapter {
+  /// Creates an adapter that fails to close.
+  FailingAdapter(this.label, this.delay);
+
+  /// The text of the failure.
+  final String label;
+
+  /// How long [close] takes before it fails.
+  final Duration delay;
+
+  @override
+  Future<void> listen(
+    RequestHandler handler, {
+    required int port,
+    Object address = 'localhost',
+  }) async {}
+
+  @override
+  Future<void> close({bool force = false}) async {
+    await Future<void>.delayed(delay);
+    throw StateError(label);
+  }
+}
+
+/// A listening application whose close fails with [label] after [delay].
+Future<Application> failingToClose(String label, Duration delay) async {
+  final application = await Application.create(
+    Code.module,
+    adapter: FailingAdapter(label, delay),
+  );
+  await application.listen(port: 0);
+  return application;
+}
+
 void main() {
   setUp(() {
     Code.path = '/a';
@@ -118,5 +153,42 @@ void main() {
       'applications': 1,
     });
     expect(application.isClosed, isTrue);
+  });
+
+  test('a failed reassemble names the application that failed', () async {
+    await started();
+    var broken = false;
+    final second = await Application.create(() {
+      if (broken) throw StateError('second is broken');
+      return Code.module();
+    });
+    addTearDown(second.close);
+    broken = true;
+
+    final response = await HotReloadExtension.handle(
+      HotReloadExtension.reassembleMethod,
+      const {},
+    );
+
+    expect(
+      response.errorDetail,
+      startsWith('application 2 of 2: Bad state: second is broken\n#0'),
+    );
+  });
+
+  test('close reports every failure in application order', () async {
+    await failingToClose('first', const Duration(milliseconds: 40));
+    await failingToClose('second', Duration.zero);
+
+    final response = await HotReloadExtension.handle(
+      HotReloadExtension.closeMethod,
+      const {},
+    );
+
+    expect(response.errorCode, -32000);
+    final detail = response.errorDetail!;
+    expect(detail, contains('application 1 of 2: Bad state: first'));
+    expect(detail, contains('application 2 of 2: Bad state: second'));
+    expect(detail.indexOf('first'), lessThan(detail.indexOf('second')));
   });
 }

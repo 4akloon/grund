@@ -1,15 +1,10 @@
 import '../di/container.dart';
 import '../di/module.dart';
 import '../di/module_graph.dart';
-import '../pipeline/endpoint.dart';
 import '../pipeline/enhancers.dart';
-import '../routing/router.dart';
+import 'assembly.dart';
 import 'reassemble_report.dart';
 import 'route_table_builder.dart';
-
-/// The started container of an application and the route table built from
-/// it.
-typedef Assembly = ({Container container, Router<Endpoint> router});
 
 /// Builds what an `Application` serves from its root module: validates the
 /// routes before any provider is created, starts the container, creates the
@@ -28,7 +23,7 @@ abstract final class ApplicationAssembly {
     try {
       final router = RouteTableBuilder.build(container, enhancers);
       succeeded = true;
-      return (container: container, router: router);
+      return Assembly(container: container, router: router);
     } finally {
       if (!succeeded) await container.close();
     }
@@ -56,6 +51,6 @@ abstract final class ApplicationAssembly {
       RouteTableBuilder.describe(current.container.graph),
       RouteTableBuilder.describe(graph),
     );
-    return ((container: container, router: router), report);
+    return (Assembly(container: container, router: router), report);
   }
 }

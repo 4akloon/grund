@@ -35,9 +35,11 @@ abstract final class HotReloadExtension {
     if (!isEnabled) return;
     _applications.add(application);
     if (_registered) return;
-    _registered = true;
+    // Set only after both calls succeeded, so a failed registration is
+    // tried again by the next application.
     registerExtension(reassembleMethod, handle);
     registerExtension(closeMethod, handle);
+    _registered = true;
   }
 
   /// Makes [application] unreachable from the extensions.
@@ -54,18 +56,37 @@ abstract final class HotReloadExtension {
     // Extension boundary: the module functions and provider factories of
     // the user run inside reassemble, and adapters inside close. A failure
     // becomes an extension error with its message (a DartnestError carries
-    // its dependency chain; anything else gets its stack trace), the
-    // previous application state keeps serving and `dev` prints the error.
+    // its dependency chain; anything else gets its stack trace) and `dev`
+    // prints it. A failed reassemble leaves the previous state serving; a
+    // failed close leaves that application closed.
     try {
       return method == closeMethod
           ? await _close(applications)
           : await _reassemble(applications);
     } on Object catch (error, stackTrace) {
-      return ServiceExtensionResponse.error(
-        ServiceExtensionResponse.extensionError,
-        error is DartnestError ? '$error' : '$error\n$stackTrace',
-      );
+      return _failure(_describe(error, stackTrace));
     }
+  }
+
+  static ServiceExtensionResponse _failure(String detail) =>
+      ServiceExtensionResponse.error(
+        ServiceExtensionResponse.extensionError,
+        detail,
+      );
+
+  static String _describe(Object error, StackTrace stackTrace) =>
+      error is DartnestError ? '$error' : '$error\n$stackTrace';
+
+  // Names the application when there are several, so the failure of one of
+  // them is not mistaken for the failure of another.
+  static String _named(
+    int index,
+    int count,
+    Object error,
+    StackTrace stackTrace,
+  ) {
+    final text = _describe(error, stackTrace);
+    return count > 1 ? 'application ${index + 1} of $count: $text' : text;
   }
 
   static Future<ServiceExtensionResponse> _reassemble(
@@ -73,8 +94,15 @@ abstract final class HotReloadExtension {
   ) async {
     final added = <String>[];
     final removed = <String>[];
-    for (final application in applications) {
-      final report = await application.reassemble();
+    for (final (index, application) in applications.indexed) {
+      final outcome = await _settle(application.reassemble());
+      final failure = outcome.failure;
+      if (failure != null) {
+        final (error, stackTrace) = failure;
+        return _failure(_named(index, applications.length, error, stackTrace));
+      }
+      final report = outcome.report;
+      if (report == null) continue;
       added.addAll(report.addedRoutes);
       removed.addAll(report.removedRoutes);
     }
@@ -87,14 +115,39 @@ abstract final class HotReloadExtension {
     );
   }
 
+  /// Closes every application, also when one fails, and reports all the
+  /// failures in application order.
   static Future<ServiceExtensionResponse> _close(
     List<Application> applications,
   ) async {
-    await Future.wait([
-      for (final application in applications) application.close(),
+    final outcomes = await Future.wait([
+      for (final application in applications)
+        _settle(application.close().then((_) => null)),
     ]);
+    final failures = [
+      for (final (index, outcome) in outcomes.indexed)
+        if (outcome.failure case (final error, final stackTrace))
+          _named(index, applications.length, error, stackTrace),
+    ];
+    if (failures.isNotEmpty) return _failure(failures.join('\n'));
     return ServiceExtensionResponse.result(
       jsonEncode({'applications': applications.length}),
     );
   }
+
+  // Turns the failure of [future] into a value, so the caller sees every
+  // failure instead of the first one that happens to finish.
+  static Future<_Outcome> _settle(Future<ReassembleReport?> future) =>
+      future.then(
+        _Outcome.new,
+        onError: (Object error, StackTrace stackTrace) =>
+            _Outcome(null, (error, stackTrace)),
+      );
+}
+
+final class _Outcome {
+  _Outcome(this.report, [this.failure]);
+
+  final ReassembleReport? report;
+  final (Object, StackTrace)? failure;
 }

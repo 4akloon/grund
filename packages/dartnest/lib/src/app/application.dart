@@ -11,6 +11,7 @@ import '../pipeline/serializer_registry.dart';
 import '../routing/router.dart';
 import '../pipeline/application_error.dart';
 import 'application_assembly.dart';
+import 'assembly.dart';
 import 'hot_reload_extension.dart';
 import 'http_adapter.dart';
 import 'in_flight_requests.dart';
