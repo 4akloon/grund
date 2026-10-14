@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dartnest_cli/src/dev/shape_tracker.dart';
 import 'package:test/test.dart';
 
@@ -76,6 +78,31 @@ void main() {
     });
   });
 
+  group('ShapeTracker.shapeOf declarations', () {
+    bool differs(String a, String b) =>
+        ShapeTracker.shapeOf(a) != ShapeTracker.shapeOf(b);
+
+    test('a field moved between classes changes the shape', () {
+      expect(
+        differs('class A{int x=0;} class B{}', 'class A{} class B{int x=0;}'),
+        isTrue,
+      );
+    });
+
+    test('a changed superclass changes the shape', () {
+      expect(differs('class A extends B {}', 'class A extends C {}'), isTrue);
+      expect(differs('class A<T> {}', 'class A<T, U> {}'), isTrue);
+      expect(differs('class A with M {}', 'class A implements M {}'), isTrue);
+    });
+
+    test('an added method does not change the shape', () {
+      expect(
+        differs('class A extends B {}', 'class A extends B { void f() {} }'),
+        isFalse,
+      );
+    });
+  });
+
   group('ShapeTracker.changed', () {
     test('reports the files whose shape changed since remembered', () {
       final dir = TempDir.create();
@@ -101,6 +128,40 @@ void main() {
       final added = dir.write('lib/added.dart', _service);
 
       expect(tracker.changed([added, dir.resolve('lib/gone.dart')]), isEmpty);
+    });
+
+    test('a recreated file is compared with its last known shape', () {
+      final dir = TempDir.create();
+      final path = dir.write('lib/a.dart', _service);
+      final tracker = ShapeTracker()..remember([path]);
+      File(path).deleteSync();
+      expect(tracker.changed([path]), isEmpty);
+      dir.write(
+        'lib/a.dart',
+        _service.replaceFirst('greet', 'int n = 0;\n  String greet'),
+      );
+
+      expect(tracker.changed([path]), [path]);
+    });
+
+    test('non-Dart paths are ignored', () {
+      final dir = TempDir.create();
+      final path = dir.write('pubspec.yaml', 'name: a');
+      final tracker = ShapeTracker()..remember([path]);
+      dir.write('pubspec.yaml', 'name: b');
+
+      expect(tracker.changed([path]), isEmpty);
+    });
+
+    test('a changed static field or enum value is reported', () {
+      final dir = TempDir.create();
+      final a = dir.write('lib/a.dart', 'class A { static int x = 1; }');
+      final b = dir.write('lib/b.dart', 'enum E { one }');
+      final tracker = ShapeTracker()..remember([a, b]);
+      dir.write('lib/a.dart', 'class A { static int x = 2; }');
+      dir.write('lib/b.dart', 'enum E { one, two }');
+
+      expect(tracker.changed([a, b]), [a, b]);
     });
   });
 }
