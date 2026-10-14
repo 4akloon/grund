@@ -1,0 +1,71 @@
+import 'package:dartnest_cli/dartnest_cli.dart';
+import 'package:test/test.dart';
+
+import 'helpers/cli_run.dart';
+import 'helpers/dev_sources.dart';
+import 'helpers/temp_package.dart';
+
+void main() {
+  test('dev --help shows the target option', () async {
+    final run = await CliRun.run(['dev', '--help']);
+
+    expect(run.exitCode, CliExitCode.success.code);
+    expect(run.out, contains('--target'));
+    expect(run.out, contains('(defaults to "bin/main.dart")'));
+  });
+
+  test('dev without the entry point fails before starting', () async {
+    final package = await TempPackage.create(
+      'hello',
+      Map.of(DevSources.files)..remove('bin/main.dart'),
+    );
+
+    final run = await CliRun.run(['dev', '-C', package.dir.path]);
+
+    expect(run.exitCode, CliExitCode.noInput.code);
+    expect(run.err, contains('No bin/main.dart in '));
+    expect(run.err, contains('pass the entry point with --target.'));
+  });
+
+  test('--entry is the --target of the design', () async {
+    final package = await TempPackage.create('hello', DevSources.files);
+
+    final run = await CliRun.run([
+      'dev',
+      '-C',
+      package.dir.path,
+      '--entry',
+      'bin/server.dart',
+    ]);
+
+    expect(run.exitCode, CliExitCode.noInput.code);
+    expect(run.err, contains('No bin/server.dart in '));
+  });
+
+  test(
+    'an entry point outside a directory of the package is refused',
+    () async {
+      final package = await TempPackage.create('hello', DevSources.files);
+
+      for (final target in ['main.dart', '../main.dart']) {
+        final run = await CliRun.run([
+          'dev',
+          '-C',
+          package.dir.path,
+          '-t',
+          target,
+        ]);
+
+        expect(run.exitCode, CliExitCode.usage.code, reason: target);
+        expect(run.err, contains('such as bin/; $target is not.'));
+      }
+    },
+  );
+
+  test('an unknown option is a usage error', () async {
+    final run = await CliRun.run(['dev', '--port', '1']);
+
+    expect(run.exitCode, CliExitCode.usage.code);
+    expect(run.err, contains('Could not find an option named "--port"'));
+  });
+}
