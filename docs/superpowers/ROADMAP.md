@@ -13,7 +13,7 @@
 | 2 | **HTTP-конвеєр** (план `2026-10-13-dartnest-http-pipeline.md`) | `dartnest` | `HttpRequest/HttpResponse`, radix-роутер, `ExecutionContext`, `Controller<T>`/`Route` на `HandlerSpec`, guards → interceptors → pipes → handler → filters, серіалізація, `Application.create`, `app.handle`, `TestClient`; e2e без сервера |
 | 3 | **Адаптери** (план `2026-10-13-dartnest-adapters.md`) | `dartnest_io`, `dartnest_shelf` | Обидва проходять спільний conformance-набір на реальних сокетах; `shelfHandler(app)` вбудовується в shelf-пайплайн |
 | 4 | **Анотації та генератор** (план `2026-10-13-dartnest-annotations-generator.md`) | `dartnest_annotations`, `dartnest_generator` | `Collector` → `PackageModel` (з doc-коментарями, типами, `DtoModel`); `ModuleConstruct`, `ProviderConstruct`, `ControllerConstruct`; статична валідація з `path:line:col`; golden-тести; згенерований код проходить ті самі e2e, що явний |
-| 5 | **CLI** | `dartnest_cli` | `gen`, `gen --watch`, `init`; analyzer-контекст у пам'яті; бенчмарк: інкремент < 1 с на 200 файлах, холодний старт < 10 с |
+| 5 | **CLI** (план `2026-10-14-dartnest-cli.md`) | `dartnest_cli` | `gen`, `gen --watch`, `init`; analyzer-контекст у пам'яті; бенчмарк: інкремент < 1 с на 200 файлах, холодний старт < 10 с |
 | 5b | **Hot reload / hot restart** | `dartnest` (`Container.reassemble`, extension), `dartnest_cli` (`dev`) | `dartnest_cli dev` перезбирає генерований код і робить hot reload зі збереженням стану провайдерів або hot restart; інтеграційний тест: PID не змінюється при reload, змінюється при restart (спека, розділ 10) |
 | 6 | **build_runner-драйвер** | `dartnest_build` | Агрегуючий builder на `lib/$lib$` видає байт-у-байт той самий файл, що CLI |
 | 7 | **Приклад і документація** | `example/`, README, pub.dev | Один застосунок у двох стилях, e2e на обох адаптерах у CI; README з quick start для обох стилів; публікація `0.1.0` |
@@ -29,8 +29,11 @@
 - Виведення типів у `Provider((i) => X(i.get()))` — перевіряється першими
   тестами етапу 1; якщо Dart не виводить, API міняється до `Provider<X>`.
 - Стабільність `analyzer` при власному watch-режимі (досвід Revali) —
-  етап 5 пінить версію analyzer і має тест «зміна файлу без перезапуску».
-- Швидкість генерації — бенчмарк етапу 5 входить у CI.
+  етап 5 тримає той самий діапазон analyzer, що й генератор
+  (`'>=8.1.1 <15.0.0'`, обидва краї перевірено), і має тест «зміна файлу
+  без перезапуску» (`packages/dartnest_cli/test/gen_watch_test.dart`).
+- Швидкість генерації — бенчмарк етапу 5
+  (`cd packages/dartnest_cli && dart test benchmark`) входить у CI.
 
 ## v1.1 — документація API
 

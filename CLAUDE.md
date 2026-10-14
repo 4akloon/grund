@@ -30,6 +30,10 @@ cd packages/dartnest && dart test     # same for every package
 dart format packages                  # a second run must change 0 files
 # packages/dartnest_generator, after a deliberate change of generated output:
 DARTNEST_UPDATE_GOLDENS=1 dart test test/golden
+# packages/dartnest_cli: the generation benchmark (not part of `dart test`):
+dart test benchmark
+# generate a package with the CLI, e.g. the generator's golden fixture:
+dart run dartnest_cli gen --directory ../dartnest_generator/test/fixtures/users_app
 ```
 
 Git commands run from the repo root. Commit messages are Conventional Commits
@@ -57,6 +61,10 @@ Git commands run from the repo root. Commit messages are Conventional Commits
 - **The user's HTTP stack is not ours.** Adapters never rewrite the user's
   server or client setup; `shelfHandler(app)` embeds into an existing shelf
   pipeline unchanged.
+- **The CLI owns only its output.** `dartnest_cli` writes
+  `lib/<package>.dartnest.dart` only when it changed, through a temporary
+  file and a rename, never over a file without the generated header, and
+  leaves it as it was while the sources have problems.
 - Escape every string taken from user sources at every interpolation site of
   generated code (`DartString.literal` in `dartnest_generator`).
 - **Annotations share names with the explicit API** (`Module`,
@@ -78,6 +86,10 @@ Git commands run from the repo root. Commit messages are Conventional Commits
   doc comment; `dart format` keeps the code formatted.
 - Tests do not touch the network; HTTP tests use ephemeral ports on
   loopback; temp files only through a `TempDir` test helper.
+  `dartnest_cli` tests build packages in a `TempDir` and resolve them
+  against this workspace with `WorkspacePackageConfig` (no `pub get`); they
+  run the command line in-process (`CliRun`, `DartnestCli(out:, err:,
+  untilStopped:)`), never as a child process.
 
 ## Code quality rules (size, decomposition, readability)
 
