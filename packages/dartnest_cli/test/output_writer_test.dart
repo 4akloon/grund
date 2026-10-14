@@ -138,7 +138,7 @@ void main() {
 
     expect(
       () => writer.writeLibrary(_source),
-      _cannotCreate('Cannot write $_output'),
+      _cannotCreate('delete it if no other dartnest run is writing'),
     );
     expect(dir.read('$_output.tmp'), 'precious');
     expect(dir.exists(_output), isFalse);

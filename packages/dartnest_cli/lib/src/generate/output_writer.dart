@@ -105,7 +105,8 @@ final class OutputWriter {
       final shown = package.display(temporary.path);
       throw CliFailure(
         CliExitCode.cannotCreate,
-        'Cannot write ${package.display(target.path)}: $shown exists.',
+        'Cannot write ${package.display(target.path)}: $shown exists; delete it if no other dartnest run is '
+        'writing.',
       );
     }
     try {
