@@ -46,6 +46,7 @@ final class ProjectScaffold {
       );
     }
     final existed = _checkEmpty();
+    final topmostNew = existed ? null : _topmostMissing();
     final files = ProjectTemplate.files(name);
     for (final MapEntry(key: path, value: content) in files.entries) {
       final file = File(p.joinAll([directory, ...path.split('/')]));
@@ -53,7 +54,7 @@ final class ProjectScaffold {
         file.parent.createSync(recursive: true);
         _writeFile(file, content);
       } on FileSystemException catch (error) {
-        _cleanUp(existed: existed);
+        _cleanUp(topmostNew);
         throw CliFailure(
           CliExitCode.cannotCreate,
           'Cannot write ${file.path}: '
@@ -67,16 +68,30 @@ final class ProjectScaffold {
   static void _write(File file, String content) =>
       file.writeAsStringSync(content);
 
-  /// Removes what this run created: the directory itself when it did not
-  /// exist, otherwise its content (it was empty).
-  void _cleanUp({required bool existed}) {
+  /// The topmost directory on the way to [directory] that does not exist
+  /// yet: what this run creates first.
+  String _topmostMissing() {
+    var topmost = directory;
+    for (
+      var parent = p.dirname(topmost);
+      parent != topmost && !Directory(parent).existsSync();
+      parent = p.dirname(parent)
+    ) {
+      topmost = parent;
+    }
+    return topmost;
+  }
+
+  /// Removes what this run created: [topmostNew] with everything below it
+  /// when [directory] did not exist, otherwise the content of [directory]
+  /// (it was empty).
+  void _cleanUp(String? topmostNew) {
     try {
-      final root = Directory(directory);
-      if (!existed) {
-        root.deleteSync(recursive: true);
+      if (topmostNew != null) {
+        Directory(topmostNew).deleteSync(recursive: true);
         return;
       }
-      for (final entity in root.listSync()) {
+      for (final entity in Directory(directory).listSync()) {
         entity.deleteSync(recursive: true);
       }
     } on FileSystemException {

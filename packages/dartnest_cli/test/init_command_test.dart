@@ -134,6 +134,20 @@ void main() {
     expect(Directory(existing).listSync(), isEmpty);
   });
 
+  test('init removes the missing parent directories it created', () {
+    final dir = TempDir.create();
+    Directory(dir.resolve('kept')).createSync();
+    final scaffold = ProjectScaffold(
+      dir.resolve('kept/a/b/my_app'),
+      writeFile: (file, content) => throw const FileSystemException('full'),
+    );
+
+    expect(scaffold.write, throwsA(isA<CliFailure>()));
+
+    expect(Directory(dir.resolve('kept')).existsSync(), isTrue);
+    expect(Directory(dir.resolve('kept')).listSync(), isEmpty);
+  });
+
   test('init quotes the directory in the next steps', () async {
     final dir = TempDir.create();
     final target = dir.resolve("it's here/my_app");
