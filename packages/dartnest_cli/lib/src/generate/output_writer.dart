@@ -46,18 +46,36 @@ final class OutputWriter {
   }
 
   /// Writes [unit] at its path relative to the package root.
+  ///
+  /// Containment in the package is checked lexically; symbolic links are
+  /// not followed. The generated library itself is not accepted here.
   WriteOutcome writeFile(FileUnit unit) {
-    final segments = p.posix.split(p.posix.normalize(unit.path));
-    if (p.posix.isAbsolute(unit.path) || segments.first == '..') {
+    final target = _target(unit.path);
+    if (target.path == package.outputPath) {
       throw CliFailure(
         CliExitCode.cannotCreate,
-        'Generated file "${unit.path}" is outside the package.',
+        'Generated file "${unit.path}" is the generated library '
+        '${package.display(target.path)}.',
       );
     }
-    final target = File(p.joinAll([package.path, ...segments]));
     if (_read(target) == unit.content) return WriteOutcome.unchanged;
     _replace(target, unit.content);
     return WriteOutcome.written;
+  }
+
+  File _target(String path) {
+    final segments = p.posix.split(p.posix.normalize(path));
+    final escapes =
+        p.posix.isAbsolute(path) ||
+        path.contains(r'\') ||
+        segments.first == '..' ||
+        RegExp(r'^[A-Za-z]:').hasMatch(segments.first);
+    final target = File(p.joinAll([package.path, ...segments]));
+    if (!escapes && p.isWithin(package.path, target.path)) return target;
+    throw CliFailure(
+      CliExitCode.cannotCreate,
+      'Generated file "$path" is outside the package.',
+    );
   }
 
   String? _read(File file) {
@@ -84,11 +102,26 @@ final class OutputWriter {
     final temporary = File('${target.path}.tmp');
     try {
       target.parent.createSync(recursive: true);
+      if (FileSystemEntity.typeSync(temporary.path, followLinks: false) !=
+          FileSystemEntityType.notFound) {
+        throw FileSystemException('${package.display(temporary.path)} exists');
+      }
       temporary.writeAsStringSync(content, flush: true);
       temporary.renameSync(target.path);
     } on FileSystemException catch (error) {
-      if (temporary.existsSync()) temporary.deleteSync();
+      _discard(temporary, error);
       throw _cannotWrite(target, error);
+    }
+  }
+
+  void _discard(File temporary, FileSystemException error) {
+    // Only a temporary file this call created is removed; an existing one
+    // is somebody else's.
+    if (error.message.endsWith(' exists')) return;
+    try {
+      if (temporary.existsSync()) temporary.deleteSync();
+    } on FileSystemException {
+      // The original error is the one reported.
     }
   }
 

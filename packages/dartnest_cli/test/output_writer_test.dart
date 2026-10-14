@@ -27,6 +27,17 @@ Matcher _cannotCreate(String message) => throwsA(
       .having((f) => f.message, 'message', contains(message)),
 );
 
+String? _cannotChmod() {
+  if (Platform.isWindows) return 'file modes are not enforced on Windows';
+  if (Process.runSync('id', ['-u']).stdout.toString().trim() == '0') {
+    return 'root ignores file modes';
+  }
+  return null;
+}
+
+FileUnit _unit(String path) =>
+    FileUnit(path: path, contentType: ContentType.json, content: '{}');
+
 void main() {
   test('the library is written once and then left untouched', () {
     final (dir, writer) = _package();
@@ -103,4 +114,45 @@ void main() {
     expect(dir.read('doc/api/openapi.json'), '{}');
     expect(() => writer.writeFile(escaping), _cannotCreate('outside'));
   });
+
+  test('writeFile cannot bypass the library header check', () {
+    final (dir, writer) = _package();
+    dir.write(_output, '// my own code\n');
+
+    expect(() => writer.writeFile(_unit(_output)), _cannotCreate(_output));
+    expect(dir.read(_output), '// my own code\n');
+  });
+
+  test('absolute, backslash and drive paths are outside the package', () {
+    final (dir, writer) = _package();
+
+    for (final path in ['/tmp/evil.json', r'..\evil.json', 'C:x.json']) {
+      expect(() => writer.writeFile(_unit(path)), _cannotCreate('outside'));
+    }
+    expect(dir.exists(r'..\evil.json'), isFalse);
+  });
+
+  test('an existing temporary file is refused, not overwritten', () {
+    final (dir, writer) = _package();
+    dir.write('$_output.tmp', 'precious');
+
+    expect(
+      () => writer.writeLibrary(_source),
+      _cannotCreate('Cannot write $_output'),
+    );
+    expect(dir.read('$_output.tmp'), 'precious');
+    expect(dir.exists(_output), isFalse);
+  });
+
+  test('an unwritable directory is a cannot-create failure', () {
+    final (dir, writer) = _package();
+    Process.runSync('chmod', ['500', dir.resolve('lib')]);
+    addTearDown(() => Process.runSync('chmod', ['700', dir.resolve('lib')]));
+
+    expect(
+      () => writer.writeLibrary(_source),
+      _cannotCreate('Cannot write $_output'),
+    );
+    expect(dir.exists('$_output.tmp'), isFalse);
+  }, skip: _cannotChmod());
 }
