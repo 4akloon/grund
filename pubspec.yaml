@@ -3,6 +3,7 @@ publish_to: none
 environment:
   sdk: ^3.8.0
 workspace:
+  - example
   - packages/dartnest
   - packages/dartnest_annotations
   - packages/dartnest_build
