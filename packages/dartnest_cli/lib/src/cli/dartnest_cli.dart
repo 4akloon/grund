@@ -6,6 +6,7 @@ import 'package:dartnest_generator/dartnest_generator.dart';
 import 'cli_exit_code.dart';
 import 'cli_failure.dart';
 import 'gen_command.dart';
+import 'init_command.dart';
 
 /// The `dartnest_cli` command line.
 ///
@@ -41,7 +42,9 @@ final class DartnestCli {
   /// Runs the command in [arguments] and returns the process exit code
   /// (see [CliExitCode]).
   Future<int> run(List<String> arguments) async {
-    final runner = _Runner(out)..addCommand(GenCommand(this));
+    final runner = _Runner(out)
+      ..addCommand(GenCommand(this))
+      ..addCommand(InitCommand(this));
     try {
       return await runner.run(arguments) ?? CliExitCode.success.code;
     } on UsageException catch (error) {
