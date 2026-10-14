@@ -3,5 +3,6 @@ builders:
     import: package:dartnest_build/dartnest_build.dart
     builder_factories: [dartnestBuilder]
     build_extensions: {"$lib$": ["<package>.dartnest.dart"]}
+    required_inputs: [".dart"]
     auto_apply: dependents
     build_to: source
