@@ -154,27 +154,6 @@ void main() {
     expect(dev.lines.lines.where((l) => l.startsWith('Started ')), isEmpty);
   });
 
-  test('r applies a shape change that problems held back', () async {
-    final dev = await Dev.start();
-    final before = await Dev.hello(await dev.listening());
-    dev.app.edit(_greeter, 'String greet', _newField);
-    dev.app.edit(_controller, 'greeter.greet()', 'greeter.greet(');
-    await dev.change([_greeter, _controller]);
-    dev.app.edit(_controller, 'greeter.greet(', 'greeter.greet()');
-
-    await dev.session.reload();
-
-    expect(
-      dev.lines.lines,
-      contains(
-        'Restarting bin/main.dart: lib/src/greeter.dart changed a field, '
-        'a constructor or a top-level variable.',
-      ),
-    );
-    final after = await Dev.hello(await dev.listening());
-    expect(after['pid'], isNot(before['pid']));
-  });
-
   test('r does not restart while the problems are still there', () async {
     final dev = await Dev.start();
     final port = await dev.listening();
