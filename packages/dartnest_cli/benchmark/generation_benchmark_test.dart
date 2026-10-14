@@ -27,6 +27,8 @@ void main() {
         'cold ${cold.elapsedMilliseconds} ms, '
         'change ${change.elapsed.inMilliseconds} ms';
 
+    // The benchmark exists to show the measured times; printOnFailure would
+    // hide them when it passes.
     // ignore: avoid_print
     print(timings);
 
