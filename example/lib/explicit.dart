@@ -56,41 +56,43 @@ Controller<TasksController> _tasksController() => Controller<TasksController>(
     pipes: [Use<TrimStringsPipe>()],
     filters: [Use<TaskNotFoundFilter>()],
   ),
-  routes: [
-    Route.get('', (c, ctx) async => c.list(await ctx.query<bool?>('done'))),
-    Route.get('/:id', (c, ctx) async => c.find(await ctx.param<int>('id'))),
-    Route.post(
-      '',
-      (c, ctx) async => c.create(await ctx.bodyAs(CreateTaskDto.fromJson), ctx),
-      enhancers: _editorsOnly,
-      metadata: const [
-        Roles([Role.editor]),
-      ],
-    ),
-    Route.patch(
-      '/:id',
-      (c, ctx) async => c.update(
-        await ctx.param<int>('id'),
-        await ctx.bodyAs(UpdateTaskDto.fromJson),
-      ),
-      enhancers: _editorsOnly,
-      metadata: const [
-        Roles([Role.editor]),
-      ],
-    ),
-    Route.delete(
-      '/:id',
-      (c, ctx) async {
-        c.delete(await ctx.param<int>('id'));
-        return null;
-      },
-      enhancers: _editorsOnly,
-      metadata: const [
-        Roles([Role.editor]),
-      ],
-    ),
-  ],
+  routes: _tasksRoutes(),
 );
+
+List<Route<TasksController>> _tasksRoutes() => [
+  Route.get('', (c, ctx) async => c.list(await ctx.query<bool?>('done'))),
+  Route.get('/:id', (c, ctx) async => c.find(await ctx.param<int>('id'))),
+  Route.post(
+    '',
+    (c, ctx) async => c.create(await ctx.bodyAs(CreateTaskDto.fromJson), ctx),
+    enhancers: _editorsOnly,
+    metadata: const [
+      Roles([Role.editor]),
+    ],
+  ),
+  Route.patch(
+    '/:id',
+    (c, ctx) async => c.update(
+      await ctx.param<int>('id'),
+      await ctx.bodyAs(UpdateTaskDto.fromJson),
+    ),
+    enhancers: _editorsOnly,
+    metadata: const [
+      Roles([Role.editor]),
+    ],
+  ),
+  Route.delete(
+    '/:id',
+    (c, ctx) async {
+      c.delete(await ctx.param<int>('id'));
+      return null;
+    },
+    enhancers: _editorsOnly,
+    metadata: const [
+      Roles([Role.editor]),
+    ],
+  ),
+];
 
 Module _healthModule() => Module(
   id: 'health',

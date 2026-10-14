@@ -1,6 +1,6 @@
+import 'dart:async';
 import 'dart:io';
 
-import 'package:dartnest/dartnest.dart';
 import 'package:dartnest_io/dartnest_io.dart';
 import 'package:dartnest_shelf/dartnest_shelf.dart';
 import 'package:tasks_api/explicit.dart';
@@ -17,21 +17,47 @@ Future<void> main(List<String> arguments) async {
     exitCode = 64;
     return;
   }
+  final adapter = switch (options.adapter) {
+    AdapterKind.io => IoAdapter(),
+    AdapterKind.shelf => ShelfAdapter(),
+  };
   final app = await TasksApp.create(switch (options.style) {
     ModuleStyle.annotations => appModule,
     ModuleStyle.explicit => explicitAppModule,
-  }, adapter: _adapter(options.adapter));
-  await app.listen(port: options.port);
-  print(
-    'Serving the ${options.style.name} module graph with '
-    '${options.adapter.name} on http://localhost:${options.port}',
-  );
-  // Ctrl+C closes gracefully: requests in flight finish, then main returns.
-  await ProcessSignal.sigint.watch().first;
+  }, adapter: adapter);
+  // Ctrl+C or SIGTERM closes gracefully: requests in flight finish, then main
+  // returns.
+  final stop = Completer<void>();
+  final subscriptions = [
+    ProcessSignal.sigint.watch().listen((_) => _once(stop)),
+    if (!Platform.isWindows)
+      ProcessSignal.sigterm.watch().listen((_) => _once(stop)),
+  ];
+  try {
+    await app.listen(port: options.port);
+  } on SocketException catch (error) {
+    stderr.writeln('Cannot listen on port ${options.port}: ${error.message}');
+    exitCode = 1;
+    await _cancelAll(subscriptions);
+    return;
+  }
+  _announce(options);
+  await stop.future;
+  await _cancelAll(subscriptions);
   await app.close();
 }
 
-HttpAdapter _adapter(AdapterKind kind) => switch (kind) {
-  AdapterKind.io => IoAdapter(),
-  AdapterKind.shelf => ShelfAdapter(),
-};
+Future<void> _cancelAll(List<StreamSubscription<ProcessSignal>> all) async {
+  for (final subscription in all) {
+    await subscription.cancel();
+  }
+}
+
+void _once(Completer<void> stop) {
+  if (!stop.isCompleted) stop.complete();
+}
+
+void _announce(ServerOptions options) => print(
+  'Serving the ${options.style.name} module graph with '
+  '${options.adapter.name} on http://localhost:${options.port}',
+);

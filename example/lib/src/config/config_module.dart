@@ -1,4 +1,10 @@
-// Configuration every module sees: the application name and the API keys.
+/// Configuration every module sees: the application name and the API keys.
+///
+/// The tokens and the demo keys sit beside [ConfigModule] on purpose: the
+/// module's own `providers` list refers to them, and the other modules import
+/// the tokens from the same place.
+library;
+
 import 'package:dartnest/dartnest.dart' hide Controller, Module;
 import 'package:dartnest_annotations/dartnest_annotations.dart';
 

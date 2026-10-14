@@ -83,8 +83,8 @@ dart run dartnest_cli dev                   # or: dart run dartnest_cli dev -- -
 
 - Change the body of `HealthController.check` and save: the next
   `GET /health` answers with the new code, the process id stays and the
-  tasks you created are still there (`Reloaded 7 libraries in 82 ms, 0
-  routes changed.`).
+  tasks you created are still there (for example `Reloaded 7 libraries
+  in 82 ms, 0 routes changed.`; the timing and the library count vary).
 - Add a route (`@Get('/live')` on `HealthController`): the library is
   regenerated and reloaded (`1 route changed`).
 - Add a field to a class: `dev` restarts the process instead (`Restarting
