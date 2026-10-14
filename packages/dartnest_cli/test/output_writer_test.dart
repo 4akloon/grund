@@ -144,6 +144,28 @@ void main() {
     expect(dir.exists(_output), isFalse);
   });
 
+  test('the library path spelled with dots is still the library', () {
+    final (dir, writer) = _package();
+    dir.write(_output, '// my own code\n');
+
+    expect(
+      () => writer.writeFile(_unit('lib/../lib/shop.dartnest.dart')),
+      _cannotCreate(_output),
+    );
+    expect(dir.read(_output), '// my own code\n');
+  });
+
+  test('a failed rename removes the temporary file', () {
+    final (dir, writer) = _package();
+    Directory(dir.resolve(_output)).createSync();
+
+    expect(
+      () => writer.writeLibrary(_source),
+      _cannotCreate('Cannot write $_output'),
+    );
+    expect(dir.exists('$_output.tmp'), isFalse);
+  });
+
   test('an unwritable directory is a cannot-create failure', () {
     final (dir, writer) = _package();
     Process.runSync('chmod', ['500', dir.resolve('lib')]);

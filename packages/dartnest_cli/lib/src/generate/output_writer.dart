@@ -51,7 +51,7 @@ final class OutputWriter {
   /// not followed. The generated library itself is not accepted here.
   WriteOutcome writeFile(FileUnit unit) {
     final target = _target(unit.path);
-    if (target.path == package.outputPath) {
+    if (p.equals(target.path, package.outputPath)) {
       throw CliFailure(
         CliExitCode.cannotCreate,
         'Generated file "${unit.path}" is the generated library '
@@ -100,24 +100,25 @@ final class OutputWriter {
 
   void _replace(File target, String content) {
     final temporary = File('${target.path}.tmp');
+    if (FileSystemEntity.typeSync(temporary.path, followLinks: false) !=
+        FileSystemEntityType.notFound) {
+      final shown = package.display(temporary.path);
+      throw CliFailure(
+        CliExitCode.cannotCreate,
+        'Cannot write ${package.display(target.path)}: $shown exists.',
+      );
+    }
     try {
       target.parent.createSync(recursive: true);
-      if (FileSystemEntity.typeSync(temporary.path, followLinks: false) !=
-          FileSystemEntityType.notFound) {
-        throw FileSystemException('${package.display(temporary.path)} exists');
-      }
       temporary.writeAsStringSync(content, flush: true);
       temporary.renameSync(target.path);
     } on FileSystemException catch (error) {
-      _discard(temporary, error);
+      _discard(temporary);
       throw _cannotWrite(target, error);
     }
   }
 
-  void _discard(File temporary, FileSystemException error) {
-    // Only a temporary file this call created is removed; an existing one
-    // is somebody else's.
-    if (error.message.endsWith(' exists')) return;
+  void _discard(File temporary) {
     try {
       if (temporary.existsSync()) temporary.deleteSync();
     } on FileSystemException {
