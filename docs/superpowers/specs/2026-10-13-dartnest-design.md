@@ -1,7 +1,9 @@
 # dartnest — NestJS-подібний бекенд-фреймворк на Dart без `dart:mirrors`
 
-Дата: 2026-10-13. Статус: чернетка дизайну для рев'ю.
-Робоча назва пакетів — `dartnest`; підлягає заміні.
+Дата: 2026-10-13. Статус: v1.0 реалізовано (етапи 1–7 роадмапу); репозиторій
+готовий до випуску `0.1.0`, сам випуск — ручні кроки `docs/RELEASING.md`.
+Назва пакетів — `dartnest` (2026-10-14 усі сім імен вільні на pub.dev);
+остаточно фіксується першою публікацією.
 
 ## 1. Мета та контекст
 
@@ -66,7 +68,7 @@ Request-scoped провайдери, lifecycle-хуки, GraphQL (v2), WebSocket
 | `dartnest_shelf` | Адаптер на shelf; `shelfHandler(app)` для вбудовування | `dartnest`, `shelf` |
 | `dartnest_conformance` | Спільний conformance-набір для адаптерів (непублікований тестовий пакет, `package:test` лише тут і в `test/`) | `dartnest`, `test` |
 | `dartnest_generator` | Логіка генерації: analyzer `LibraryElement` → код явного API; набір `Construct` | `analyzer`, `code_builder`, `dart_style` |
-| `dartnest_cli` | `dart run dartnest_cli gen [--watch]` | `dartnest_generator`, `watcher` |
+| `dartnest_cli` | `dart run dartnest_cli gen [--watch]`, `dev`, `init` | `dartnest_generator`, `watcher`, `vm_service` |
 | `dartnest_build` | Builder для build_runner (агрегуючий, вхід `lib/$lib$`) | `dartnest_generator`, `build` |
 | `dartnest_openapi` (v1.1) | `OpenApiConstruct` (статичний `openapi.json` + код документа), модуль `openApiModule` з `/openapi.json` і UI (Scalar/Swagger) | `dartnest`, `dartnest_generator` |
 | `dartnest_graphql` (v2) | Виконавець схеми, `Resolver`, `Construct` для резолверів | `dartnest` |
@@ -410,7 +412,11 @@ description)`, `@ApiProperty(...)` з `dartnest_annotations` лише допов
   помилки з позиціями), тест «згенерований код компілюється та проходить ті
   самі e2e-тести, що й явний варіант».
 - `example/`: один застосунок у двох стилях (явний і анотаційний), e2e на
-  обох адаптерах у CI.
+  обох адаптерах у CI. Реалізація (етап 7): пакет `tasks_api` — член
+  workspace, не публікується; анотаційний граф генерує `dartnest_cli gen`
+  (згенерований файл закомічено, тест порівнює його з виходом `gen`),
+  явний — `lib/explicit.dart`; один e2e-набір на обох графах і обох
+  адаптерах через loopback з ефемерним портом.
 
 ## 9. Порядок реалізації (високорівнево)
 

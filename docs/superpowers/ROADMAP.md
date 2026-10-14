@@ -9,14 +9,14 @@
 
 | # | Етап | Пакети | Готово, коли |
 |---|---|---|---|
-| 1 | **Ядро DI** (план `2026-10-13-dartnest-core-di.md`) | `dartnest` | `Container.create(module)` з модулями, провайдерами, токенами, областями видимості, жадібною async-ініціалізацією; всі помилки графа — типізовані, з ланцюжком |
-| 2 | **HTTP-конвеєр** (план `2026-10-13-dartnest-http-pipeline.md`) | `dartnest` | `HttpRequest/HttpResponse`, radix-роутер, `ExecutionContext`, `Controller<T>`/`Route` на `HandlerSpec`, guards → interceptors → pipes → handler → filters, серіалізація, `Application.create`, `app.handle`, `TestClient`; e2e без сервера |
-| 3 | **Адаптери** (план `2026-10-13-dartnest-adapters.md`) | `dartnest_io`, `dartnest_shelf` | Обидва проходять спільний conformance-набір на реальних сокетах; `shelfHandler(app)` вбудовується в shelf-пайплайн |
-| 4 | **Анотації та генератор** (план `2026-10-13-dartnest-annotations-generator.md`) | `dartnest_annotations`, `dartnest_generator` | `Collector` → `PackageModel` (з doc-коментарями, типами, `DtoModel`); `ModuleConstruct`, `ProviderConstruct`, `ControllerConstruct`; статична валідація з `path:line:col`; golden-тести; згенерований код проходить ті самі e2e, що явний |
-| 5 | **CLI** (план `2026-10-14-dartnest-cli.md`) | `dartnest_cli` | `gen`, `gen --watch`, `init`; analyzer-контекст у пам'яті; бенчмарк: інкремент < 1 с на 200 файлах, холодний старт < 10 с |
+| 1 | **Ядро DI** (план `2026-10-13-dartnest-core-di.md`) ✅ | `dartnest` | `Container.create(module)` з модулями, провайдерами, токенами, областями видимості, жадібною async-ініціалізацією; всі помилки графа — типізовані, з ланцюжком |
+| 2 | **HTTP-конвеєр** (план `2026-10-13-dartnest-http-pipeline.md`) ✅ | `dartnest` | `HttpRequest/HttpResponse`, radix-роутер, `ExecutionContext`, `Controller<T>`/`Route` на `HandlerSpec`, guards → interceptors → pipes → handler → filters, серіалізація, `Application.create`, `app.handle`, `TestClient`; e2e без сервера |
+| 3 | **Адаптери** (план `2026-10-13-dartnest-adapters.md`) ✅ | `dartnest_io`, `dartnest_shelf` | Обидва проходять спільний conformance-набір на реальних сокетах; `shelfHandler(app)` вбудовується в shelf-пайплайн |
+| 4 | **Анотації та генератор** (план `2026-10-13-dartnest-annotations-generator.md`) ✅ | `dartnest_annotations`, `dartnest_generator` | `Collector` → `PackageModel` (з doc-коментарями, типами, `DtoModel`); `ModuleConstruct`, `ProviderConstruct`, `ControllerConstruct`; статична валідація з `path:line:col`; golden-тести; згенерований код проходить ті самі e2e, що явний |
+| 5 | **CLI** (план `2026-10-14-dartnest-cli.md`) ✅ | `dartnest_cli` | `gen`, `gen --watch`, `init`; analyzer-контекст у пам'яті; бенчмарк: інкремент < 1 с на 200 файлах, холодний старт < 10 с |
 | 5b | **Hot reload / hot restart** (план `2026-10-14-dartnest-hot-reload.md`) ✅ | `dartnest` (`Container.reassemble`, extension), `dartnest_cli` (`dev`) | `dartnest_cli dev` перезбирає генерований код і робить hot reload зі збереженням стану провайдерів або hot restart; інтеграційний тест: PID не змінюється при reload, змінюється при restart (спека, розділ 10) |
 | 6 | **build_runner-драйвер** (план `2026-10-14-dartnest-build-runner.md`) ✅ | `dartnest_build` | Агрегуючий builder на `lib/$lib$` видає байт-у-байт той самий файл, що CLI |
-| 7 | **Приклад і документація** | `example/`, README, pub.dev | Один застосунок у двох стилях, e2e на обох адаптерах у CI; README з quick start для обох стилів; публікація `0.1.0` |
+| 7 | **Приклад, документація, готовність до випуску** (план `2026-10-14-dartnest-example-docs-release.md`) ✅ | `example/`, `README.md`, `docs/`, усі пакети | Один застосунок у двох стилях, e2e на обох адаптерах у CI; README з quick start для обох стилів; кожен публікований пакет проходить `dart pub publish --dry-run` без попереджень. Сама публікація `0.1.0` — ручні кроки мейнтейнера за `docs/RELEASING.md` |
 
 Вимоги до ядра заради hot reload (спека, 10.1) діють з етапу 2: `Application.create`
 приймає `Module Function()`, `close()` повторюваний, таблиця роутів

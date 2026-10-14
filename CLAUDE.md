@@ -15,6 +15,9 @@ pluggable HTTP adapters. It is a Dart pub workspace of pure-Dart packages.
 - Roadmap: `docs/superpowers/ROADMAP.md`. One plan per roadmap stage in
   `docs/superpowers/plans/`; the next plan is written after the previous
   stage ships.
+- User documentation: `README.md` and `docs/*.md` (English); the example
+  application: `example/` (`tasks_api`, a workspace member, not published);
+  releases: `docs/RELEASING.md`.
 
 Minimum SDK: Dart 3.8 (`^3.8.0`), also for generated code.
 
@@ -33,7 +36,12 @@ expected to resolve on the `^3.8.0` floor. The integration test skips itself bel
 dart pub get                          # repo root, once and after pubspec edits
 dart analyze                          # repo root; must print "No issues found!"
 cd packages/dartnest && dart test     # same for every package
-dart format packages                  # a second run must change 0 files
+dart format packages example          # a second run must change 0 files
+cd example && dart test               # the example: e2e on both adapters, golden check
+# the example, after changing its annotations (commit the result):
+cd example && dart run dartnest_cli gen
+# every published package, in release order, must print "0 warnings":
+cd packages/dartnest && dart pub publish --dry-run
 # packages/dartnest_generator, after a deliberate change of generated output:
 DARTNEST_UPDATE_GOLDENS=1 dart test test/golden
 # packages/dartnest_cli: the generation benchmark (not part of `dart test`):
@@ -49,6 +57,22 @@ dart run dartnest_cli gen --directory ../dartnest_generator/test/fixtures/users_
 
 Git commands run from the repo root. Commit messages are Conventional Commits
 (`feat(core): ...`, `fix(...)`, `refactor(...)`, `docs: ...`, `test(...)`).
+`.github/workflows/ci.yaml` runs these commands on Dart 3.8.0 and stable.
+
+## Releases
+
+- The seven published packages share one version (lockstep); every
+  constraint between workspace members is `^<that version>`. Publishing,
+  tags and pushes are done by a maintainer by hand, following
+  `docs/RELEASING.md`; no change here publishes anything.
+- A user-visible change adds a line to the `CHANGELOG.md` of each package
+  it touches, under the version it will ship in.
+- Each published package has its own `LICENSE` (a copy of the root one) and
+  a self-contained `analysis_options.yaml` (pub.dev analyzes a package
+  without the repository around it): the root options plus
+  `public_member_api_docs`. A change of the root options is repeated there.
+- A public member without `///` fails `dart analyze`
+  (`public_member_api_docs` in every published package).
 
 ## Design rules
 
@@ -229,8 +253,9 @@ golden file: generated, committed, never edited by hand.
 2. Could a new reader say in one sentence what each new class and method is
    for? If not, rename or split.
 3. Is there code, a parameter or a flag nothing uses yet? Remove it.
-4. `dart analyze` clean, tests green, `dart format packages` changes 0
-   files, and this file / `docs/` updated if behaviour or structure changed.
+4. `dart analyze` clean, tests green, `dart format packages example`
+   changes 0 files, and this file / `docs/` / the package READMEs updated
+   if behaviour or structure changed.
 
 ## Language
 
