@@ -1,6 +1,7 @@
 import 'package:dartnest_cli/src/cli/cli_exit_code.dart';
 import 'package:dartnest_cli/src/cli/cli_failure.dart';
 import 'package:dartnest_cli/src/package/package_root.dart';
+import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
 import 'helpers/temp_dir.dart';
@@ -55,5 +56,15 @@ void main() {
     dir.write('pubspec.yaml', 'name: shop\n');
 
     expect(() => PackageRoot.open(dir.path), throwsA(_noInput('No lib/')));
+  });
+
+  // Review Focus 8: diagnostics print `/` on every platform.
+  test('paths are displayed with / separators', () {
+    final dir = TempDir.create();
+    dir.write('pubspec.yaml', 'name: shop\n');
+    dir.write('lib/shop.dart', '');
+    final nested = p.join(dir.path, 'lib', 'src', 'deep', 'a.dart');
+
+    expect(PackageRoot.open(dir.path).display(nested), 'lib/src/deep/a.dart');
   });
 }

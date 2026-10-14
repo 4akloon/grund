@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:dartnest_cli/dartnest_cli.dart';
-import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
 import 'helpers/cli_run.dart';
@@ -99,6 +98,7 @@ void main() {
 
     for (final run in [unknown, option, positional]) {
       expect(run.exitCode, CliExitCode.usage.code);
+      expect(run.out, isEmpty);
       expect(run.err, contains('Usage: dartnest_cli'));
     }
     expect(positional.err, startsWith('gen takes no positional arguments.'));
@@ -112,13 +112,5 @@ void main() {
     expect(top.out, contains('gen'));
     expect(gen.exitCode, 0);
     expect(gen.out, contains('--directory'));
-  });
-
-  // Review Focus 8: diagnostics print `/` on every platform.
-  test('paths are printed with / separators', () async {
-    final package = await TempPackage.create('shop');
-    final nested = p.join(package.dir.path, 'lib', 'src', 'deep', 'a.dart');
-
-    expect(package.root.display(nested), 'lib/src/deep/a.dart');
   });
 }
