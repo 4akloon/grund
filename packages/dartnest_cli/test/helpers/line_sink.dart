@@ -19,6 +19,19 @@ final class LineSink implements StringSink {
     return _lines[_read++];
   }
 
+  /// The next line not returned before that satisfies [test], skipping
+  /// the lines before it, waiting up to [timeout] in all.
+  Future<String> nextWhere(
+    bool Function(String line) test, {
+    Duration timeout = const Duration(seconds: 30),
+  }) async {
+    final stopwatch = Stopwatch()..start();
+    while (true) {
+      final line = await next(timeout: timeout - stopwatch.elapsed);
+      if (test(line)) return line;
+    }
+  }
+
   /// Waits [quiet] and returns the lines that arrived meanwhile.
   Future<List<String>> after(Duration quiet) async {
     final start = _lines.length;
