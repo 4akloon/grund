@@ -12,9 +12,9 @@ final class ConfigurationErrorBuilder implements Builder {
   /// What is wrong with the options.
   final String problem;
 
-  /// An output that is never written: build_runner before 2.16 and
-  /// build_test skip a builder that declares none, and the build would
-  /// pass silently.
+  /// An output that is never written: build_runner 2.10 and build_test
+  /// 3.5.5 skip a builder that declares none (the versions checked), and
+  /// the build would pass silently.
   @override
   Map<String, List<String>> get buildExtensions => const {
     r'$lib$': ['dartnest_build.unconfigured'],

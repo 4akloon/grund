@@ -52,7 +52,13 @@ with the `build.yaml` to write; nothing is written.
   written.
 - A part another builder has not written yet (`user.g.dart` of
   `json_serializable`) does not change the output: the generator reads
-  annotations and declarations, not generated members.
+  annotations and declarations, not generated members. `build.yaml` of
+  `dartnest_build` has `required_inputs: [".dart"]`, so build_runner runs it
+  after the builders that write `.dart` files and types declared in
+  generated parts resolve. This is a declaration in `build.yaml`, pinned by
+  a test; the order itself is build_runner's. The outputs of builders with
+  `build_to: cache` are visible to this builder but not to
+  `dartnest_cli gen`, which reads only the files on disk.
 - When `lib/` has no annotations, nothing is written; build_runner deletes
   a library it generated before.
 - A construct that generates a file of its own (`FileUnit`) fails the
@@ -114,6 +120,7 @@ builders:
     import: tool/builder.dart
     builder_factories: [shopBuilder]
     build_extensions: {"$lib$": ["shop.dartnest.dart"]} # <package>.dartnest.dart
+    required_inputs: [".dart"] # run after freezed, json_serializable, ...
     build_to: source
     auto_apply: root_package
 targets:
@@ -128,10 +135,14 @@ targets:
 
 ## Versions
 
-`build` `^4.0.2` and `analyzer` `>=8.1.1 <15.0.0`, the range of
-`dartnest_generator`; with build_runner 2.10.5 to 2.16.2 the builder was
+`build` `^4.0.2`; `analyzer` `>=8.1.1 <15.0.0`, the range of
+`dartnest_generator`. With build_runner 2.10.5 to 2.16.2 the builder was
 checked on both edges. `--only-check` needs build_runner 2.16, which needs
 Dart 3.11; `dartnest_build` itself keeps the SDK floor `^3.8.0`.
+
+The `users_app` fixture depends on `build_runner` `>=2.10.5 <3.0.0`, so the
+workspace resolves on every SDK from 3.8 (pub picks 2.16 on Dart 3.11 or
+newer; on 3.8 it is expected to pick 2.10, which was not verified here).
 
 ## Tests
 
@@ -142,6 +153,9 @@ build_runner runs only in the integration test, which is not part of
 ```sh
 cd packages/dartnest_build && dart test integration
 ```
+
+On build_runner older than 2.16 (Dart before 3.11) the integration test
+skips itself, because `--only-check` is missing there.
 
 It runs `dart run build_runner build --only-check` in the generator's golden
 fixture `users_app` and passes when the committed

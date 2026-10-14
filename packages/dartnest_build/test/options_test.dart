@@ -28,6 +28,10 @@ void main() {
     expect(builder.buildExtensions, {
       r'$lib$': ['shop.dartnest.dart'],
     });
+    expect(
+      dartnestBuilder(const BuilderOptions({})).buildExtensions[r'$lib$'],
+      isNotEmpty,
+    );
     expect((await _build({'package': 'shop'})).library, isNotNull);
   });
 
@@ -43,6 +47,12 @@ void main() {
     final build = await _build({'package': 'Shop-App'});
 
     expect(build.errors, [_error('"Shop-App" is not a package name')]);
+  });
+
+  test('a package option that is not a string fails the build', () async {
+    final build = await _build({'package': 5});
+
+    expect(build.errors, [_error('"5" is not a package name')]);
   });
 
   test('an unknown option fails the build', () async {

@@ -47,7 +47,7 @@ final class DartnestBuilder implements Builder {
     if (model.isEmpty) return;
     final result = generator.generate(model);
     final library = result.library;
-    if (library == null) return _fail(result.diagnostics);
+    if (library == null) return _fail([...result.diagnostics]..sort());
     if (result.files.isNotEmpty) {
       return _fail([for (final file in result.files) _unwritable(file)]);
     }

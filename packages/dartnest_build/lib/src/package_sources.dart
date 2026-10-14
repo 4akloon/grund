@@ -45,6 +45,8 @@ final class PackageSources {
   }
 
   Future<List<SyntaxProblem>> _syntaxProblemsOf(AssetId asset) async {
+    // compilationUnitFor throws only on Severity.error, while the CLI prints
+    // every parse diagnostic; the parser emits only errors, so they agree.
     try {
       await _step.resolver.compilationUnitFor(asset);
       return const [];
