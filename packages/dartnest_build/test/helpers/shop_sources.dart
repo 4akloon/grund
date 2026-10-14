@@ -50,6 +50,9 @@ final class AppModule {}
     'lib/src/app_module.dart': module,
   };
 
+  /// `lib/src/broken.dart`: two syntax errors on one line.
+  static const broken = 'final class Broken { void f( }\n';
+
   /// `lib/src/user.dart`: a request body whose `fromJson` lives in a part
   /// that another builder (json_serializable) generates.
   static const user = '''

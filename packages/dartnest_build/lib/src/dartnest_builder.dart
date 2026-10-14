@@ -34,6 +34,8 @@ final class DartnestBuilder implements Builder {
   Future<void> build(BuildStep buildStep) async {
     final package = buildStep.inputId.package;
     final sources = await PackageSources.find(buildStep);
+    final syntaxProblems = await sources.syntaxProblems();
+    if (syntaxProblems.isNotEmpty) return _fail(syntaxProblems);
     // Diagnostic paths are relative to this root: build_runner's analyzer
     // sees the files of package p under /p/.
     final model = PackageCollector(
@@ -43,13 +45,24 @@ final class DartnestBuilder implements Builder {
     if (model.isEmpty) return;
     final result = generator.generate(model);
     final library = result.library;
-    if (library == null) {
-      result.diagnostics.map((diagnostic) => '$diagnostic').forEach(log.severe);
-      return;
+    if (library == null) return _fail(result.diagnostics);
+    if (result.files.isNotEmpty) {
+      return _fail([for (final file in result.files) _unwritable(file)]);
     }
     await buildStep.writeAsString(
       AssetId(package, 'lib/$package.dartnest.dart'),
       library,
     );
   }
+
+  static void _fail(Iterable<Object> problems) {
+    for (final problem in problems) {
+      log.severe('$problem');
+    }
+  }
+
+  static String _unwritable(FileUnit file) =>
+      'dartnest_build cannot write ${file.path}: a construct generated it, '
+      'and a build_runner builder writes only lib/<package>.dartnest.dart. '
+      'Generate this package with dartnest_cli gen.';
 }
