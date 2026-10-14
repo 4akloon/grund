@@ -32,6 +32,15 @@ abstract final class RouteTableBuilder {
     }
   }
 
+  /// Every route of [graph] as `'GET /users/:id'`, sorted; nothing is
+  /// created.
+  static List<String> describe(ModuleGraph graph) => [
+    for (final module in graph.ordered)
+      for (final controller in module.controllers)
+        for (final route in controller.routes)
+          '${route.method} ${RoutePattern.join(controller.path, route.path)}',
+  ]..sort();
+
   /// Creates every controller with its module's injector, resolves the
   /// application [enhancers] through the root injector and the controller
   /// and route enhancers through the controller's module injector, and

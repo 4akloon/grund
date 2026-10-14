@@ -5,6 +5,7 @@ export 'src/app/application.dart';
 export 'src/pipeline/application_error.dart';
 export 'src/app/http_adapter.dart';
 export 'src/app/middleware.dart';
+export 'src/app/reassemble_report.dart';
 export 'src/controller/controller.dart';
 export 'src/controller/route.dart';
 export 'src/di/container.dart';

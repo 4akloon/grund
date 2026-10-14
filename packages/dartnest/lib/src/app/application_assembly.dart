@@ -4,6 +4,7 @@ import '../di/module_graph.dart';
 import '../pipeline/endpoint.dart';
 import '../pipeline/enhancers.dart';
 import '../routing/router.dart';
+import 'reassemble_report.dart';
 import 'route_table_builder.dart';
 
 /// The started container of an application and the route table built from
@@ -31,5 +32,26 @@ abstract final class ApplicationAssembly {
     } finally {
       if (!succeeded) await container.close();
     }
+  }
+
+  /// Assembles [root] again after a hot reload, like [start] but through
+  /// `Container.reassemble`, so providers that stay keep their instances;
+  /// reports which routes changed against [current].
+  ///
+  /// [current] is not changed: on a failure it still serves.
+  static Future<(Assembly, ReassembleReport)> rebuild(
+    Assembly current,
+    Module root,
+    Enhancers enhancers,
+  ) async {
+    final graph = ModuleGraph.build(root);
+    RouteTableBuilder.validate(graph);
+    final container = await current.container.reassemble(root);
+    final router = RouteTableBuilder.build(container, enhancers);
+    final report = ReassembleReport.between(
+      RouteTableBuilder.describe(current.container.graph),
+      RouteTableBuilder.describe(graph),
+    );
+    return ((container: container, router: router), report);
   }
 }
