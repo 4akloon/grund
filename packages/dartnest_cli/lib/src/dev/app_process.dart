@@ -8,6 +8,10 @@ import 'dart:io';
 /// The child is one process (no development service), so [pid] is the
 /// application's own `pid`. Its stdout and stderr are forwarded line by
 /// line, except the VM service banner, which gives [serviceUri].
+///
+/// If the process running this class is itself killed with `SIGKILL`, the
+/// child keeps running: Dart has no parent-death signal. The child's stdin
+/// is never closed.
 final class AppProcess {
   AppProcess._(this._process, this.serviceUri, this.exitCode);
 
@@ -47,9 +51,14 @@ final class AppProcess {
     final stderrDone = _lines(
       process.stderr,
     ).listen(err.writeln).asFuture<void>();
-    final exitCode = Future.wait([stdoutDone, stderrDone]).then((_) async {
+    final exitCode = process.exitCode.then((code) async {
+      // A grandchild may keep the pipes open after the child is gone, so
+      // draining them is bounded.
+      await Future.wait([stdoutDone, stderrDone])
+          .timeout(const Duration(seconds: 1), onTimeout: () => const [])
+          .catchError((Object _) => const <void>[]);
       if (!serviceUri.isCompleted) serviceUri.complete(null);
-      return process.exitCode;
+      return code;
     });
     return AppProcess._(process, serviceUri.future, exitCode);
   }
@@ -57,11 +66,12 @@ final class AppProcess {
   final Process _process;
 
   /// The URI of the child's VM service; `null` when the child exited
-  /// without starting it.
+  /// without starting it. It has no timeout of its own: callers race it
+  /// against [exitCode].
   final Future<Uri?> serviceUri;
 
-  /// The child's exit code, completed after its last output line was
-  /// forwarded.
+  /// The child's exit code, completed after its output was forwarded (the
+  /// wait for the pipes to close is bounded: a grandchild may hold them).
   final Future<int> exitCode;
 
   /// The process id of the child, the application's `pid`.

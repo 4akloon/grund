@@ -102,4 +102,30 @@ void main() {
 
     expect(code, -ProcessSignal.sigkill.signalNumber);
   }, testOn: '!windows');
+
+  test('stop does not wait for a grandchild that holds the pipes', () async {
+    // Windows has no `sleep` executable.
+    final (app, out, _) = await startProgram('''
+import 'dart:io';
+
+Future<void> main() async {
+  final child = await Process.start(
+    'sleep',
+    ['30'],
+    mode: ProcessStartMode.inheritStdio,
+  );
+  print(child.pid);
+  print('ready');
+  await Future<void>.delayed(const Duration(hours: 1));
+}
+''');
+    final grandchild = int.parse(await out.next());
+    addTearDown(() => Process.killPid(grandchild, ProcessSignal.sigkill));
+    expect(await out.next(), 'ready');
+
+    final stopwatch = Stopwatch()..start();
+    await app.stop(killGrace: Duration.zero);
+
+    expect(stopwatch.elapsed, lessThan(const Duration(seconds: 10)));
+  }, testOn: '!windows');
 }
