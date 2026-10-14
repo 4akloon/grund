@@ -44,9 +44,9 @@ final class Interruption {
   /// Ends the process with an exit code at once, without cleaning up.
   final void Function(int code) forceExit;
 
-  /// Listens to [signals]: [stopped] completes on the first interrupt (or
+  /// Listens to [signals]: `stopped` completes on the first interrupt (or
   /// when [untilStopped] completes) and [onSignal] gets the number of every
-  /// interrupt, the first included. The caller cancels [subscription] when
+  /// interrupt, the first included. The caller cancels `subscription` when
   /// its command ends, whatever way it ends.
   ({Future<void> stopped, StreamSubscription<void> subscription}) listen(
     void Function(int received) onSignal,
