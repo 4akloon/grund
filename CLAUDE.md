@@ -20,8 +20,8 @@ Minimum SDK: Dart 3.8 (`^3.8.0`), also for generated code.
 
 The `users_app` fixture has the dev dependency `build_runner: '>=2.10.5 <3.0.0'`
 for the `dartnest_build` integration test: pub picks 2.16 on Dart 3.11 or newer
-and (expected, not verified here) 2.10 on Dart 3.8, so the workspace resolves
-on the `^3.8.0` floor. The integration test skips itself below build_runner
+and (expected, not verified here) 2.10 on Dart 3.8, so the workspace is
+expected to resolve on the `^3.8.0` floor. The integration test skips itself below build_runner
 2.16 (`--only-check` is missing there).
 
 ## Commands

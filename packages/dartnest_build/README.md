@@ -141,7 +141,7 @@ checked on both edges. `--only-check` needs build_runner 2.16, which needs
 Dart 3.11; `dartnest_build` itself keeps the SDK floor `^3.8.0`.
 
 The `users_app` fixture depends on `build_runner` `>=2.10.5 <3.0.0`, so the
-workspace resolves on every SDK from 3.8 (pub picks 2.16 on Dart 3.11 or
+workspace is expected to resolve on every SDK from 3.8 (pub picks 2.16 on Dart 3.11 or
 newer; on 3.8 it is expected to pick 2.10, which was not verified here).
 
 ## Tests
