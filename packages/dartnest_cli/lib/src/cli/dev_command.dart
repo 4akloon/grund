@@ -72,12 +72,34 @@ final class DevCommand extends Command<int> {
     final dev = _session(package, target, options.rest);
     final failure = Completer<void>();
     final keys = cli.keys().listen((key) => _press(dev, key, failure));
+    final (:stopped, :subscription) = cli.interruption.listen(
+      _forceOnSecond(dev, failure.future),
+    );
     // Stopping the session at the interrupt itself, not after the watch
     // loop ended: the terminal's Ctrl+C reaches the application too, and its
     // exit must not be reported as a crash.
-    final interrupted = cli.interruption.untilStopped().whenComplete(dev.stop);
-    final stop = Future.any([interrupted, failure.future]);
-    final interrupts = _forceOnSecond(dev, failure.future);
+    final stop = Future.any([stopped.whenComplete(dev.stop), failure.future]);
+    try {
+      await _run(package, target, session, dev, stop);
+    } finally {
+      try {
+        await keys.cancel();
+      } finally {
+        // A signal listener keeps the VM alive: it goes even when the
+        // cleanup above throws.
+        await subscription.cancel();
+      }
+    }
+    return CliExitCode.success.code;
+  }
+
+  Future<void> _run(
+    PackageRoot package,
+    String target,
+    GenerationSession session,
+    DevSession dev,
+    Future<void> stop,
+  ) async {
     try {
       final (watcher, watched) = _watch(package, target);
       await _loop(session, dev, watched).run(watcher, stop);
@@ -89,12 +111,9 @@ final class DevCommand extends Command<int> {
       // and the software exit code, not an unmapped exception.
       throw CliFailure(CliExitCode.software, 'dev stopped: $error');
     } finally {
-      await keys.cancel();
       await dev.stop();
       await session.close();
-      await interrupts.cancel();
     }
-    return CliExitCode.success.code;
   }
 
   DevSession _session(PackageRoot package, String entry, List<String> rest) {
@@ -116,28 +135,22 @@ final class DevCommand extends Command<int> {
         afterRun: dev.apply,
       );
 
-  /// Listens for interrupts from the start: the first stops `dev` (through
-  /// [Interruption.untilStopped]) and takes `SIGINT`'s default away, so
-  /// that a second one, while the application is still closing, can end the
-  /// process at once instead of killing it half-way (child orphaned,
-  /// terminal left in raw mode): kill the child, restore the terminal, exit
-  /// 130. An interrupt after a failed key action ([failure]) counts as the
-  /// second, since `dev` is shutting down already. Cancel the subscription
-  /// when `dev` is done.
-  StreamSubscription<void> _forceOnSecond(
-    DevSession dev,
-    Future<void> failure,
-  ) {
-    var received = 0;
+  /// What `dev` does with the interrupt number `received`: the first stops
+  /// it (through [Interruption.listen]'s `stopped`) and takes `SIGINT`'s
+  /// default away, so that a second one, while the application is still
+  /// closing, can end the process at once instead of killing it half-way
+  /// (child orphaned, terminal left in raw mode): kill the child, restore
+  /// the terminal, exit 130. An interrupt after a failed key action
+  /// ([failure]) counts as the second, since `dev` is shutting down already.
+  void Function(int) _forceOnSecond(DevSession dev, Future<void> failure) {
     var failed = false;
     unawaited(failure.then((_) {}, onError: (Object _) => failed = true));
-    return cli.interruption.signals().listen((_) {
-      received++;
+    return (received) {
       if (received < 2 && !failed) return;
       dev.kill();
       TerminalKeys.restore();
       cli.interruption.forceExit(CliExitCode.interrupted.code);
-    });
+    };
   }
 
   static String _target(PackageRoot package, String relative) {

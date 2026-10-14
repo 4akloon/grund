@@ -78,18 +78,21 @@ void main() {
     final package = await TempPackage.create('hello', DevSources.files);
     final out = StringBuffer();
     final err = StringBuffer();
+    final signals = StreamController<void>.broadcast();
 
     final code = await DartnestCli(
       out: out,
       err: err,
       generator: const DartnestGenerator([ExplodingConstruct()]),
-      interruption: Interruption(untilStopped: () => Completer<void>().future),
+      interruption: Interruption(signals: () => signals.stream),
       keys: () => const Stream<String>.empty(),
     ).run(['dev', '-C', package.dir.path]);
 
     expect(code, CliExitCode.software.code);
     expect(err.toString(), contains('dev stopped: FormatException: boom'));
     expect(out.toString(), isNot(contains('Started ')));
+    // A listener on the signals would keep the process alive.
+    expect(signals.hasListener, isFalse);
   });
 
   test('dev -t lib/main.dart watches lib/ only', () async {

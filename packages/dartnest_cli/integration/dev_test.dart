@@ -208,4 +208,29 @@ void main() {
     );
     await expectLater(hello(port), throwsA(isA<SocketException>()));
   }, testOn: '!windows');
+
+  test('a failing run ends the dev process with 70, not a hang', () async {
+    final app = await HelloApp.create();
+    final script = p.join(
+      Directory.current.path,
+      'integration',
+      'fixtures',
+      'failing_dev.dart',
+    );
+    final process = await Process.start(Platform.resolvedExecutable, [
+      script,
+      'dev',
+      '-C',
+      app.package.dir.path,
+    ]);
+    addTearDown(() => process.kill(ProcessSignal.sigkill));
+    final err = StringBuffer();
+    process.stdout.drain<void>();
+    process.stderr.transform(utf8.decoder).listen(err.write);
+
+    final code = await process.exitCode.timeout(const Duration(seconds: 60));
+
+    expect(code, CliExitCode.software.code);
+    expect(err.toString(), contains('dev stopped: FormatException: boom'));
+  }, testOn: '!windows');
 }

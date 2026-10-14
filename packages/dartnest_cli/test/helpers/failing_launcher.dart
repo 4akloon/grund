@@ -11,6 +11,7 @@ final class FailingLauncher extends AppLauncher {
     this.connectFails = false,
     this.connectNull = false,
     this.closeFails = false,
+    this.startDelay = Duration.zero,
     super.timeouts,
   });
 
@@ -23,6 +24,9 @@ final class FailingLauncher extends AppLauncher {
   /// Whether [close] throws.
   final bool closeFails;
 
+  /// How long [start] waits before it starts the process.
+  final Duration startDelay;
+
   /// Every process started so far.
   final started = <AppProcess>[];
 
@@ -34,6 +38,7 @@ final class FailingLauncher extends AppLauncher {
     required StringSink out,
     required StringSink err,
   }) async {
+    await Future<void>.delayed(startDelay);
     final process = await super.start(
       target: target,
       arguments: arguments,

@@ -120,17 +120,27 @@ final class ReloadClient {
 
   Future<String?> _isolateWith(String method, List<String> isolates) async {
     for (final id in isolates) {
-      final isolate = await _service.getIsolate(id);
-      if (isolate.extensionRPCs?.contains(method) ?? false) return id;
+      final isolate = await _isolate(id);
+      if (isolate?.extensionRPCs?.contains(method) ?? false) return id;
     }
     return null;
   }
 
   Future<String?> _isolateNamed(String name, List<String> isolates) async {
     for (final id in isolates) {
-      if ((await _service.getIsolate(id)).name == name) return id;
+      if ((await _isolate(id))?.name == name) return id;
     }
     return null;
+  }
+
+  // An isolate that exited between getVM and getIsolate answers with a
+  // sentinel; it is not a candidate, and must not fail the whole reload.
+  Future<Isolate?> _isolate(String id) async {
+    try {
+      return await _service.getIsolate(id);
+    } on SentinelException {
+      return null;
+    }
   }
 
   /// The changed routes, or the error, of the reassemble in [isolate]. The

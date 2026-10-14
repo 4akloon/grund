@@ -175,6 +175,40 @@ void main() {
     expect(after['pid'], isNot(before['pid']));
   });
 
+  test('r does not restart while the problems are still there', () async {
+    final dev = await Dev.start();
+    final port = await dev.listening();
+    final before = await Dev.hello(port);
+    dev.app.edit(_greeter, 'String greet', _newField);
+    dev.app.edit(_controller, 'greeter.greet()', 'greeter.greet(');
+    await dev.change([_greeter, _controller]);
+
+    await dev.session.reload();
+
+    expect(dev.lines.lines.where((l) => l.startsWith('Restarting')), isEmpty);
+    expect(
+      dev.lines.lines.where(
+        (l) => l == 'bin/main.dart keeps running the previous code.',
+      ),
+      hasLength(2),
+    );
+    expect((await Dev.hello(port))['pid'], before['pid']);
+  });
+
+  test('kill ends a process whose start was still pending', () async {
+    final launcher = FailingLauncher(
+      startDelay: const Duration(milliseconds: 500),
+    );
+    final dev = await Dev.create(launcher: launcher);
+
+    final starting = dev.session.reload();
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    dev.session.kill();
+    await starting;
+
+    await launcher.started.single.exitCode.timeout(const Duration(seconds: 10));
+  });
+
   test('a killed session does not report the exit of its child', () async {
     final dev = await Dev.start();
     await dev.listening();

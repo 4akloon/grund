@@ -48,6 +48,8 @@ final class DevSession {
   // Every process not yet exited, also one still starting or stopping.
   final _processes = <AppProcess>{};
   var _stopped = false;
+  // Whether the last generation run found problems.
+  var _hasProblems = false;
 
   /// Applies the generation run [report] for the [changed] paths: starts
   /// the application when it is not running, restarts it when a file
@@ -58,7 +60,12 @@ final class DevSession {
   /// Applies what is still waiting (the `r` key): starts the application
   /// when it is not running, restarts it when a change held back by
   /// problems changed a shape, reloads it otherwise.
-  Future<void> reload() => _live(() => _applyPending(_running));
+  Future<void> reload() => _live(() {
+    // Nothing is reloaded or restarted into sources that do not compile.
+    if (!_hasProblems) return _applyPending(_running);
+    printer.waiting(isRunning: _running != null);
+    return Future<void>.value();
+  });
 
   /// Restarts the application now (the `R` key).
   Future<void> restart() => _live(() => _restart('restart requested'));
@@ -94,6 +101,7 @@ final class DevSession {
     // A shape change in a run with problems is applied by the next clean
     // run (or by `r`), whichever files that one lists.
     _unapplied.addAll(changed);
+    _hasProblems = report.hasProblems;
     if (report.hasProblems) {
       printer.waiting(isRunning: _running != null);
       return;
@@ -153,6 +161,8 @@ final class DevSession {
       err: printer.err,
     );
     _processes.add(process);
+    // A kill() while the process was starting has not seen it.
+    if (_stopped) process.kill();
     unawaited(process.exitCode.then((_) => _processes.remove(process)));
     var timedOut = false;
     final uri = await process.serviceUri.timeout(

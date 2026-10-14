@@ -5,19 +5,20 @@ import 'dart:io';
 /// stopping hangs, by the second.
 ///
 /// Tests replace its parts; by default they are the process's interrupt
-/// signals and `exit`.
+/// signals and `exit`. A command listens with [listen] and cancels the
+/// subscription when it is done: a listener on the signals keeps the VM
+/// alive.
 final class Interruption {
   /// Creates the interruption. [signals] are the interrupt signals (the
-  /// system's by default); [untilStopped] completes on the first of them,
-  /// or on [signals]' first event when not given; [forceExit] ends the
-  /// process at once (`exit` by default).
+  /// system's by default); [untilStopped], when given (tests), also stops
+  /// the command when it completes; [forceExit] ends the process at once
+  /// (`exit` by default).
   Interruption({
-    Future<void> Function()? untilStopped,
+    this.untilStopped,
     Stream<void> Function()? signals,
     void Function(int code)? forceExit,
   }) : signals = signals ?? system,
-       forceExit = forceExit ?? exit,
-       untilStopped = untilStopped ?? (() => (signals ?? system)().first);
+       forceExit = forceExit ?? exit;
 
   /// An event per `SIGINT` (Ctrl+C) or, outside Windows, where it cannot be
   /// watched, `SIGTERM`, while the stream is listened to.
@@ -34,13 +35,33 @@ final class Interruption {
     ]);
   });
 
-  /// Completes on the first interrupt; `gen --watch` and `dev` stop then.
-  final Future<void> Function() untilStopped;
+  /// Completes when a test asks the command to stop; `null` outside tests.
+  final Future<void> Function()? untilStopped;
 
-  /// Every interrupt received while it is listened to; `dev` listens for
-  /// the ones that come while it is shutting down.
+  /// Every interrupt received while it is listened to.
   final Stream<void> Function() signals;
 
   /// Ends the process with an exit code at once, without cleaning up.
   final void Function(int code) forceExit;
+
+  /// Listens to [signals]: [stopped] completes on the first interrupt (or
+  /// when [untilStopped] completes) and [onSignal] gets the number of every
+  /// interrupt, the first included. The caller cancels [subscription] when
+  /// its command ends, whatever way it ends.
+  ({Future<void> stopped, StreamSubscription<void> subscription}) listen(
+    void Function(int received) onSignal,
+  ) {
+    final stopped = Completer<void>();
+    void stop() {
+      if (!stopped.isCompleted) stopped.complete();
+    }
+
+    unawaited(untilStopped?.call().then((_) => stop()));
+    var received = 0;
+    final subscription = signals().listen((_) {
+      onSignal(++received);
+      stop();
+    });
+    return (stopped: stopped.future, subscription: subscription);
+  }
 }

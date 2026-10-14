@@ -13,24 +13,32 @@ abstract final class TerminalKeys {
   /// Every key typed on stdin when it is a terminal; an empty stream
   /// otherwise. While the stream is listened to, stdin reads key by key
   /// without echo (Ctrl+C still interrupts); cancelling restores it.
-  static Stream<String> read() {
-    if (!isInteractive) return const Stream<String>.empty();
+  static Stream<String> read({Stdin? input}) {
+    final terminal = input ?? stdin;
+    if (!terminal.hasTerminal) return const Stream<String>.empty();
     StreamSubscription<String>? subscription;
     final controller = StreamController<String>();
     controller
       ..onListen = () {
-        _previous = (echo: stdin.echoMode, line: stdin.lineMode);
-        stdin
-          ..echoMode = false
-          ..lineMode = false;
-        subscription = stdin
+        try {
+          _previous = (echo: terminal.echoMode, line: terminal.lineMode);
+          terminal
+            ..echoMode = false
+            ..lineMode = false;
+        } on StdinException {
+          // A stdin that claims to be a terminal but refuses its modes (a
+          // redirected or closed one): no keys, `dev` still runs.
+          unawaited(controller.close());
+          return;
+        }
+        subscription = terminal
             .transform(const Utf8Decoder(allowMalformed: true))
             .expand((chunk) => chunk.split(''))
             .listen(controller.add);
       }
       ..onCancel = () async {
         await subscription?.cancel();
-        restore();
+        restore(terminal);
       };
     return controller.stream;
   }
@@ -38,13 +46,19 @@ abstract final class TerminalKeys {
   /// Gives stdin the modes it had before [read], at once; does nothing
   /// when [read] did not change them or they are restored already. For the
   /// forced exit, which cannot wait for the stream's cancellation.
-  static void restore() {
+  static void restore([Stdin? input]) {
+    final terminal = input ?? stdin;
     final previous = _previous;
     if (previous == null) return;
     _previous = null;
-    // Echo first: with line mode off, an echo-on terminal would show keys.
-    stdin
-      ..lineMode = previous.line
-      ..echoMode = previous.echo;
+    try {
+      // Line mode first: Windows refuses echo on while line mode is off.
+      terminal
+        ..lineMode = previous.line
+        ..echoMode = previous.echo;
+    } on StdinException {
+      // The terminal went away (hang-up): nothing left to restore.
+      return;
+    }
   }
 }
