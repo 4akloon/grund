@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:dartnest_generator/dartnest_generator.dart';
 import 'package:path/path.dart' as p;
 import 'package:yaml/yaml.dart';
 
@@ -33,7 +34,7 @@ final class PackageRoot {
   }
 
   /// A valid Dart package name.
-  static final validName = RegExp(r'^[a-z_][a-z0-9_]*$');
+  static final validName = LibraryWriter.validPackageName;
 
   /// Absolute, normalized path of the package root.
   final String path;

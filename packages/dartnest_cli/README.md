@@ -186,3 +186,10 @@ Future<void> main(List<String> arguments) async {
 and calls `dart run tool/dartnest.dart gen`. `GenerationSession` is the
 same generation as a library: `run(changed: [...])` regenerates with the
 analysis kept in memory, for tools that decide themselves when to run.
+
+## build_runner
+
+`dartnest_build` runs the same generation as a build_runner builder and
+writes the bytes `gen` writes, so a package that already uses build_runner
+can generate with it instead. Its README says when to use which and how the
+two share a package.

@@ -13,3 +13,9 @@ resolution: workspace
 dependencies:
   dartnest: ^0.1.0-dev
   dartnest_annotations: ^0.1.0-dev
+
+# The build_runner way of generating lib/users_app.dartnest.dart; the
+# integration test of dartnest_build checks the golden with it.
+dev_dependencies:
+  build_runner: '>=2.10.5 <3.0.0'
+  dartnest_build: ^0.1.0-dev

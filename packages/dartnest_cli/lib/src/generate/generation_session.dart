@@ -5,7 +5,6 @@ import '../package/package_root.dart';
 import 'generation_report.dart';
 import 'output_writer.dart';
 import 'package_analysis.dart';
-import 'syntax_problem.dart';
 import 'write_outcome.dart';
 
 /// Generates one package again and again with the analyzer state kept in
@@ -48,7 +47,7 @@ final class GenerationSession {
       package.name,
       package.path,
     ).collect(libraries);
-    if (_isEmpty(model)) {
+    if (model.isEmpty) {
       return _report(stopwatch, await _written(_writer.deleteLibrary()));
     }
     final result = generator.generate(model);
@@ -88,9 +87,4 @@ final class GenerationSession {
     syntaxProblems: syntax,
     diagnostics: diagnostics,
   );
-
-  static bool _isEmpty(PackageModel model) =>
-      model.modules.isEmpty &&
-      model.injectables.isEmpty &&
-      model.controllers.isEmpty;
 }
