@@ -82,6 +82,21 @@ final class ModuleInjector implements Injector {
     return key;
   }
 
+  /// The instances of this module's own providers created so far, by key.
+  Map<Object, Object> get instances => {
+    for (final MapEntry(:key, value: slot) in _own.entries)
+      if (slot.instance case final instance?) key: instance,
+  };
+
+  /// Takes over the [instances] whose keys this module still declares, so
+  /// that [instantiateAll] does not create them again. Called by
+  /// `Container.reassemble` before [wire].
+  void adopt(Map<Object, Object> instances) {
+    for (final MapEntry(:key, value: slot) in _own.entries) {
+      slot.instance = instances[key] ?? slot.instance;
+    }
+  }
+
   /// Creates every own provider in declaration order, awaiting async ones.
   /// Called once by `Container.create`.
   Future<void> instantiateAll() async {
