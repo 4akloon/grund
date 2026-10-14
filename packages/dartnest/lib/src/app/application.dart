@@ -11,6 +11,7 @@ import '../pipeline/serializer_registry.dart';
 import '../routing/router.dart';
 import '../pipeline/application_error.dart';
 import 'application_assembly.dart';
+import 'hot_reload_extension.dart';
 import 'http_adapter.dart';
 import 'in_flight_requests.dart';
 import 'middleware.dart';
@@ -46,7 +47,9 @@ final class Application {
        );
 
   /// Builds the module returned by [root], validates the routes, starts the
-  /// container, creates the controllers and builds the route table.
+  /// container, creates the controllers and builds the route table. Outside
+  /// product (AOT) builds the application is then reachable from the VM
+  /// service extensions of `dartnest_cli dev` until it starts closing.
   ///
   /// [root] is a function so that the module graph can be rebuilt after a
   /// hot reload. [enhancers] are the application-level components, resolved
@@ -63,16 +66,20 @@ final class Application {
     Enhancers enhancers = Enhancers.none,
     bool debug = false,
     ErrorLogger? onError,
-  }) async => Application._(
-    root: root,
-    enhancers: enhancers,
-    assembly: await ApplicationAssembly.start(root(), enhancers),
-    adapter: adapter,
-    errors: HttpErrorResponder(
-      debug: debug,
-      log: onError ?? HttpErrorResponder.printError,
-    ),
-  );
+  }) async {
+    final application = Application._(
+      root: root,
+      enhancers: enhancers,
+      assembly: await ApplicationAssembly.start(root(), enhancers),
+      adapter: adapter,
+      errors: HttpErrorResponder(
+        debug: debug,
+        log: onError ?? HttpErrorResponder.printError,
+      ),
+    );
+    HotReloadExtension.attach(application);
+    return application;
+  }
 
   /// Like [create], for a module value; [reassemble] reuses that value.
   static Future<Application> fromModule(
@@ -183,8 +190,10 @@ final class Application {
   /// skipped (the container is still closed and the error propagates to
   /// every `close()` caller), so a failing adapter can cut in-flight
   /// requests short.
-  Future<void> close({bool force = false}) =>
-      _closing ??= _shutdown(force: force);
+  Future<void> close({bool force = false}) {
+    HotReloadExtension.detach(this);
+    return _closing ??= _shutdown(force: force);
+  }
 
   /// Rebuilds the application from its module function after a hot reload:
   /// the new graph is validated, `Container.reassemble` keeps the instances
