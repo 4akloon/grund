@@ -17,8 +17,10 @@ import '../generate/generation_session.dart';
 /// follow-up run. Generated `*.dartnest.dart` files (the session's own
 /// output) and non-Dart files are ignored. A [CliFailure] of a run is
 /// printed and watching goes on; any other failure of a run ends [run] with
-/// it at once. Errors of the watcher's event stream are not handled and end
-/// the process (OP8).
+/// it at once, and so does an error of the watcher's event stream (OP8):
+/// the `finally` of [run] still stops the run in flight, so whoever started
+/// the loop can clean up (`dev` stops the application and restores the
+/// terminal).
 final class WatchLoop {
   /// Creates the loop over [session], printing through [printer].
   WatchLoop(
@@ -79,7 +81,9 @@ final class WatchLoop {
   /// [CliFailure], without waiting for [stop]. Changes still waiting for
   /// their debounce or their turn when [stop] completes are dropped.
   Future<void> run(Watcher watcher, Future<void> stop) async {
-    final subscription = watcher.events.where(_isSource).listen(_add);
+    final subscription = watcher.events
+        .where(_isSource)
+        .listen(_add, onError: _fail);
     try {
       await watcher.ready;
       _start(_first);
@@ -108,9 +112,13 @@ final class WatchLoop {
       (_) => _active = null,
       onError: (Object error, StackTrace trace) {
         _active = null;
-        if (!_failure.isCompleted) _failure.completeError(error, trace);
+        _fail(error, trace);
       },
     );
+  }
+
+  void _fail(Object error, StackTrace trace) {
+    if (!_failure.isCompleted) _failure.completeError(error, trace);
   }
 
   Future<void> _first() async {

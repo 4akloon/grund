@@ -88,6 +88,23 @@ final class _Harness {
 }
 
 void main() {
+  test('an error of the watcher ends the run and cleans up', () async {
+    final h = _Harness();
+    final done = h.start();
+    await h.lines.next();
+    await h.lines.next();
+
+    h.watcher.error(StateError('watch failed'));
+
+    await expectLater(
+      done,
+      throwsA(
+        isA<StateError>().having((e) => e.message, 'message', 'watch failed'),
+      ),
+    );
+    expect(h.watcher.hasListener, isFalse);
+  });
+
   test('paths changed while a run is in flight share one follow-up', () async {
     final h = _Harness();
     final done = h.start();
