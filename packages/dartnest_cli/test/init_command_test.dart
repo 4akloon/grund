@@ -4,6 +4,8 @@ import 'package:analyzer/dart/analysis/analysis_context_collection.dart';
 import 'package:analyzer/dart/analysis/results.dart';
 import 'package:analyzer/error/error.dart';
 import 'package:dartnest_cli/dartnest_cli.dart';
+import 'package:dartnest_cli/src/cli/shell_word.dart';
+import 'package:dartnest_cli/src/init/project_scaffold.dart';
 import 'package:test/test.dart';
 
 import 'helpers/cli_run.dart';
@@ -71,5 +73,74 @@ void main() {
     expect(invalid.exitCode, CliExitCode.usage.code);
     expect(invalid.err, startsWith('"My-App" is not a valid package name'));
     expect(dir.exists('My-App'), isFalse);
+  });
+
+  for (final (name, reason) in [
+    ('class', 'a Dart reserved word'),
+    ('in', 'a Dart reserved word'),
+    ('dartnest', 'a dependency of the new package'),
+  ]) {
+    test('init rejects the package name "$name"', () async {
+      final dir = TempDir.create();
+
+      final run = await CliRun.run(['init', dir.resolve(name)]);
+
+      expect(run.exitCode, CliExitCode.usage.code);
+      expect(run.err, startsWith('"$name" is not a valid package name'));
+      expect(run.err, contains(reason));
+      expect(dir.exists(name), isFalse);
+    });
+  }
+
+  test('init leaves nothing behind when writing fails midway', () async {
+    final dir = TempDir.create();
+    final created = dir.resolve('fresh_app');
+    final existing = dir.resolve('empty_app');
+    Directory(existing).createSync();
+
+    for (final target in [created, existing]) {
+      var writes = 0;
+      final scaffold = ProjectScaffold(
+        target,
+        writeFile: (file, content) {
+          if (++writes == 3) {
+            throw const FileSystemException('disk full');
+          }
+          file.writeAsStringSync(content);
+        },
+      );
+      expect(
+        scaffold.write,
+        throwsA(
+          isA<CliFailure>().having(
+            (failure) => failure.exitCode,
+            'exitCode',
+            CliExitCode.cannotCreate,
+          ),
+        ),
+      );
+    }
+
+    expect(Directory(created).existsSync(), isFalse);
+    expect(Directory(existing).existsSync(), isTrue);
+    expect(Directory(existing).listSync(), isEmpty);
+  });
+
+  test('init quotes the directory in the next steps', () async {
+    final dir = TempDir.create();
+    final target = dir.resolve("it's here/my_app");
+
+    final run = await CliRun.run(['init', target]);
+
+    final quoted = target.replaceAll("'", r"'\''");
+    expect(run.out, contains("  cd '$quoted'\n"));
+  });
+
+  test('a shell word is quoted unless it is plainly safe', () {
+    expect(ShellWord.quote('/tmp/my_app'), '/tmp/my_app');
+    expect(ShellWord.quote('a b'), "'a b'");
+    expect(ShellWord.quote("it's"), r"'it'\''s'");
+    expect(ShellWord.quote('-x/app'), './-x/app');
+    expect(ShellWord.quote('-x y'), "'./-x y'");
   });
 }

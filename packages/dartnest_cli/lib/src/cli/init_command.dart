@@ -3,6 +3,7 @@ import 'package:args/command_runner.dart';
 import '../init/project_scaffold.dart';
 import 'cli_exit_code.dart';
 import 'dartnest_cli.dart';
+import 'shell_word.dart';
 
 /// `init <directory>`: scaffolds a new application.
 final class InitCommand extends Command<int> {
@@ -38,16 +39,10 @@ final class InitCommand extends Command<int> {
       ..writeln('Created package ${scaffold.name} in ${scaffold.directory}:')
       ..writeAll([for (final file in files) '  $file\n'])
       ..writeln('Next:')
-      ..writeln('  cd ${_shellWord(target)}')
+      ..writeln('  cd ${ShellWord.quote(target)}')
       ..writeln('  dart pub get')
       ..writeln('  dart run dartnest_cli gen')
       ..writeln('  dart run bin/server.dart');
     return CliExitCode.success.code;
   }
-
-  /// [word] as one shell word: quoted unless it is made of safe characters.
-  static String _shellWord(String word) =>
-      RegExp(r'^[\w./~:@%+=-]+$').hasMatch(word)
-      ? word
-      : "'${word.replaceAll("'", r"'\''")}'";
 }
