@@ -18,6 +18,14 @@ pluggable HTTP adapters. It is a Dart pub workspace of pure-Dart packages.
 
 Minimum SDK: Dart 3.8 (`^3.8.0`), also for generated code.
 
+Exception for the workspace: `dart pub get` at the root needs Dart SDK 3.11 or
+newer, because the `users_app` fixture has the dev dependency
+`build_runner: ^2.16.0` (it requires `^3.11.0`) for the `dartnest_build`
+integration test. Published packages keep the `^3.8.0` floor. On an older SDK
+take `packages/dartnest_generator/test/fixtures/users_app` out of the root
+`workspace:` list (a local, uncommitted edit; pub resolves all members
+together) and skip `dartnest_build`'s integration test.
+
 ## Commands
 
 `dart` is not always on PATH; with fvm's Flutter it is
@@ -33,6 +41,9 @@ DARTNEST_UPDATE_GOLDENS=1 dart test test/golden
 # packages/dartnest_cli: the generation benchmark (not part of `dart test`):
 dart test benchmark
 # packages/dartnest_cli: the dev integration tests (not part of `dart test`):
+dart test integration
+# packages/dartnest_build: the real build_runner over the golden fixture
+# users_app (not part of `dart test`; about 20 s the first time):
 dart test integration
 # generate a package with the CLI, e.g. the generator's golden fixture:
 dart run dartnest_cli gen --directory ../dartnest_generator/test/fixtures/users_app
@@ -56,10 +67,11 @@ Git commands run from the repo root. Commit messages are Conventional Commits
 - **The core has no codegen and no server.** `dartnest` depends only on the
   Dart SDK and `package:meta`: no `dart:mirrors`, no `dart:io` server, no
   shelf, no analyzer. Annotations live in their own dependency-free package;
-  `analyzer` is allowed only in `dartnest_generator`/`dartnest_cli`, and
-  `vm_service` only in `dartnest_cli`. `dart:developer` (SDK) is allowed in
-  the core for the hot reload service extensions, which register only
-  outside product mode.
+  `analyzer` is allowed only in `dartnest_generator`/`dartnest_cli`/
+  `dartnest_build`, `vm_service` only in `dartnest_cli`, and `build` only
+  in `dartnest_build`. `dart:developer` (SDK) is allowed in the core for
+  the hot reload service extensions, which register only outside product
+  mode.
 - **Generated code is ordinary code on the public API.** If the generator
   needs something the explicit API cannot express, extend the explicit API
   first.
@@ -69,7 +81,10 @@ Git commands run from the repo root. Commit messages are Conventional Commits
 - **The CLI owns only its output.** `dartnest_cli` writes
   `lib/<package>.dartnest.dart` only when it changed, through a temporary
   file and a rename, never over a file without the generated header, and
-  leaves it as it was while the sources have problems.
+  leaves it as it was while the sources have problems. Under build_runner
+  (`dartnest_build`) the output belongs to build_runner, which deletes a
+  conflicting file and the output of a failed step; the builder writes the
+  same bytes and header as the CLI, so either accepts the other's file.
 - Escape every string taken from user sources at every interpolation site of
   generated code (`DartString.literal` in `dartnest_generator`).
 - **Annotations share names with the explicit API** (`Module`,
@@ -86,7 +101,9 @@ Git commands run from the repo root. Commit messages are Conventional Commits
 - **Prefer classes and static members to top-level helper functions** inside
   `lib/src`. Constants live in the class they belong to. Exception: functions
   that the spec defines as public API (dynamic-module factories such as
-  `Module databaseModule({...})`, `env(...)`, `describeKey`) and `main`.
+  `Module databaseModule({...})`, `env(...)`, `describeKey`), builder
+  factories that `build.yaml` names (`dartnestBuilder`, in the
+  `dartnest_build` library) and `main`.
 - Lints come from `analysis_options.yaml`; every public member has a `///`
   doc comment; `dart format` keeps the code formatted.
 - Tests do not touch the network; HTTP tests use ephemeral ports on
@@ -99,6 +116,11 @@ Git commands run from the repo root. Commit messages are Conventional Commits
   the VM service on loopback (`AppProcess`, `DevSession`), and
   `integration/dev_test.dart` (run with `dart test integration`, not part
   of `dart test`) also runs the real `dartnest dev` as a child process.
+  `dartnest_build` tests build in memory with `build_test`
+  (`TestReaderWriter` + `loadIsolateSources()`, no `pub get`), and compare
+  with the CLI through `GenerationSession` on a `TempDir` package;
+  `integration/build_runner_test.dart` (run with `dart test integration`)
+  runs the real build_runner as a child process.
 
 ## Code quality rules (size, decomposition, readability)
 
