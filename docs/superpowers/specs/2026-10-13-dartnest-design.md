@@ -476,8 +476,14 @@ description)`, `@ApiProperty(...)` з `dartnest_annotations` лише допов
      до VM service (пакет `vm_service`), викликає `reloadSources`, потім
      service extension `ext.dartnest.reassemble`, яку `Application`
      реєструє в debug-режимі;
-   - клавіша `R`, невдалий reload або зміна, що reload не підтримує (CLI
-     визначає за відповіддю `reloadSources`): hot restart дочірнього процесу.
+   - клавіша `R`, невдалий reload або зміна, що reload не підтримує: hot
+     restart дочірнього процесу. Здебільшого CLI вирішує ще до reload: порівнює
+     «форму» змінених файлів (поля, конструктори, змінні верхнього рівня,
+     значення enum; `ShapeTracker`) із запам'ятованою і, якщо вона змінилась,
+     одразу робить restart; відповідь `reloadSources` (`ReasonForCancellingReload`)
+     лише запасний шлях для змін, яких форма не ловить. Зміни поза теками, за
+     якими стежить CLI (path-залежності, `tool/`), reload застосовує без
+     перевірки форми.
      Виняток: reload, що не компілюється, не призводить до restart —
      друкується помилка, а попередній застосунок продовжує працювати.
 3. Виводить результат одним рядком: `reloaded 3 libraries in 180 ms, 2 routes

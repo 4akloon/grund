@@ -14,11 +14,11 @@ dart run dartnest_cli dev -t bin/server.dart -- --port 8080
 dart run dartnest_cli init my_app            # a new package in ./my_app
 ```
 
-`--directory` is `-C`, `--watch` is `-w` and `--target` is `-t`. Installed as an executable (the
-package declares `dartnest`, for example
+`--directory` is `-C`, `--watch` is `-w` and `--target` is `-t`. Installed as
+an executable (the package declares `dartnest`, for example
 `dart pub global activate --source path packages/dartnest_cli`), the same
-commands are `dartnest gen`, `dartnest dev` and `dartnest init`. Without a command the tool
-prints its usage and exits with 0.
+commands are `dartnest gen`, `dartnest dev` and `dartnest init`. Without a
+command the tool prints its usage and exits with 0.
 
 ## gen
 
@@ -105,11 +105,24 @@ Restarting bin/main.dart: lib/src/greeter.dart changed a field, a constructor or
   routes and prints the error.
 - An application that exits (or does not start) is started again after the
   next change, never in a loop.
+- Changes the watcher does not see (a path dependency, `tool/`, anything
+  outside `lib/` and the directory of the target) are reloaded without the
+  shape check: restart with `R` after changing a field there.
 - In a terminal, `r` reloads and `R` restarts (they start the application
-  when it is not running). Ctrl+C (or `SIGTERM` outside Windows) stops
-  `dev`: the application closes and ends first (`SIGTERM`, then `SIGKILL`
-  after 2 s). If `dev` itself is killed (`SIGKILL`), the application keeps
-  running: Dart has no parent-death signal, so stop the orphan yourself.
+  when it is not running). `r` also applies a change that problems held
+  back, restarting when it changed a shape. Ctrl+C (or `SIGTERM` outside
+  Windows) stops `dev`: it closes the dartnest applications and ends the
+  application (`SIGTERM`, then `SIGKILL` after 2 s). In a terminal Ctrl+C
+  reaches the application directly too (same process group), so it may end
+  on the signal before it closed gracefully; `SIGTERM` sent to `dev` alone
+  closes it first. A second interrupt while `dev` is stopping kills the
+  application, restores the terminal and exits with 130. If `dev` itself is
+  killed (`SIGKILL`), the application keeps running: Dart has no
+  parent-death signal, so stop the orphan yourself.
+- A VM service that does not answer does not hang `dev`: connecting waits
+  5 s, a reload 60 s, closing the applications 5 s and the application's
+  first sign of life 30 s; then the step fails with a message and `dev`
+  goes on (or, for the last, stops the application until the next change).
 - `dev` runs the target with `dart <target>`, not `dart run`: no implicit
   `pub get` on every restart, and one process whose `pid` is the
   application's. Run `dart pub get` after editing `pubspec.yaml`, then
@@ -146,7 +159,9 @@ and `dartnest_cli` at `^0.1.0`. The workspace packages are `0.1.0-dev`, so
 | 1 | problems in the sources: diagnostics or syntax errors |
 | 64 | wrong command line (unknown command or option, `init` without exactly one directory, or with a name that is not a valid package name, a `dev` target outside a directory of the package) |
 | 66 | no `pubspec.yaml` with a valid `name`, no `lib/`, or no `dev` target |
+| 70 | `dev` stopped by a failure of a generation run, of starting the application or of a key action |
 | 73 | a file cannot be written, a foreign file is in the way of the output, or `init` into a directory that is not empty |
+| 130 | a second interrupt while `dev` was stopping |
 
 ## Own constructs
 
