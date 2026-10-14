@@ -8,7 +8,6 @@ import 'package:dartnest_generator/dartnest_generator.dart';
 import '../cli/cli_exit_code.dart';
 import '../cli/cli_failure.dart';
 import '../package/package_root.dart';
-import 'syntax_problem.dart';
 
 /// The analyzer's view of a package's `lib/`, kept in memory between
 /// generations so that a later run re-reads only the files it is told

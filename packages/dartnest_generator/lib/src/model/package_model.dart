@@ -38,4 +38,10 @@ final class PackageModel {
 
   /// Request bodies and handler results, sorted by library URI, then name.
   final List<DtoModel> dtos;
+
+  /// Whether the package has no modules, injectables or controllers: there
+  /// is nothing to generate, and a driver removes a library it generated
+  /// before.
+  bool get isEmpty =>
+      modules.isEmpty && injectables.isEmpty && controllers.isEmpty;
 }

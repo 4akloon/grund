@@ -1,6 +1,5 @@
 import 'package:dartnest_generator/dartnest_generator.dart';
 
-import 'syntax_problem.dart';
 import 'write_outcome.dart';
 
 /// The result of one generation: the problems found, what happened to the

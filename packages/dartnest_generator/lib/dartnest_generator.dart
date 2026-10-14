@@ -26,6 +26,7 @@ export 'src/constructs/provider_construct.dart';
 export 'src/diagnostic/diagnostic.dart';
 export 'src/diagnostic/diagnostic_code.dart';
 export 'src/diagnostic/source_location.dart';
+export 'src/diagnostic/syntax_problem.dart';
 export 'src/emit/library_writer.dart';
 export 'src/model/body_kind.dart';
 export 'src/model/component_reference.dart';
