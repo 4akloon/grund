@@ -12,14 +12,14 @@ final class ReassembleReport {
     final old = before.toSet();
     final current = after.toSet();
     return ReassembleReport(
-      addedRoutes: [
+      addedRoutes: List.unmodifiable([
         for (final route in after)
           if (!old.contains(route)) route,
-      ],
-      removedRoutes: [
+      ]),
+      removedRoutes: List.unmodifiable([
         for (final route in before)
           if (!current.contains(route)) route,
-      ],
+      ]),
     );
   }
 

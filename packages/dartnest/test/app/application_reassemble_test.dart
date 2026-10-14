@@ -149,5 +149,44 @@ void main() {
         throwsA(isA<ApplicationStateError>()),
       );
     });
+
+    test('a reassemble that finishes after close is rejected', () async {
+      final gate = Completer<void>();
+      var calls = 0;
+      final app = await Application.create(() {
+        calls++;
+        return Module(
+          id: 'app',
+          providers: [
+            if (calls > 1)
+              Provider.async((i) async {
+                await gate.future;
+                return Answer(Clock(), 'late');
+              }),
+          ],
+        );
+      });
+      final old = app.container;
+
+      final pending = app.reassemble();
+      final expectation = expectLater(
+        pending,
+        throwsA(isA<ApplicationStateError>()),
+      );
+      await Future<void>.delayed(Duration.zero);
+      await app.close();
+      gate.complete();
+
+      await expectation;
+      expect(app.container, same(old));
+      expect(app.container.isClosed, isTrue);
+    });
+  });
+
+  test('report lists are unmodifiable', () {
+    final report = ReassembleReport.between(['GET /a'], ['GET /b']);
+
+    expect(() => report.addedRoutes.add('x'), throwsUnsupportedError);
+    expect(() => report.removedRoutes.add('x'), throwsUnsupportedError);
   });
 }

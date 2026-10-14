@@ -39,6 +39,10 @@ abstract final class ApplicationAssembly {
   /// reports which routes changed against [current].
   ///
   /// [current] is not changed: on a failure it still serves.
+  ///
+  /// Neither container is closed: they share kept instances. When providers
+  /// get shutdown hooks, dispose only the instances the dropped container
+  /// created that the live one does not hold.
   static Future<(Assembly, ReassembleReport)> rebuild(
     Assembly current,
     Module root,

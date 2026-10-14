@@ -212,6 +212,12 @@ final class Application {
         _root(),
         _enhancers,
       );
+      if (isClosed) {
+        throw const ApplicationStateError(
+          operation: 'reassemble',
+          reason: 'the application was closed during reassemble',
+        );
+      }
       _assembly = assembly;
       return report;
     } finally {
