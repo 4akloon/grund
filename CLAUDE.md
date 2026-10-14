@@ -18,13 +18,11 @@ pluggable HTTP adapters. It is a Dart pub workspace of pure-Dart packages.
 
 Minimum SDK: Dart 3.8 (`^3.8.0`), also for generated code.
 
-Exception for the workspace: `dart pub get` at the root needs Dart SDK 3.11 or
-newer, because the `users_app` fixture has the dev dependency
-`build_runner: ^2.16.0` (it requires `^3.11.0`) for the `dartnest_build`
-integration test. Published packages keep the `^3.8.0` floor. On an older SDK
-take `packages/dartnest_generator/test/fixtures/users_app` out of the root
-`workspace:` list (a local, uncommitted edit; pub resolves all members
-together) and skip `dartnest_build`'s integration test.
+The `users_app` fixture has the dev dependency `build_runner: '>=2.10.5 <3.0.0'`
+for the `dartnest_build` integration test: pub picks 2.16 on Dart 3.11 or newer
+and (expected, not verified here) 2.10 on Dart 3.8, so the workspace resolves
+on the `^3.8.0` floor. The integration test skips itself below build_runner
+2.16 (`--only-check` is missing there).
 
 ## Commands
 
