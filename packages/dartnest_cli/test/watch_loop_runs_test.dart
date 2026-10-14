@@ -46,13 +46,13 @@ final class _Harness {
 
   Future<GenerationReport> _generate(List<String> changed) async {
     calls.add(changed);
-    final failure = failWith;
-    if (failure != null) throw failure;
     if (blocking) {
       final gate = Completer<void>();
       _gates.add(gate);
       await gate.future;
     }
+    final failure = failWith;
+    if (failure != null) throw failure;
     return _report;
   }
 
@@ -136,5 +136,32 @@ void main() {
 
     expect(await h.lines.after(_gap), isEmpty);
     expect(h.calls.length, 1);
+  });
+
+  test('a failure of a run after stop is still thrown', () async {
+    final h = _Harness();
+    final done = h.start();
+    await h.lines.next();
+    await h.lines.next();
+    h.blocking = true;
+    await h.changed('/pkg/lib/a.dart');
+
+    h.stop.complete();
+    h.failWith = StateError('late');
+    await h.release();
+
+    await expectLater(done, throwsA(isA<StateError>()));
+  });
+
+  test('a failure of an event-triggered run ends run()', () async {
+    final h = _Harness();
+    final done = h.start();
+    await h.lines.next();
+    await h.lines.next();
+    h.failWith = StateError('boom');
+
+    h.watcher.modify('/pkg/lib/a.dart');
+
+    await expectLater(done, throwsA(isA<StateError>()));
   });
 }

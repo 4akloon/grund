@@ -81,6 +81,7 @@ final class WatchLoop {
       await subscription.cancel();
       await _active;
     }
+    if (_failure.isCompleted) await _failure.future;
   }
 
   void _add(WatchEvent event) {
