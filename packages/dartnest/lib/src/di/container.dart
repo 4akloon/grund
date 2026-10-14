@@ -49,7 +49,8 @@ final class Container {
   /// Returns a new container and leaves this one untouched, so a failure (an
   /// `InjectionError`, like [create]) keeps the previous state usable.
   /// Instances are matched by key only: a kept instance still holds the
-  /// dependencies it was created with.
+  /// dependencies it was created with, and an edited factory body or
+  /// `Provider.value` is not applied again until a restart.
   Future<Container> reassemble(Module newRoot) async =>
       _start(ModuleGraph.build(newRoot), {
         for (final MapEntry(key: id, value: injector) in _injectors.entries)

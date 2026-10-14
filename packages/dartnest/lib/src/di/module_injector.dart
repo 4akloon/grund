@@ -98,7 +98,7 @@ final class ModuleInjector implements Injector {
   }
 
   /// Creates every own provider in declaration order, awaiting async ones.
-  /// Called once by `Container.create`.
+  /// Called once by `Container.create` and `Container.reassemble`.
   Future<void> instantiateAll() async {
     for (final slot in _own.values) {
       if (slot.instance == null) {
