@@ -130,6 +130,34 @@ Rules:
   number of times: new requests get 503, running ones finish, then the
   container closes.
 
+## Hot reload
+
+`dart run dartnest_cli dev` (see the `dartnest_cli` README) hot reloads a
+running application; this package provides the hooks it uses.
+
+- `app.reassemble()` calls the module function given to `Application.create`
+  again, validates the new graph and builds a new container with
+  `Container.reassemble`: provider instances are kept by module id and key,
+  new providers are created, and providers that are gone are dropped.
+  Controllers, enhancers and the route table are always built anew. The new
+  container and routes replace the old ones in one step; a request already
+  running finishes on the table it started with. It returns a
+  `ReassembleReport` with the added and removed routes.
+- A failure (an invalid graph, a factory that throws, a module function
+  that throws) leaves the previous container and routes serving and is
+  passed on. `reassemble()` fails with `ApplicationStateError` after
+  `close()` and while another reassemble runs.
+- A kept instance keeps its state, also when its class changed: a hot
+  reload that changes fields or constructors is followed by a restart in
+  `dev`, not by `reassemble()`. A `Provider.value` keeps its old value; a
+  changed configuration value needs a restart.
+- Outside product mode (`dart.vm.product`), `Application.create` registers
+  the VM service extensions `ext.dartnest.reassemble` (reassembles every
+  open application; the result lists the added and removed routes, an error
+  carries the failure) and `ext.dartnest.close` (closes every open
+  application). AOT and `--define=dart.vm.product=true` builds register
+  nothing.
+
 This package has no server of its own: `app.handle(request)` answers an
 `HttpRequest` directly and `TestClient` wraps it for tests. To serve over
 HTTP, pass an adapter to `Application.create`: `IoAdapter` from

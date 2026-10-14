@@ -32,6 +32,8 @@ dart format packages                  # a second run must change 0 files
 DARTNEST_UPDATE_GOLDENS=1 dart test test/golden
 # packages/dartnest_cli: the generation benchmark (not part of `dart test`):
 dart test benchmark
+# packages/dartnest_cli: the dev integration tests (not part of `dart test`):
+dart test integration
 # generate a package with the CLI, e.g. the generator's golden fixture:
 dart run dartnest_cli gen --directory ../dartnest_generator/test/fixtures/users_app
 ```
@@ -54,7 +56,10 @@ Git commands run from the repo root. Commit messages are Conventional Commits
 - **The core has no codegen and no server.** `dartnest` depends only on the
   Dart SDK and `package:meta`: no `dart:mirrors`, no `dart:io` server, no
   shelf, no analyzer. Annotations live in their own dependency-free package;
-  `analyzer` is allowed only in `dartnest_generator`/`dartnest_cli`.
+  `analyzer` is allowed only in `dartnest_generator`/`dartnest_cli`, and
+  `vm_service` only in `dartnest_cli`. `dart:developer` (SDK) is allowed in
+  the core for the hot reload service extensions, which register only
+  outside product mode.
 - **Generated code is ordinary code on the public API.** If the generator
   needs something the explicit API cannot express, extend the explicit API
   first.
@@ -89,7 +94,11 @@ Git commands run from the repo root. Commit messages are Conventional Commits
   `dartnest_cli` tests build packages in a `TempDir` and resolve them
   against this workspace with `WorkspacePackageConfig` (no `pub get`); they
   run the command line in-process (`CliRun`, `DartnestCli(out:, err:,
-  untilStopped:)`), never as a child process.
+  interruption:, keys:)`), never as a child process. The exceptions are
+  `dev`'s: its tests start the user's application as a child process with
+  the VM service on loopback (`AppProcess`, `DevSession`), and
+  `integration/dev_test.dart` (run with `dart test integration`, not part
+  of `dart test`) also runs the real `dartnest dev` as a child process.
 
 ## Code quality rules (size, decomposition, readability)
 
@@ -172,7 +181,13 @@ producing a response):
   `GuardedReporter` (shared by `ShelfAdapter` and `shelfHandler`) catch a
   failure of their own `onError` and write it to stderr with its stack
   trace, so reporting never
-  stops the 500 or the server.
+  stops the 500 or the server;
+- the hot reload boundary (added by the hot reload work):
+  `HotReloadExtension.handle` turns any failure of `reassemble`/`close`
+  (user module functions and factories run there) into a
+  `ServiceExtensionResponse.error` carrying the error (plus the stack trace
+  unless it is a `DartnestError`), so `dev` prints it and the application
+  keeps serving.
 `rethrow` keeps the stack trace. Never silence a lint: no `// ignore:`
 without a comment on why, and no rule removed from `analysis_options.yaml`
 to make a change pass.

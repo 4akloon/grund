@@ -37,12 +37,37 @@ final class Container {
   ///
   /// Throws an `InjectionError` subtype on the first problem; no partially
   /// started container is ever returned.
-  static Future<Container> create(Module root) async {
-    final graph = ModuleGraph.build(root);
+  static Future<Container> create(Module root) async =>
+      _start(ModuleGraph.build(root), const {});
+
+  /// Builds and starts the graph rooted at [newRoot] like [create], for a
+  /// hot reload: a provider whose key is still declared by a module with the
+  /// same id keeps the instance this container created for it (its factory
+  /// does not run again); new providers are created, providers that are gone
+  /// are dropped.
+  ///
+  /// Returns a new container and leaves this one untouched, so a failure (an
+  /// `InjectionError`, like [create]) keeps the previous state usable.
+  /// Instances are matched by key only: a kept instance still holds the
+  /// dependencies it was created with, and an edited factory body or
+  /// `Provider.value` is not applied again until a restart.
+  Future<Container> reassemble(Module newRoot) async =>
+      _start(ModuleGraph.build(newRoot), {
+        for (final MapEntry(key: id, value: injector) in _injectors.entries)
+          id: injector.instances,
+      });
+
+  /// Wires one injector per module of [graph], hands each the [kept]
+  /// instances of its module id and creates the rest.
+  static Future<Container> _start(
+    ModuleGraph graph,
+    Map<String, Map<Object, Object>> kept,
+  ) async {
     final trace = ResolutionTrace();
     final injectors = <String, ModuleInjector>{
       for (final module in graph.ordered)
-        module.id: ModuleInjector(module, trace, graph.modulesDeclaring),
+        module.id: ModuleInjector(module, trace, graph.modulesDeclaring)
+          ..adopt(kept[module.id] ?? const {}),
     };
     ModuleInjector of(String id) =>
         injectors[id] ?? (throw UnknownModuleError(id));

@@ -17,8 +17,10 @@ import '../generate/generation_session.dart';
 /// follow-up run. Generated `*.dartnest.dart` files (the session's own
 /// output) and non-Dart files are ignored. A [CliFailure] of a run is
 /// printed and watching goes on; any other failure of a run ends [run] with
-/// it at once. Errors of the watcher's event stream are not handled and end
-/// the process (OP8).
+/// it at once, and so does an error of the watcher's event stream (OP8):
+/// the `finally` of [run] still stops the run in flight, so whoever started
+/// the loop can clean up (`dev` stops the application and restores the
+/// terminal).
 final class WatchLoop {
   /// Creates the loop over [session], printing through [printer].
   WatchLoop(
@@ -27,18 +29,19 @@ final class WatchLoop {
     Duration debounce = defaultDebounce,
   }) : this.custom(
          generate: (changed) => session.run(changed: changed),
-         display: session.package.display,
+         watched: session.package.display(session.package.libPath),
          printer: printer,
          debounce: debounce,
        );
 
-  /// Creates the loop over any [generate] (the run of a session) and
-  /// [display] (a path relative to the package root); for tests that need
-  /// to control the runs.
+  /// Creates the loop over any [generate] (the run of a session), printing
+  /// [watched] as the watched directories and calling [afterRun] after
+  /// each printed run; for `dev` and for tests that control the runs.
   WatchLoop.custom({
     required this.generate,
-    required this.display,
+    required this.watched,
     required this.printer,
+    this.afterRun,
     this.debounce = defaultDebounce,
   });
 
@@ -48,8 +51,16 @@ final class WatchLoop {
   /// Runs the generation for the changed absolute paths.
   final Future<GenerationReport> Function(List<String> changed) generate;
 
-  /// Shortens an absolute path to one relative to the package root.
-  final String Function(String path) display;
+  /// The watched directories as printed after the first run (`lib`).
+  final String watched;
+
+  /// Called with the changed paths and the report of every run, after the
+  /// report is printed and before the next run starts; not called when a
+  /// run fails with a [CliFailure]. Any failure of [afterRun], a
+  /// [CliFailure] included, ends [run]; unlike a [CliFailure] of [generate],
+  /// which is printed while watching goes on.
+  final Future<void> Function(List<String> changed, GenerationReport report)?
+  afterRun;
 
   /// Prints every run.
   final ReportPrinter printer;
@@ -70,10 +81,12 @@ final class WatchLoop {
   /// [CliFailure], without waiting for [stop]. Changes still waiting for
   /// their debounce or their turn when [stop] completes are dropped.
   Future<void> run(Watcher watcher, Future<void> stop) async {
-    final subscription = watcher.events.where(_isSource).listen(_add);
+    final subscription = watcher.events
+        .where(_isSource)
+        .listen(_add, onError: _fail);
     try {
       await watcher.ready;
-      _start(() => _first(watcher));
+      _start(_first);
       await Future.any([stop, _failure.future]);
     } finally {
       _stopped = true;
@@ -99,14 +112,18 @@ final class WatchLoop {
       (_) => _active = null,
       onError: (Object error, StackTrace trace) {
         _active = null;
-        if (!_failure.isCompleted) _failure.completeError(error, trace);
+        _fail(error, trace);
       },
     );
   }
 
-  Future<void> _first(Watcher watcher) async {
+  void _fail(Object error, StackTrace trace) {
+    if (!_failure.isCompleted) _failure.completeError(error, trace);
+  }
+
+  Future<void> _first() async {
     await _generate(const []);
-    printer.watching(display(watcher.path));
+    printer.watching(watched);
     await _drain();
   }
 
@@ -119,11 +136,15 @@ final class WatchLoop {
   }
 
   Future<void> _generate(List<String> changed) async {
+    final GenerationReport report;
     try {
-      printer.report(await generate(changed));
+      report = await generate(changed);
     } on CliFailure catch (failure) {
       printer.err.writeln(failure.message);
+      return;
     }
+    printer.report(report);
+    await afterRun?.call(changed, report);
   }
 
   static bool _isSource(WatchEvent event) =>

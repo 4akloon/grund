@@ -70,7 +70,12 @@ final class GenCommand extends Command<int> {
 
   Future<int> _watch(GenerationSession session, ReportPrinter printer) async {
     final watcher = DirectoryWatcher(session.package.libPath);
-    await WatchLoop(session, printer).run(watcher, cli.untilStopped());
+    final (:stopped, :subscription) = cli.interruption.listen((_) {});
+    try {
+      await WatchLoop(session, printer).run(watcher, stopped);
+    } finally {
+      await subscription.cancel();
+    }
     return CliExitCode.success.code;
   }
 }

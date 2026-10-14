@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:dartnest/dartnest.dart';
-import 'package:dartnest/src/app/route_table_builder.dart';
 import 'package:test/test.dart';
 
 import '../helpers/app_fixtures.dart';
@@ -184,29 +183,7 @@ void main() {
     });
   });
 
-  group('Application route table', () {
-    test('a request keeps the table it started with', () async {
-      final gate = Completer<void>();
-      final app = await Application.create(() => slowModule('old', gate));
-      final next = RouteTableBuilder.build(
-        await Container.create(slowModule('new', gate)),
-        Enhancers.none,
-      );
-
-      app.use((request, next) async {
-        await Future<void>.delayed(Duration.zero);
-        return next();
-      });
-
-      final inFlight = app.handle(requestFor('GET', '/slow'));
-      app.replaceRoutes(next);
-      final after = app.handle(requestFor('GET', '/slow'));
-      gate.complete();
-
-      expect(await textOf(await inFlight), 'old');
-      expect(await textOf(await after), 'new');
-    });
-
+  group('Application middleware snapshot', () {
     test('middleware added while a request runs does not join it', () async {
       final gate = Completer<void>();
       final app = await Application.create(() => slowModule('old', gate));

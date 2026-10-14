@@ -1,8 +1,5 @@
-import 'package:meta/meta.dart';
-
 import '../di/container.dart';
 import '../di/module.dart';
-import '../di/module_graph.dart';
 import '../http/http_exception.dart';
 import '../http/http_request.dart';
 import '../http/http_response.dart';
@@ -13,11 +10,14 @@ import '../pipeline/response_serializer.dart';
 import '../pipeline/serializer_registry.dart';
 import '../routing/router.dart';
 import '../pipeline/application_error.dart';
+import 'application_assembly.dart';
+import 'assembly.dart';
+import 'hot_reload_extension.dart';
 import 'http_adapter.dart';
 import 'in_flight_requests.dart';
 import 'middleware.dart';
+import 'reassemble_report.dart';
 import 'request_dispatcher.dart';
-import 'route_table_builder.dart';
 
 /// A started dartnest application: the container, the route table and the
 /// request pipeline. Works without a server through [handle]; serves HTTP
@@ -32,11 +32,14 @@ import 'route_table_builder.dart';
 /// ```
 final class Application {
   Application._({
-    required this.container,
-    required Router<Endpoint> router,
+    required Module Function() root,
+    required Enhancers enhancers,
+    required Assembly assembly,
     required HttpAdapter? adapter,
     required HttpErrorResponder errors,
-  }) : _router = router,
+  }) : _root = root,
+       _enhancers = enhancers,
+       _assembly = assembly,
        _adapter = adapter,
        _errors = errors,
        _dispatcher = RequestDispatcher(
@@ -45,7 +48,9 @@ final class Application {
        );
 
   /// Builds the module returned by [root], validates the routes, starts the
-  /// container, creates the controllers and builds the route table.
+  /// container, creates the controllers and builds the route table. Outside
+  /// product (AOT) builds the application is then reachable from the VM
+  /// service extensions of `dartnest_cli dev` until it starts closing.
   ///
   /// [root] is a function so that the module graph can be rebuilt after a
   /// hot reload. [enhancers] are the application-level components, resolved
@@ -62,51 +67,45 @@ final class Application {
     Enhancers enhancers = Enhancers.none,
     bool debug = false,
     ErrorLogger? onError,
-  }) => fromModule(
-    root(),
-    adapter: adapter,
-    enhancers: enhancers,
-    debug: debug,
-    onError: onError,
-  );
+  }) async {
+    final application = Application._(
+      root: root,
+      enhancers: enhancers,
+      assembly: await ApplicationAssembly.start(root(), enhancers),
+      adapter: adapter,
+      errors: HttpErrorResponder(
+        debug: debug,
+        log: onError ?? HttpErrorResponder.printError,
+      ),
+    );
+    HotReloadExtension.attach(application);
+    return application;
+  }
 
-  /// Like [create], for a module value.
+  /// Like [create], for a module value; [reassemble] reuses that value.
   static Future<Application> fromModule(
     Module root, {
     HttpAdapter? adapter,
     Enhancers enhancers = Enhancers.none,
     bool debug = false,
     ErrorLogger? onError,
-  }) async {
-    RouteTableBuilder.validate(ModuleGraph.build(root));
-    final container = await Container.create(root);
-    // Any failure before the return closes the container; the error itself
-    // propagates untouched, so no catch is needed.
-    var succeeded = false;
-    try {
-      final app = Application._(
-        container: container,
-        router: RouteTableBuilder.build(container, enhancers),
-        adapter: adapter,
-        errors: HttpErrorResponder(
-          debug: debug,
-          log: onError ?? HttpErrorResponder.printError,
-        ),
-      );
-      succeeded = true;
-      return app;
-    } finally {
-      if (!succeeded) await container.close();
-    }
-  }
+  }) => create(
+    () => root,
+    adapter: adapter,
+    enhancers: enhancers,
+    debug: debug,
+    onError: onError,
+  );
 
-  /// The started dependency container.
-  final Container container;
+  /// The started dependency container; [reassemble] replaces it.
+  Container get container => _assembly.container;
 
   /// Converters for result types without `toJson()`.
   SerializerRegistry get serializers => _dispatcher.serializer.registry;
 
-  Router<Endpoint> _router;
+  final Module Function() _root;
+  final Enhancers _enhancers;
+  Assembly _assembly;
   final HttpAdapter? _adapter;
   final HttpErrorResponder _errors;
   final RequestDispatcher _dispatcher;
@@ -114,6 +113,7 @@ final class Application {
   final InFlightRequests _inFlight = InFlightRequests();
   Future<void>? _closing;
   bool _listening = false;
+  bool _reassembling = false;
 
   /// Whether [close] was called.
   bool get isClosed => _closing != null;
@@ -133,10 +133,10 @@ final class Application {
   /// Answers [request]; never throws. After [close] it answers 503.
   ///
   /// The route table is read once per request, so a request keeps the table
-  /// it started with even if [replaceRoutes] runs meanwhile.
+  /// it started with even if [reassemble] replaces it meanwhile.
   Future<HttpResponse> handle(HttpRequest request) {
     if (isClosed) return _unavailable();
-    final router = _router;
+    final router = _assembly.router;
     final chain = List.of(_middleware);
     return _inFlight.track(() => _answer(request, router, chain));
   }
@@ -191,20 +191,56 @@ final class Application {
   /// skipped (the container is still closed and the error propagates to
   /// every `close()` caller), so a failing adapter can cut in-flight
   /// requests short.
-  Future<void> close({bool force = false}) =>
-      _closing ??= _shutdown(force: force);
+  Future<void> close({bool force = false}) {
+    HotReloadExtension.detach(this);
+    return _closing ??= _shutdown(force: force);
+  }
 
-  /// Replaces the route table in one assignment. Requests already running
-  /// finish on the table they started with. For hot reload; not public API.
-  @internal
-  void replaceRoutes(Router<Endpoint> router) => _router = router;
+  /// Rebuilds the application from its module function after a hot reload:
+  /// the new graph is validated, `Container.reassemble` keeps the instances
+  /// of providers that stay, controllers and the route table are created
+  /// anew, and both replace the old ones in one assignment. Requests
+  /// already running finish on the table they started with.
+  ///
+  /// Any failure (those of [create], or of the module function) leaves the
+  /// previous container and routes serving and is passed on. Fails with
+  /// [ApplicationStateError] after [close] and while another reassemble
+  /// runs.
+  Future<ReassembleReport> reassemble() async {
+    if (isClosed || _reassembling) {
+      throw ApplicationStateError(
+        operation: 'reassemble',
+        reason: isClosed
+            ? 'the application is closed'
+            : 'a reassemble is already running',
+      );
+    }
+    _reassembling = true;
+    try {
+      final (assembly, report) = await ApplicationAssembly.rebuild(
+        _assembly,
+        _root(),
+        _enhancers,
+      );
+      if (isClosed) {
+        throw const ApplicationStateError(
+          operation: 'reassemble',
+          reason: 'the application was closed during reassemble',
+        );
+      }
+      _assembly = assembly;
+      return report;
+    } finally {
+      _reassembling = false;
+    }
+  }
 
   // Not counted in _inFlight: the adapter's close waits for the requests it
   // delivered and may abandon them after its timeout; counting them here as
   // well would leave close waiting for a handler the adapter gave up on.
   Future<HttpResponse> _handleForAdapter(HttpRequest request) {
     if (isClosed) return _unavailable();
-    return _answer(request, _router, List.of(_middleware));
+    return _answer(request, _assembly.router, List.of(_middleware));
   }
 
   Future<HttpResponse> _unavailable() => Future.value(

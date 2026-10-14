@@ -20,7 +20,7 @@ void main() {
     final exitCode = DartnestCli(
       out: lines,
       err: lines,
-      untilStopped: () => stop.future,
+      interruption: Interruption(untilStopped: () => stop.future),
     ).run(['gen', '--watch', '--directory', package.dir.path]);
 
     expect(await lines.next(), startsWith('Generated lib/shop.dartnest.dart'));

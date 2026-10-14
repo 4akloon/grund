@@ -42,7 +42,7 @@ final class InitCommand extends Command<int> {
       ..writeln('  cd ${ShellWord.quote(target)}')
       ..writeln('  dart pub get')
       ..writeln('  dart run dartnest_cli gen')
-      ..writeln('  dart run bin/server.dart');
+      ..writeln('  dart run bin/main.dart');
     return CliExitCode.success.code;
   }
 }

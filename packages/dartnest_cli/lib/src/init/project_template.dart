@@ -14,7 +14,7 @@ abstract final class ProjectTemplate {
   static Map<String, String> files(String name) => {
     '.gitignore': '.dart_tool/\n',
     'analysis_options.yaml': 'include: package:lints/recommended.yaml\n',
-    'bin/server.dart': _server(name),
+    'bin/main.dart': _main(name),
     'lib/src/hello.dart': _hello,
     'pubspec.yaml': _pubspec(name),
   };
@@ -69,7 +69,7 @@ final class HelloController {
 final class AppModule {}
 ''';
 
-  static String _server(String name) =>
+  static String _main(String name) =>
       '''
 import 'package:dartnest/dartnest.dart';
 import 'package:dartnest_io/dartnest_io.dart';
