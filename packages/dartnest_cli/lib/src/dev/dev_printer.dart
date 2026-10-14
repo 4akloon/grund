@@ -29,6 +29,13 @@ final class DevPrinter {
     '$target exited with code $code; it starts again after the next change.',
   );
 
+  /// The VM service of the application could not be reached, so the
+  /// application was stopped.
+  void unreachable() => err.writeln(
+    '$target: could not connect to the VM service; stopped the application, '
+    'it starts again after the next change.',
+  );
+
   /// The sources have problems: nothing was started or reloaded.
   void waiting({required bool isRunning}) => err.writeln(
     isRunning

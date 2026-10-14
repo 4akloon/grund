@@ -100,4 +100,12 @@ void main() {
       'bin/main.dart starts when the problems are fixed.\n',
     );
   });
+
+  test('an unreachable VM service says the application was stopped', () {
+    expect(printed((printer) => printer.unreachable()), (
+      '',
+      'bin/main.dart: could not connect to the VM service; stopped the '
+          'application, it starts again after the next change.\n',
+    ));
+  });
 }
