@@ -11,7 +11,7 @@ faster and need no configuration.
 # pubspec.yaml
 dev_dependencies:
   build_runner: ^2.10.5
-  dartnest_build: ^0.1.0-dev
+  dartnest_build: ^0.1.0
 ```
 
 ```yaml

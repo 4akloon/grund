@@ -148,8 +148,17 @@ The scaffold's entry point is `bin/main.dart`, so `dart run dartnest_cli dev`
 runs it without `--target`.
 
 The scaffold depends on `dartnest`, `dartnest_annotations`, `dartnest_io`
-and `dartnest_cli` at `^0.1.0`. The workspace packages are `0.1.0-dev`, so
-`dart pub get` resolves them only once 0.1.0 is published.
+and `dartnest_cli` at `^0.1.0`. To try it against a checkout of the
+repository instead of pub.dev, add to its `pubspec.yaml` (with your path):
+
+```yaml
+dependency_overrides:
+  dartnest: {path: ../dartnest/packages/dartnest}
+  dartnest_annotations: {path: ../dartnest/packages/dartnest_annotations}
+  dartnest_cli: {path: ../dartnest/packages/dartnest_cli}
+  dartnest_generator: {path: ../dartnest/packages/dartnest_generator}
+  dartnest_io: {path: ../dartnest/packages/dartnest_io}
+```
 
 ## Exit codes
 

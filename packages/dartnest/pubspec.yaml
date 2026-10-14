@@ -1,7 +1,9 @@
 name: dartnest
 description: NestJS-style modular backend framework for Dart without dart:mirrors.
-version: 0.1.0-dev
-publish_to: none
+version: 0.1.0
+repository: https://github.com/4akLoon/dartnest/tree/master/packages/dartnest
+issue_tracker: https://github.com/4akLoon/dartnest/issues
+topics: [server, backend, framework, dependency-injection, http]
 environment:
   sdk: ^3.8.0
 resolution: workspace

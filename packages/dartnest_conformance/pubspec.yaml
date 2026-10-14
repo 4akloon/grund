@@ -2,13 +2,13 @@ name: dartnest_conformance
 description: >-
   The shared conformance suite that every dartnest HTTP adapter runs on real
   loopback sockets. Test support only; not published.
-version: 0.1.0-dev
+version: 0.1.0
 publish_to: none
 environment:
   sdk: ^3.8.0
 resolution: workspace
 dependencies:
-  dartnest: ^0.1.0-dev
+  dartnest: ^0.1.0
   test: ^1.25.0
 dev_dependencies:
   lints: ^5.1.0
