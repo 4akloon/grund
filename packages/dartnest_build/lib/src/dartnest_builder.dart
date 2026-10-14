@@ -1,6 +1,7 @@
 import 'package:build/build.dart';
 import 'package:dartnest_generator/dartnest_generator.dart';
 
+import 'dartnest_build_options.dart';
 import 'package_sources.dart';
 
 /// Writes `lib/<package>.dartnest.dart` of package [packageName] from the
@@ -33,6 +34,7 @@ final class DartnestBuilder implements Builder {
   @override
   Future<void> build(BuildStep buildStep) async {
     final package = buildStep.inputId.package;
+    if (package != packageName) return _fail([_misnamed(package)]);
     final sources = await PackageSources.find(buildStep);
     final syntaxProblems = await sources.syntaxProblems();
     if (syntaxProblems.isNotEmpty) return _fail(syntaxProblems);
@@ -60,6 +62,11 @@ final class DartnestBuilder implements Builder {
       log.severe('$problem');
     }
   }
+
+  String _misnamed(String package) =>
+      'dartnest_build cannot build $package: its build.yaml names the '
+      'package "$packageName". Name the package in its build.yaml:\n\n'
+      '${DartnestBuildOptions.buildYaml(package)}';
 
   static String _unwritable(FileUnit file) =>
       'dartnest_build cannot write ${file.path}: a construct generated it, '
