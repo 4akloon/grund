@@ -54,8 +54,9 @@ final class WatchLoop {
 
   /// Called with the changed paths and the report of every run, after the
   /// report is printed and before the next run starts; not called when a
-  /// run fails with a [CliFailure]. A failure ends [run] like a failure of
-  /// [generate].
+  /// run fails with a [CliFailure]. Any failure of [afterRun], a
+  /// [CliFailure] included, ends [run]; unlike a [CliFailure] of [generate],
+  /// which is printed while watching goes on.
   final Future<void> Function(List<String> changed, GenerationReport report)?
   afterRun;
 
@@ -81,7 +82,7 @@ final class WatchLoop {
     final subscription = watcher.events.where(_isSource).listen(_add);
     try {
       await watcher.ready;
-      _start(() => _first(watcher));
+      _start(_first);
       await Future.any([stop, _failure.future]);
     } finally {
       _stopped = true;
@@ -112,7 +113,7 @@ final class WatchLoop {
     );
   }
 
-  Future<void> _first(Watcher watcher) async {
+  Future<void> _first() async {
     await _generate(const []);
     printer.watching(watched);
     await _drain();

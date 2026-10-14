@@ -64,8 +64,12 @@ final class _Harness {
   /// before it.
   final afterRuns = <String>[];
 
+  /// While set, `afterRun` waits for it.
+  Completer<void>? afterGate;
+
   Future<void> _afterRun(List<String> changed, GenerationReport report) async {
     afterRuns.add('${changed.join(',')} after ${lines.lines.last}');
+    await afterGate?.future;
   }
 
   Future<void> start() => loop.run(watcher, stop.future);
@@ -125,6 +129,26 @@ void main() {
       ' after Generated lib/x.dartnest.dart in 0 ms.',
       '/pkg/lib/a.dart after Generated lib/x.dartnest.dart in 0 ms.',
     ]);
+  });
+
+  test('the next run waits for afterRun to finish', () async {
+    final h = _Harness();
+    final done = h.start();
+    await h.lines.next();
+    await h.lines.next();
+    final gate = h.afterGate = Completer<void>();
+
+    await h.changed('/pkg/lib/a.dart');
+    await h.lines.next();
+    await h.changed('/pkg/lib/b.dart');
+    expect(h.calls.length, 2);
+
+    h.afterGate = null;
+    gate.complete();
+    expect(await h.lines.next(), startsWith('Generated'));
+    h.stop.complete();
+    await done;
+    expect(h.calls.length, 3);
   });
 
   test('afterRun is not called for a run that failed to write', () async {
