@@ -5,12 +5,13 @@ import 'package:vm_service/vm_service.dart';
 import 'package:vm_service/vm_service_io.dart';
 
 import 'reload_result.dart';
+import 'reload_timeouts.dart';
 
 /// Drives the application process through its VM service: hot reload
 /// followed by the `ext.dartnest.reassemble` extension, and the
 /// `ext.dartnest.close` extension before a restart.
 final class ReloadClient {
-  ReloadClient._(this._service);
+  ReloadClient._(this._service, this._timeouts);
 
   /// The extension `Application` registers to reassemble after a reload.
   static const reassembleMethod = 'ext.dartnest.reassemble';
@@ -19,35 +20,45 @@ final class ReloadClient {
   static const closeMethod = 'ext.dartnest.close';
 
   final VmService _service;
+  final ReloadTimeouts _timeouts;
 
   /// Connects to the VM service at [serviceUri] (the `http://` URI the
-  /// child printed); `null` when the child is already gone.
-  static Future<ReloadClient?> connect(Uri serviceUri) async {
+  /// child printed); `null` when the child is already gone or does not
+  /// answer within [ReloadTimeouts.connect].
+  static Future<ReloadClient?> connect(
+    Uri serviceUri, {
+    ReloadTimeouts timeouts = const ReloadTimeouts(),
+  }) async {
+    // The banner URI ends with `/`, so `ws` resolves below its token.
     final webSocket = serviceUri.resolve('ws').replace(scheme: 'ws');
+    final connecting = vmServiceConnectUri('$webSocket');
     try {
-      return ReloadClient._(await vmServiceConnectUri('$webSocket'));
+      return ReloadClient._(
+        await connecting.timeout(timeouts.connect),
+        timeouts,
+      );
     } on SocketException {
       return null;
     } on WebSocketException {
+      return null;
+    } on TimeoutException {
+      // A connection that completes late is not used by anyone: close it.
+      unawaited(
+        connecting.then((service) => service.dispose(), onError: (Object _) {}),
+      );
       return null;
     }
   }
 
   /// Reloads the changed sources of the process, then reassembles its
-  /// dartnest applications.
+  /// dartnest applications; a service that does not answer within
+  /// [ReloadTimeouts.reload] is a [ReloadFailed].
   Future<ReloadResult> reload() async {
-    final stopwatch = Stopwatch()..start();
     try {
-      final isolates = await _isolateIds();
-      if (isolates.isEmpty) return const ReloadFailed('No isolate to reload.');
-      final report = await _service.reloadSources(isolates.first);
-      if (report.success != true) return _failure(report);
-      final (changedRoutes, error) = await _reassemble(isolates);
-      return Reloaded(
-        libraries: _loadedLibraries(report),
-        elapsed: stopwatch.elapsed,
-        changedRoutes: changedRoutes,
-        reassembleError: error,
+      return await _reload().timeout(_timeouts.reload);
+    } on TimeoutException {
+      return const ReloadFailed(
+        'The VM service did not answer; the reload timed out.',
       );
     } on RPCError catch (error) {
       return ReloadFailed('The VM service failed: ${error.message}.');
@@ -56,18 +67,32 @@ final class ReloadClient {
     }
   }
 
+  Future<ReloadResult> _reload() async {
+    final stopwatch = Stopwatch()..start();
+    final isolates = await _isolateIds();
+    final dartnest = await _isolateWith(reassembleMethod, isolates);
+    final target = dartnest ?? await _isolateNamed('main', isolates);
+    if (target == null) return const ReloadFailed('No isolate to reload.');
+    final report = await _service.reloadSources(target);
+    if (report.success != true) return _failure(report);
+    final (changedRoutes, error) = dartnest == null
+        ? (null, null)
+        : await _reassemble(dartnest);
+    return Reloaded(
+      libraries: _loadedLibraries(report),
+      elapsed: stopwatch.elapsed,
+      changedRoutes: changedRoutes,
+      reassembleError: error,
+    );
+  }
+
   /// Closes the dartnest applications of the process (they finish their
-  /// requests in flight), waiting up to [timeout]; any failure is left to
-  /// the restart, which ends the process anyway.
-  Future<void> closeApplications({
-    Duration timeout = const Duration(seconds: 5),
-  }) async {
+  /// requests in flight), waiting up to [ReloadTimeouts.close] for the
+  /// whole exchange; any failure is left to the restart, which ends the
+  /// process anyway.
+  Future<void> closeApplications() async {
     try {
-      final isolate = await _isolateWith(closeMethod, await _isolateIds());
-      if (isolate == null) return;
-      await _service
-          .callServiceExtension(closeMethod, isolateId: isolate)
-          .timeout(timeout);
+      await _close().timeout(_timeouts.close);
     } on RPCError {
       return;
     } on SentinelException {
@@ -77,8 +102,16 @@ final class ReloadClient {
     }
   }
 
-  /// Closes the connection.
-  Future<void> dispose() => _service.dispose();
+  Future<void> _close() async {
+    final isolate = await _isolateWith(closeMethod, await _isolateIds());
+    if (isolate == null) return;
+    await _service.callServiceExtension(closeMethod, isolateId: isolate);
+  }
+
+  /// Closes the connection; a service that does not answer is dropped
+  /// after [ReloadTimeouts.close].
+  Future<void> dispose() =>
+      _service.dispose().timeout(_timeouts.close, onTimeout: () {});
 
   Future<List<String>> _isolateIds() async => [
     for (final isolate in (await _service.getVM()).isolates ?? <IsolateRef>[])
@@ -93,11 +126,16 @@ final class ReloadClient {
     return null;
   }
 
-  /// The changed routes, or the error, of the reassemble; `(null, null)`
-  /// when no isolate has a dartnest application.
-  Future<(int?, String?)> _reassemble(List<String> isolates) async {
-    final isolate = await _isolateWith(reassembleMethod, isolates);
-    if (isolate == null) return (null, null);
+  Future<String?> _isolateNamed(String name, List<String> isolates) async {
+    for (final id in isolates) {
+      if ((await _service.getIsolate(id)).name == name) return id;
+    }
+    return null;
+  }
+
+  /// The changed routes, or the error, of the reassemble in [isolate]. The
+  /// reload itself succeeded, so a failure here is the reassemble's.
+  Future<(int?, String?)> _reassemble(String isolate) async {
     try {
       final response = await _service.callServiceExtension(
         reassembleMethod,
@@ -113,6 +151,8 @@ final class ReloadClient {
       };
     } on RPCError catch (error) {
       return (null, error.details ?? error.message);
+    } on SentinelException catch (error) {
+      return (null, 'The VM service failed: $error.');
     }
   }
 

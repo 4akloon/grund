@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:dartnest_cli/src/dev/reload_timeouts.dart';
 import 'package:test/test.dart';
 
 import 'helpers/dev.dart';
@@ -123,8 +124,10 @@ void main() {
   });
 
   test('losing the VM service connection is its own message', () async {
-    final dev = await Dev.start(launcher: FailingLauncher(connectNull: true));
+    final launcher = FailingLauncher(connectNull: true);
+    final dev = await Dev.start(launcher: launcher);
 
+    await launcher.started.single.exitCode.timeout(const Duration(seconds: 10));
     expect(
       dev.lines.lines,
       contains(
@@ -132,6 +135,54 @@ void main() {
         'application, it starts again after the next change.',
       ),
     );
+  });
+
+  test('a child that never prints its VM service is stopped', () async {
+    final launcher = FailingLauncher(
+      timeouts: const ReloadTimeouts(serviceUri: Duration.zero),
+    );
+    final dev = await Dev.start(launcher: launcher);
+
+    await launcher.started.single.exitCode.timeout(const Duration(seconds: 10));
+    expect(
+      dev.lines.lines,
+      contains(
+        'bin/main.dart: could not connect to the VM service; stopped the '
+        'application, it starts again after the next change.',
+      ),
+    );
+    expect(dev.lines.lines.where((l) => l.startsWith('Started ')), isEmpty);
+  });
+
+  test('r applies a shape change that problems held back', () async {
+    final dev = await Dev.start();
+    final before = await Dev.hello(await dev.listening());
+    dev.app.edit(_greeter, 'String greet', _newField);
+    dev.app.edit(_controller, 'greeter.greet()', 'greeter.greet(');
+    await dev.change([_greeter, _controller]);
+    dev.app.edit(_controller, 'greeter.greet(', 'greeter.greet()');
+
+    await dev.session.reload();
+
+    expect(
+      dev.lines.lines,
+      contains(
+        'Restarting bin/main.dart: lib/src/greeter.dart changed a field, '
+        'a constructor or a top-level variable.',
+      ),
+    );
+    final after = await Dev.hello(await dev.listening());
+    expect(after['pid'], isNot(before['pid']));
+  });
+
+  test('a killed session does not report the exit of its child', () async {
+    final dev = await Dev.start();
+    await dev.listening();
+
+    dev.session.kill();
+
+    final quiet = await dev.lines.after(const Duration(seconds: 1));
+    expect(quiet.where((l) => l.contains('exited with code')), isEmpty);
   });
 }
 

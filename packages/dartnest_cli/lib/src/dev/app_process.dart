@@ -56,7 +56,12 @@ final class AppProcess {
       // draining them is bounded.
       await Future.wait([stdoutDone, stderrDone])
           .timeout(const Duration(seconds: 1), onTimeout: () => const [])
-          .catchError((Object _) => const <void>[]);
+          // The pipes of a child that is gone fail with I/O errors while
+          // they are torn down; any other failure is a bug and surfaces.
+          .catchError(
+            (Object _) => const <void>[],
+            test: (error) => error is IOException,
+          );
       if (!serviceUri.isCompleted) serviceUri.complete(null);
       return code;
     });
@@ -90,6 +95,9 @@ final class AppProcess {
       },
     );
   }
+
+  /// Ends the child at once with `SIGKILL`, without waiting.
+  void kill() => _process.kill(ProcessSignal.sigkill);
 
   static Stream<String> _lines(Stream<List<int>> bytes) => bytes
       .transform(const Utf8Decoder(allowMalformed: true))

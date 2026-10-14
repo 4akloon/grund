@@ -1,14 +1,11 @@
 import 'dart:async';
-import 'dart:io';
-
-import 'package:path/path.dart' as p;
 
 import '../generate/generation_report.dart';
 import '../generate/write_outcome.dart';
-import '../package/package_root.dart';
 import 'app_launcher.dart';
 import 'app_process.dart';
 import 'dev_printer.dart';
+import 'dev_target.dart';
 import 'reload_client.dart';
 import 'reload_result.dart';
 import 'shape_tracker.dart';
@@ -21,25 +18,19 @@ import 'shape_tracker.dart';
 /// again after the next change. Operations run one at a time, in the order
 /// they were asked for.
 final class DevSession {
-  /// Creates the session for [target] (absolute) of [package], started
-  /// with [arguments], printing through [printer] and forwarding the
-  /// application's output to [out] and [err].
+  /// Creates the session for [target], printing through [printer] and
+  /// forwarding the application's stdout to [out] and its stderr to the
+  /// printer's error sink. The application is started and reached through
+  /// [launcher] (tests replace it to make these steps fail).
   DevSession(
-    this.package, {
-    required this.target,
-    required this.arguments,
+    this.target, {
     required this.printer,
     required this.out,
-  }) : err = printer.err;
+    this.launcher = const AppLauncher(),
+  });
 
-  /// The package of the application.
-  final PackageRoot package;
-
-  /// The absolute path of the entry point.
-  final String target;
-
-  /// The arguments of the application's `main`.
-  final List<String> arguments;
+  /// What runs: the entry point, its package and its arguments.
+  final DevTarget target;
 
   /// Prints what happens to the application.
   final DevPrinter printer;
@@ -47,16 +38,15 @@ final class DevSession {
   /// Where the application's stdout goes.
   final StringSink out;
 
-  /// Where the application's stderr goes.
-  final StringSink err;
-
-  /// Starts the processes; replaced by tests only.
-  AppLauncher launcher = const AppLauncher();
+  /// Starts the processes and connects to them.
+  final AppLauncher launcher;
 
   final _shapes = ShapeTracker();
   Future<void> _tail = Future<void>.value();
   final _unapplied = <String>{};
   _Running? _running;
+  // Every process not yet exited, also one still starting or stopping.
+  final _processes = <AppProcess>{};
   var _stopped = false;
 
   /// Applies the generation run [report] for the [changed] paths: starts
@@ -65,13 +55,10 @@ final class DevSession {
   Future<void> apply(List<String> changed, GenerationReport report) =>
       _live(() => _apply(changed, report));
 
-  /// Reloads the application now (the `r` key); starts it when it is not
-  /// running.
-  Future<void> reload() => _live(() async {
-    final running = _running;
-    if (running == null) return _launch();
-    await _reload(running);
-  });
+  /// Applies what is still waiting (the `r` key): starts the application
+  /// when it is not running, restarts it when a change held back by
+  /// problems changed a shape, reloads it otherwise.
+  Future<void> reload() => _live(() => _applyPending(_running));
 
   /// Restarts the application now (the `R` key).
   Future<void> restart() => _live(() => _restart('restart requested'));
@@ -82,6 +69,15 @@ final class DevSession {
     // Final at once: operations already queued must not start it again.
     _stopped = true;
     return _serially(_shutdown);
+  }
+
+  /// Ends the application process at once, without closing anything; for
+  /// the forced exit after a second interrupt.
+  void kill() {
+    _stopped = true;
+    for (final process in _processes) {
+      process.kill();
+    }
   }
 
   // Every operation runs after the previous one, also after one that
@@ -95,26 +91,37 @@ final class DevSession {
       _serially(() => _stopped ? Future<void>.value() : operation());
 
   Future<void> _apply(List<String> changed, GenerationReport report) async {
-    final running = _running;
     // A shape change in a run with problems is applied by the next clean
-    // run, whichever files that one lists.
+    // run (or by `r`), whichever files that one lists.
     _unapplied.addAll(changed);
     if (report.hasProblems) {
-      printer.waiting(isRunning: running != null);
+      printer.waiting(isRunning: _running != null);
       return;
     }
     if (report.outcome == WriteOutcome.written ||
         report.outcome == WriteOutcome.deleted) {
-      _unapplied.add(package.outputPath);
+      _unapplied.add(target.package.outputPath);
     }
-    final reshaped = _shapes.changed(_unapplied);
+    await _applyPending(_running);
+  }
+
+  // The changes are forgotten only once they were applied: a failed
+  // launch or reload leaves them for the next attempt.
+  Future<void> _applyPending(_Running? running) async {
+    if (running == null) {
+      await _launch();
+    } else {
+      final reshaped = _shapes.changed(_unapplied);
+      if (reshaped.isEmpty) {
+        await _reload(running);
+      } else {
+        await _restart(
+          '${target.package.display(reshaped.first)} changed a field, a '
+          'constructor or a top-level variable',
+        );
+      }
+    }
     _unapplied.clear();
-    if (running == null) return _launch();
-    if (reshaped.isEmpty) return _reload(running);
-    await _restart(
-      '${package.display(reshaped.first)} changed a field, a constructor '
-      'or a top-level variable',
-    );
   }
 
   Future<void> _reload(_Running running) async {
@@ -137,19 +144,28 @@ final class DevSession {
 
   Future<void> _launch() async {
     if (_stopped) return;
-    _shapes.remember(_sources());
+    _shapes.remember(target.sources());
     final process = await launcher.start(
-      target: target,
-      arguments: arguments,
-      workingDirectory: package.path,
+      target: target.entry,
+      arguments: target.arguments,
+      workingDirectory: target.package.path,
       out: out,
-      err: err,
+      err: printer.err,
     );
-    final uri = await process.serviceUri;
+    _processes.add(process);
+    unawaited(process.exitCode.then((_) => _processes.remove(process)));
+    var timedOut = false;
+    final uri = await process.serviceUri.timeout(
+      launcher.timeouts.serviceUri,
+      onTimeout: () {
+        timedOut = true;
+        return null;
+      },
+    );
     final client = uri == null ? null : await _connect(process, uri);
     if (uri == null || client == null) {
       final code = await process.stop();
-      if (uri == null) {
+      if (uri == null && !timedOut) {
         printer.exited(code);
       } else {
         printer.unreachable();
@@ -163,16 +179,21 @@ final class DevSession {
   }
 
   Future<ReloadClient?> _connect(AppProcess process, Uri uri) async {
+    var succeeded = false;
     try {
-      return await launcher.connect(uri);
-    } catch (_) {
-      await process.stop();
-      rethrow;
+      final client = await launcher.connect(uri);
+      succeeded = true;
+      return client;
+    } finally {
+      // The failure itself propagates; the process must not outlive it.
+      if (!succeeded) await process.stop();
     }
   }
 
   void _exited(_Running running, int code) {
-    if (!identical(_running, running)) return;
+    // After a stop the process ends with the terminal's Ctrl+C or our
+    // SIGTERM; that is not news.
+    if (_stopped || !identical(_running, running)) return;
     _running = null;
     running.client.dispose().ignore();
     printer.exited(code);
@@ -192,22 +213,6 @@ final class DevSession {
       }
     }
   }
-
-  /// The Dart files the application is built from, as far as `dev`
-  /// watches them: `lib/` and the directory of the entry point.
-  List<String> _sources() => [
-    for (final directory in {package.libPath, p.dirname(target)})
-      ..._dartFiles(directory),
-  ];
-
-  static Iterable<String> _dartFiles(String directory) =>
-      Directory(directory).existsSync()
-      ? Directory(directory)
-            .listSync(recursive: true, followLinks: false)
-            .whereType<File>()
-            .map((file) => file.path)
-            .where((path) => path.endsWith('.dart'))
-      : const <String>[];
 }
 
 /// The application process with its VM service connection.

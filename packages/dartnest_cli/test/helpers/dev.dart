@@ -1,6 +1,7 @@
 import 'package:dartnest_cli/src/dev/app_launcher.dart';
 import 'package:dartnest_cli/src/dev/dev_printer.dart';
 import 'package:dartnest_cli/src/dev/dev_session.dart';
+import 'package:dartnest_cli/src/dev/dev_target.dart';
 import 'package:dartnest_cli/src/generate/generation_session.dart';
 import 'package:test/test.dart';
 
@@ -34,13 +35,15 @@ final class Dev {
     final generation = GenerationSession(app.package.root);
     addTearDown(generation.close);
     final session = DevSession(
-      app.package.root,
-      target: app.package.dir.resolve('bin/main.dart'),
-      arguments: const [],
+      DevTarget(
+        app.package.root,
+        entry: app.package.dir.resolve('bin/main.dart'),
+        arguments: const [],
+      ),
       printer: DevPrinter('bin/main.dart', lines, lines),
       out: lines,
+      launcher: launcher ?? const AppLauncher(),
     );
-    if (launcher != null) session.launcher = launcher;
     addTearDown(session.stop);
     return Dev._(app, lines, generation, session);
   }

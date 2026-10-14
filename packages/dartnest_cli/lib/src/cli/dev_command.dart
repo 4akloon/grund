@@ -7,6 +7,7 @@ import 'package:watcher/watcher.dart';
 
 import '../dev/dev_printer.dart';
 import '../dev/dev_session.dart';
+import '../dev/dev_target.dart';
 import '../dev/merged_watcher.dart';
 import '../generate/generation_session.dart';
 import '../package/package_root.dart';
@@ -67,9 +68,7 @@ final class DevCommand extends Command<int> {
     final target = _target(package, options.option('target') ?? '');
     final session = GenerationSession(package, generator: cli.generator);
     final dev = DevSession(
-      package,
-      target: target,
-      arguments: options.rest,
+      DevTarget(package, entry: target, arguments: options.rest),
       printer: DevPrinter(package.display(target), cli.out, cli.err),
       out: cli.out,
     );

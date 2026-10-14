@@ -2,14 +2,16 @@ import 'package:dartnest_cli/src/dev/app_launcher.dart';
 import 'package:dartnest_cli/src/dev/app_process.dart';
 import 'package:dartnest_cli/src/dev/reload_client.dart';
 
-/// An [AppLauncher] whose connect or close step throws, recording the
-/// processes it started.
+/// An [AppLauncher] whose connect or close step throws or finds the VM
+/// service gone, recording the processes it started.
 final class FailingLauncher extends AppLauncher {
-  /// Creates a launcher that fails in [connectFails] or [closeFails].
+  /// Creates a launcher that fails in [connectFails] or [closeFails], or
+  /// whose [connect] finds the VM service gone ([connectNull]).
   FailingLauncher({
     this.connectFails = false,
     this.connectNull = false,
     this.closeFails = false,
+    super.timeouts,
   });
 
   /// Whether [connect] throws.
