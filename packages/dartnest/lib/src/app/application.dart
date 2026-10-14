@@ -2,7 +2,6 @@ import 'package:meta/meta.dart';
 
 import '../di/container.dart';
 import '../di/module.dart';
-import '../di/module_graph.dart';
 import '../http/http_exception.dart';
 import '../http/http_request.dart';
 import '../http/http_response.dart';
@@ -13,11 +12,11 @@ import '../pipeline/response_serializer.dart';
 import '../pipeline/serializer_registry.dart';
 import '../routing/router.dart';
 import '../pipeline/application_error.dart';
+import 'application_assembly.dart';
 import 'http_adapter.dart';
 import 'in_flight_requests.dart';
 import 'middleware.dart';
 import 'request_dispatcher.dart';
-import 'route_table_builder.dart';
 
 /// A started dartnest application: the container, the route table and the
 /// request pipeline. Works without a server through [handle]; serves HTTP
@@ -78,26 +77,19 @@ final class Application {
     bool debug = false,
     ErrorLogger? onError,
   }) async {
-    RouteTableBuilder.validate(ModuleGraph.build(root));
-    final container = await Container.create(root);
-    // Any failure before the return closes the container; the error itself
-    // propagates untouched, so no catch is needed.
-    var succeeded = false;
-    try {
-      final app = Application._(
-        container: container,
-        router: RouteTableBuilder.build(container, enhancers),
-        adapter: adapter,
-        errors: HttpErrorResponder(
-          debug: debug,
-          log: onError ?? HttpErrorResponder.printError,
-        ),
-      );
-      succeeded = true;
-      return app;
-    } finally {
-      if (!succeeded) await container.close();
-    }
+    final (:container, :router) = await ApplicationAssembly.start(
+      root,
+      enhancers,
+    );
+    return Application._(
+      container: container,
+      router: router,
+      adapter: adapter,
+      errors: HttpErrorResponder(
+        debug: debug,
+        log: onError ?? HttpErrorResponder.printError,
+      ),
+    );
   }
 
   /// The started dependency container.
