@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/dart/ast/ast.dart';
+import 'package:analyzer/dart/ast/token.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
 
 /// Remembers the shape of Dart files: the declarations a hot reload cannot
@@ -93,10 +94,15 @@ final class _ShapeCollector extends RecursiveAstVisitor<void> {
   /// The tokens of [node] between its metadata and its body or `;`.
   static String _header(Declaration node) {
     final tokens = <String>[];
-    var token = node.firstTokenAfterCommentAndMetadata;
-    while (!token.isEof && token.lexeme != '{' && token.lexeme != ';') {
+    for (
+      Token? token = node.firstTokenAfterCommentAndMetadata;
+      token != null &&
+          !token.isEof &&
+          token.lexeme != '{' &&
+          token.lexeme != ';';
+      token = token.next
+    ) {
       tokens.add(token.lexeme);
-      token = token.next!;
     }
     return tokens.join(' ');
   }
