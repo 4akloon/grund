@@ -90,8 +90,13 @@ only. It has not run yet.
   A change of generated output is a breaking change of the generator.
 - **The core has no codegen and no server.** `grund` depends only on the
   Dart SDK, `package:meta` and `package:logging`: no `dart:mirrors`, no `dart:io` server, no
-  shelf, no analyzer. Annotations live in their own dependency-free package;
-  `analyzer` is allowed only in `grund_generator`/
+  shelf, no analyzer. Annotations are dependency-free libraries of the
+  packages they belong to: the DI ones in `package:grund/annotations.dart`
+  (a library of their own because `Module` shares its name with the base
+  class), the HTTP ones in `package:grund_http/annotations.dart` (the core
+  has none of them); the generators recognise them by class name and library
+  URI, the HTTP prefix supplied by `ApiConstruct`, and the boundary test
+  below is unchanged; `analyzer` is allowed only in `grund_generator`/
   `grund_http_generator`/`grund_cli`/`grund_build`, `vm_service` only in
   `grund_cli`, and `build` only in `grund_build`. `dart:developer` (SDK) is allowed in the core for
   the hot reload service extensions, which register only outside product

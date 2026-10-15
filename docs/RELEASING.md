@@ -7,19 +7,20 @@ it automatically.
 
 ## Packages and order
 
-Seven packages are published, always together and with the same version
+Eight packages are published, always together and with the same version
 (lockstep): a release bumps all of them, even a package without changes, so
 `^0.1.0` constraints between them never mix versions.
 
 | Order | Package | Depends on (published) |
 | --- | --- | --- |
-| 1 | `grund_annotations` | none |
-| 2 | `grund` | none |
-| 3 | `grund_io` | `grund` |
-| 4 | `grund_shelf` | `grund` |
-| 5 | `grund_generator` | none (dev: `grund`, `grund_annotations`) |
-| 6 | `grund_cli` | `grund_generator` |
-| 7 | `grund_build` | `grund_generator` |
+| 1 | `grund` | none |
+| 2 | `grund_http` | `grund` |
+| 3 | `grund_io` | `grund`, `grund_http` |
+| 4 | `grund_shelf` | `grund`, `grund_http` |
+| 5 | `grund_generator` | none (dev: `grund`) |
+| 6 | `grund_http_generator` | `grund_generator` |
+| 7 | `grund_cli` | `grund_generator` |
+| 8 | `grund_build` | `grund_generator` |
 
 pub.dev rejects an upload whose `dependencies` are not on pub.dev yet, so
 publish in this order. It does not check `dev_dependencies`.
@@ -34,7 +35,7 @@ and pub ignores the dev dependencies of a dependency.
 ## Before the first release
 
 1. **The name.** The packages are named `grund*`. On 2026-10-14 none of
-   the seven names was taken on pub.dev
+   the eight names was taken on pub.dev
    (`https://pub.dev/api/packages/<name>` answered 404). Check again right
    before publishing; a name is taken forever once published. To rename,
    replace `grund` in every pubspec, import, README and doc
@@ -64,7 +65,7 @@ and pub ignores the dev dependencies of a dependency.
 
 ## Every release
 
-1. Pick the version (see "Versions" below) and set it in all seven
+1. Pick the version (see "Versions" below) and set it in all eight
    `pubspec.yaml` files and in every `^x.y.z` constraint between them,
    including `example/`, `packages/grund_conformance` and the generator
    fixtures. `packages/grund_cli/lib/src/init/project_template.dart`
@@ -89,8 +90,8 @@ and pub ignores the dev dependencies of a dependency.
    `Package has 0 warnings.` and exit with 0 (any warning exits with 65):
 
    ```sh
-   for package in grund_annotations grund grund_io grund_shelf \
-       grund_generator grund_cli grund_build; do
+   for package in grund grund_http grund_io grund_shelf grund_generator \
+       grund_http_generator grund_cli grund_build; do
      (cd "packages/$package" && dart pub publish --dry-run) || break
    done
    ```
@@ -100,7 +101,7 @@ and pub ignores the dev dependencies of a dependency.
 6. Publish, in the same order, one package at a time:
 
    ```sh
-   cd packages/grund_annotations && dart pub publish
+   cd packages/grund && dart pub publish
    ```
 
    `dart pub publish` asks for confirmation and, the first time, for a
@@ -109,8 +110,8 @@ and pub ignores the dev dependencies of a dependency.
 7. Tag the commit, one tag per package, and push the tags:
 
    ```sh
-   for package in grund_annotations grund grund_io grund_shelf \
-       grund_generator grund_cli grund_build; do
+   for package in grund grund_http grund_io grund_shelf grund_generator \
+       grund_http_generator grund_cli grund_build; do
      git tag "$package-vx.y.z"
    done
    git push origin --tags
