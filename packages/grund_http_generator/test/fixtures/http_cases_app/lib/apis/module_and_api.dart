@@ -1,6 +1,8 @@
 // A library that declares both a module and an API: each needs the one
 // output file `module_and_api.g.dart`, so it is a conflicting_outputs and
 // the file is never generated.
+// The ignore below is deliberate: `module_and_api.g.dart` is never written,
+// so the `part` directive cannot resolve.
 // ignore_for_file: uri_has_not_been_generated
 import 'package:grund/annotations.dart';
 import 'package:grund/grund.dart' as grund;
