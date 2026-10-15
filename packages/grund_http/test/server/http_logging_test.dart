@@ -178,7 +178,7 @@ void main() {
     });
   });
 
-  group('LoggingErrorLog', () {
+  group('unhandled errors', () {
     test(
       'logs a SEVERE record with error and stack, body leaks nothing',
       () async {

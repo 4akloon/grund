@@ -9,7 +9,7 @@ import 'package:grund_http/src/server/route_table_builder.dart';
 
 import 'http_fixtures.dart';
 import 'probe_api.dart';
-import 'recording_error_log.dart';
+import 'log_capture.dart';
 
 /// A started graph with a route table and a dispatcher, without a server.
 final class DispatchHarness {
@@ -22,7 +22,7 @@ final class DispatchHarness {
     int? maxBodyBytes,
     bool debug = false,
   }) async {
-    final log = RecordingErrorLog();
+    final log = LogCapture.start();
     final app = await TestApp.start(root: ProbeModule(bindings));
     final RouteTable table;
     try {
@@ -35,7 +35,7 @@ final class DispatchHarness {
       await app.close();
       rethrow;
     }
-    final problems = ProblemResponder(debug: debug, log: log);
+    final problems = ProblemResponder(debug: debug);
     final executor = RouteExecutor(
       serializer: ResponseSerializer(SerializerRegistry()),
       problems: problems,
@@ -57,8 +57,8 @@ final class DispatchHarness {
   /// The dispatcher under test.
   final RequestDispatcher dispatcher;
 
-  /// What the responder reported.
-  final RecordingErrorLog log;
+  /// The `grund` log records of the test; see [LogCapture.unhandledErrors].
+  final LogCapture log;
 
   /// Resolves a singleton of the graph.
   T call<T extends Object>() => _app.call<T>();

@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:grund/grund.dart';
-import 'package:grund_http/grund_http.dart';
 import 'package:test/test.dart';
 
 import '../adapter_under_test.dart';
@@ -11,6 +10,7 @@ import '../conformance_probe.dart';
 import '../conformance_root.dart';
 import '../conformance_server.dart';
 import '../raw_http.dart';
+import '../throwing_log_listener.dart';
 
 /// Closing, failures and misbehaving clients: the adapter finishes or
 /// drops in-flight work as asked, releases its port, and keeps serving
@@ -36,13 +36,11 @@ abstract final class LifecycleConformance {
       // Replaces the server with one whose adapter has [closeTimeout].
       Future<void> restart({
         Duration? closeTimeout = ConformanceServer.defaultCloseTimeout,
-        ErrorLog? errorLog,
       }) async {
         await server.close();
         server = await ConformanceServer.start(
           factory,
           closeTimeout: closeTimeout,
-          errorLog: errorLog,
         );
       }
 
@@ -156,19 +154,20 @@ abstract final class LifecycleConformance {
         await expectCloseWaitsForSlowHandler();
       });
 
-      test('answers 500 without a body when the ErrorLog throws', () async {
-        await restart(errorLog: const _ThrowingErrorLog());
+      test('answers the 500 problem when a log listener throws', () async {
+        final listener = ThrowingLogListener.attach();
 
         final failed = await server.send('GET', '/probe/fail');
         final next = await server.send('GET', '/users/1');
 
         expect(failed.status, 500);
-        expect(failed.bytes, isEmpty);
         expect(
-          await server.firstAdapterError.timeout(stepTimeout),
-          isA<StateError>(),
+          failed.headers.value('content-type'),
+          'application/problem+json',
         );
+        expect(failed.text, isNot(contains('StateError')));
         expect(next.status, 200);
+        expect(listener.failures, isNotEmpty);
       });
 
       test('aborts the connection when the body stream fails', () async {
@@ -261,13 +260,4 @@ abstract final class LifecycleConformance {
       });
     });
   }
-}
-
-/// An error log that fails, to prove the adapter survives it.
-final class _ThrowingErrorLog implements ErrorLog {
-  const _ThrowingErrorLog();
-
-  @override
-  void report(Object error, StackTrace stackTrace) =>
-      throw StateError('log failed');
 }

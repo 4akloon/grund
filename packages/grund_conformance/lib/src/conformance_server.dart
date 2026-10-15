@@ -26,25 +26,15 @@ final class ConformanceServer {
   static const defaultCloseTimeout = Duration(seconds: 30);
 
   /// Starts the application with the adapter from [factory] and listens.
-  /// [errorLog] replaces the recording `ErrorLog` of the application (to
-  /// test one that throws); [closeTimeout] goes to the adapter.
+  /// [closeTimeout] goes to the adapter.
   static Future<ConformanceServer> start(
     AdapterFactory factory, {
-    ErrorLog? errorLog,
     Duration? closeTimeout = defaultCloseTimeout,
   }) async {
     final probe = ConformanceProbe();
     final errors = _ReportedErrors();
     final underTest = factory(errors.adapter, closeTimeout);
-    final app = App(
-      root: ConformanceRoot(probe, adapter: underTest.module),
-      overrides: [
-        Singleton<ErrorLog>(
-          (_) => errorLog ?? errors.application,
-          dependsOn: const [],
-        ),
-      ],
-    );
+    final app = App(root: ConformanceRoot(probe, adapter: underTest.module));
     await app.start();
     final adapter = app.container.root<HttpAdapter>();
     return ConformanceServer._(
@@ -104,21 +94,11 @@ final class ConformanceServer {
   }
 }
 
-/// Records the first adapter error and silences the application log.
+/// Records the first adapter error.
 final class _ReportedErrors {
   final Completer<Object> firstFromAdapter = Completer<Object>();
 
   void adapter(Object error, StackTrace _) {
     if (!firstFromAdapter.isCompleted) firstFromAdapter.complete(error);
   }
-
-  /// Silences the application log: 500s are expected in the suite.
-  ErrorLog get application => const _SilentErrorLog();
-}
-
-final class _SilentErrorLog implements ErrorLog {
-  const _SilentErrorLog();
-
-  @override
-  void report(Object error, StackTrace stackTrace) {}
 }

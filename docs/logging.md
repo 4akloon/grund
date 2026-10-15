@@ -52,7 +52,9 @@ query string is never logged.
 
 ## Errors
 
-An error that becomes a 500 response goes to the `ErrorLog` binding.
-`HttpModule` binds `LoggingErrorLog`, which logs `SEVERE` on `grund.http`
-with the error and its stack trace; the response body shows neither (unless
-`HttpConfig.debug`). Override `Key<ErrorLog>()` to send them elsewhere.
+An error that becomes a 500 response is logged as `SEVERE` on `grund.http`
+(message `Unhandled error`) with the error and its stack trace; the response
+body shows neither (unless `HttpConfig.debug`). To send them elsewhere (an
+error tracker), subscribe to `Logger.root.onRecord` and pick the records of
+that logger. A listener that throws fails on its own; the response is still
+sent.

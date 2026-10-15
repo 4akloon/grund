@@ -50,8 +50,8 @@ Future<void> main() async {
   headers; `ShelfAdapter` is independent of them.
 - Does not close the application with your server; after `app.close()` the
   handler answers 503.
-- Reports a failure of the `HttpServer` request handler (only possible when the application's
-  own error logger throws) to its optional `onError` and answers 500
+- Reports a failure of the `HttpServer` request handler (none is expected: the server
+  answers every error itself) to its optional `onError` and answers 500
   without a body. If `onError` itself throws, that failure goes to stderr.
 
 `ShelfAdapter`:

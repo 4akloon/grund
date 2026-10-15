@@ -1,4 +1,3 @@
-import 'package:grund/grund.dart' show Singleton;
 import 'package:grund/testing.dart';
 import 'package:grund_http/grund_http.dart';
 import 'package:grund_http/testing.dart';
@@ -8,7 +7,6 @@ import '../helpers/call_fixtures.dart';
 import '../helpers/fake_adapter.dart';
 import '../helpers/probe_api.dart';
 import '../helpers/probe_root.dart';
-import '../helpers/recording_error_log.dart';
 
 final class _Money {
   const _Money(this.cents);
@@ -56,9 +54,6 @@ void main() {
         ProbeApi.binding('a', routes),
         if (withCall) ...callBindings(),
       ], http: http),
-      overrides: [
-        Singleton<ErrorLog>((i) => RecordingErrorLog(), dependsOn: const []),
-      ],
     );
     return TestClient.of(app);
   }

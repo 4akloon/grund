@@ -4,8 +4,6 @@ import '../adapter/http_adapter.dart';
 import '../hook/hook_ref.dart';
 import '../hook/http_hook.dart';
 import '../hook/middleware.dart';
-import '../http/error_log.dart';
-import '../http/logging_error_log.dart';
 import '../serialize/response_codec.dart';
 import 'http_config.dart';
 import 'http_server.dart';
@@ -26,10 +24,10 @@ import 'http_server.dart';
 /// }
 /// ```
 ///
-/// It binds the `HttpServer` (a `Runner` named `http`), the `HttpConfig` and
-/// the `ErrorLog`, and exports all three; replace the config or the log with
-/// an override of the same key. Without an adapter the application does not
-/// start: `HttpAdapter` is missing.
+/// It binds the `HttpServer` (a `Runner` named `http`), the `HttpConfig`, and
+/// exports both; replace the config with an override of the same key.
+/// Without an adapter the application does not start: `HttpAdapter` is
+/// missing.
 final class HttpModule extends Module {
   /// Creates the module.
   ///
@@ -57,16 +55,11 @@ final class HttpModule extends Module {
 
   @override
   List<Binding<Object>> get bindings => [
-    Singleton<ErrorLog>((i) => const LoggingErrorLog(), dependsOn: const []),
     Singleton<HttpConfig>((i) => config, dependsOn: const []),
     Singleton<HttpServer>(
-      (i) => HttpServer(
-        this,
-        adapter: i<HttpAdapter>(),
-        config: i<HttpConfig>(),
-        log: i<ErrorLog>(),
-      ),
-      dependsOn: const [Key<HttpAdapter>(), Key<HttpConfig>(), Key<ErrorLog>()],
+      (i) =>
+          HttpServer(this, adapter: i<HttpAdapter>(), config: i<HttpConfig>()),
+      dependsOn: const [Key<HttpAdapter>(), Key<HttpConfig>()],
     ),
   ];
 
@@ -77,9 +70,5 @@ final class HttpModule extends Module {
   Future<void> onShutdown(Injector injector) => injector<HttpServer>().stop();
 
   @override
-  List<Object> get exports => const [
-    Key<HttpServer>(),
-    Key<HttpConfig>(),
-    Key<ErrorLog>(),
-  ];
+  List<Object> get exports => const [Key<HttpServer>(), Key<HttpConfig>()];
 }

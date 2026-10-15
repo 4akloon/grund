@@ -20,8 +20,8 @@ import 'shelf_bridge.dart';
 /// The pipeline stays the user's: the handler changes nothing around it.
 /// The application sees paths relative to the shelf `handlerPath`, so it
 /// can be mounted under a prefix. [app] is not closed with the server.
-/// [onError] receives a failure of the request handler (only possible when
-/// the application's own `ErrorLog` throws), answered with a 500 without a
+/// [onError] receives a failure of the request handler (the server answers
+/// every error itself, so none is expected), answered with a 500 without a
 /// body; it defaults to [ShelfAdapter.printError]. A failure of [onError]
 /// itself goes to stderr.
 ///

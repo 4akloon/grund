@@ -1,6 +1,7 @@
 import 'dart:convert';
 
-import 'error_log.dart';
+import 'package:logging/logging.dart';
+
 import 'header_map.dart';
 import 'http_exception.dart';
 import 'http_response.dart';
@@ -15,18 +16,24 @@ import 'status_code.dart';
 /// - [HttpException]: its status and headers; `detail` is its message, `code`
 ///   and `pointer` (as an entry of `errors`) are kept, `details` becomes the
 ///   extension `details` (a list of [ProblemError]s becomes `errors`).
-/// - anything else: reported to [log], then 500 with `detail` `Internal
+/// - anything else: logged as `SEVERE` on the logger `grund.http` with the
+///   error and its stack trace (a throwing record listener is user code and
+///   fails on its own, outside this call), then 500 with `detail` `Internal
 ///   server error`; with [debug] the detail is the error's `toString()` and
 ///   the extension `stack` holds the stack trace.
 final class ProblemResponder {
   /// Creates the responder.
-  const ProblemResponder({required this.debug, required this.log});
+  const ProblemResponder({required this.debug});
 
   /// Whether 500 responses reveal the error and its stack trace.
   final bool debug;
 
-  /// Where unexpected errors are reported.
-  final ErrorLog log;
+  static final Logger _logger = Logger('grund.http');
+
+  /// Logs [error], which no response could carry, as `SEVERE` on
+  /// `grund.http` with its [stackTrace].
+  void report(Object error, StackTrace stackTrace) =>
+      _logger.severe('Unhandled error', error, stackTrace);
 
   /// The response for [error]; [instance] identifies the failed request.
   HttpResponse respond(
@@ -35,7 +42,7 @@ final class ProblemResponder {
     String? instance,
   }) {
     if (error is! HttpException) {
-      log.report(error, stackTrace);
+      report(error, stackTrace);
       return _response(
         500,
         HeaderMap(),

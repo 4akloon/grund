@@ -3,7 +3,6 @@ import 'package:grund/grund.dart';
 import '../adapter/http_adapter.dart';
 import '../api/http_api.dart';
 import '../hook/middleware_chain.dart';
-import '../http/error_log.dart';
 import '../http/http_exception.dart';
 import '../http/http_request.dart';
 import '../http/http_response.dart';
@@ -35,13 +34,7 @@ final class HttpServer extends Runner {
     HttpModule module, {
     required HttpAdapter adapter,
     required HttpConfig config,
-    required ErrorLog log,
-  }) : this._(
-         module,
-         adapter,
-         config,
-         ProblemResponder(debug: config.debug, log: log),
-       );
+  }) : this._(module, adapter, config, ProblemResponder(debug: config.debug));
 
   HttpServer._(this._module, this._adapter, this._config, this._problems)
     : _dispatcher = _dispatcherFor(_module, _config, _problems),

@@ -25,8 +25,8 @@ final class ShelfBridge {
   }
 
   Future<HttpResponse> _answer(shelf.Request request) async {
-    // Request boundary: the HttpServer request handler only fails
-    // when the application's own error logger throws; answer 500 without a body.
+    // Request boundary: the HttpServer request handler answers every error
+    // itself, so a failure here is unexpected; answer 500 without a body.
     try {
       return await handler(ShelfRequestMapper.map(request));
     } on Object catch (error, stackTrace) {

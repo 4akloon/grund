@@ -73,7 +73,7 @@ final class RouteExecutor {
     } on ShutdownError catch (error, stackTrace) {
       // Disposing the call's Scoped instances failed; the response is
       // already decided, so the failure is reported, not turned into one.
-      problems.log.report(error, stackTrace);
+      problems.report(error, stackTrace);
     }
   }
 }

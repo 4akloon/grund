@@ -116,7 +116,7 @@ void main() {
         );
         expect(log.where((e) => e.startsWith('after')), isEmpty);
         expect(log, isNot(contains('handler')));
-        expect(harness.log.errors.single, isA<StateError>());
+        expect(harness.log.unhandledErrors.single, isA<StateError>());
       },
     );
 
@@ -129,7 +129,7 @@ void main() {
       final response = await harness.send('GET', '/');
 
       expect(response.status, 403);
-      expect(harness.log.errors, isEmpty);
+      expect(harness.log.unhandledErrors, isEmpty);
     });
 
     test('onError runs in reverse order; the first answer is sent', () async {
@@ -152,7 +152,7 @@ void main() {
         'onError two StateError',
         'onError one StateError',
       ]);
-      expect(harness.log.errors, isEmpty);
+      expect(harness.log.unhandledErrors, isEmpty);
     });
 
     test('a hook can translate an error by throwing another', () async {
@@ -328,7 +328,7 @@ void main() {
         final response = await harness.send('GET', '/');
 
         expect(response.status, 200);
-        expect(harness.log.errors.single, isA<ShutdownError>());
+        expect(harness.log.unhandledErrors.single, isA<ShutdownError>());
       },
     );
 

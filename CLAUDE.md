@@ -214,8 +214,8 @@ producing a response):
   `JsonUnsupportedObjectError` while encoding `details` and falls back to a
   body without them, so the last-resort 500 is always produced;
 - adapter boundaries (added by the adapters work): `IoAdapter` reports a
-  failure of the request handler (only possible when the application's own
-  error logger throws) to its `onError` and answers 500 without a body, and
+  failure of the request handler (unexpected: the server answers every error
+  itself) to its `onError` and answers 500 without a body, and
   reports a failure while writing the response (a failing body stream, a
   client that went away, a head that cannot be written) to its `onError` and
   drops the connection itself (`detachSocket` + `destroy`; dart:io only

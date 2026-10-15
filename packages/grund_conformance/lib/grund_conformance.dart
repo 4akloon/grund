@@ -14,3 +14,4 @@ export 'src/conformance_root.dart';
 export 'src/conformance_server.dart';
 export 'src/raw_http.dart';
 export 'src/raw_response.dart';
+export 'src/throwing_log_listener.dart';

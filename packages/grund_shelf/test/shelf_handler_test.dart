@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io' as io;
 
 import 'package:grund/grund.dart';
-import 'package:grund_http/grund_http.dart';
 import 'package:grund_conformance/grund_conformance.dart';
 import 'package:grund_shelf/grund_shelf.dart';
 import 'package:shelf/shelf.dart' as shelf;
@@ -105,39 +104,17 @@ void main() {
       expect(() => shelfHandler(idle), throwsA(isA<ApplicationStateError>()));
     });
 
-    Future<App> failingLogApp() => startApp(
-      overrides: [
-        Singleton<ErrorLog>(
-          (_) => const _ThrowingErrorLog(),
-          dependsOn: const [],
-        ),
-      ],
-    );
+    test('answers the 500 problem when a log listener throws', () async {
+      final listener = ThrowingLogListener.attach();
 
-    // A function: a request body can be read only once.
-    shelf.Request failRequest() =>
-        shelf.Request('GET', Uri.parse('http://localhost/probe/fail'));
-
-    test('answers 500 without a body when the ErrorLog throws', () async {
-      final errors = <Object>[];
-
-      final response = await shelfHandler(
-        await failingLogApp(),
-        onError: (error, _) => errors.add(error),
-      )(failRequest());
+      final response = await shelfHandler(app)(
+        shelf.Request('GET', Uri.parse('http://localhost/probe/fail')),
+      );
 
       expect(response.statusCode, 500);
-      expect(await response.readAsString(), isEmpty);
-      expect(errors, [isA<StateError>()]);
-    });
-
-    test('answers 500 even when its own onError throws', () async {
-      final response = await shelfHandler(
-        await failingLogApp(),
-        onError: (error, _) => throw StateError('reporter failed'),
-      )(failRequest());
-
-      expect(response.statusCode, 500);
+      expect(response.headers['content-type'], 'application/problem+json');
+      expect(await response.readAsString(), isNot(contains('StateError')));
+      expect(listener.failures, isNotEmpty);
     });
 
     test('drops the body of a HEAD response', () async {
@@ -153,13 +130,4 @@ void main() {
       expect(await response.readAsString(), isEmpty);
     });
   });
-}
-
-/// An error log that fails, to prove the handler survives it.
-final class _ThrowingErrorLog implements ErrorLog {
-  const _ThrowingErrorLog();
-
-  @override
-  void report(Object error, StackTrace stackTrace) =>
-      throw StateError('log failed');
 }

@@ -2,7 +2,7 @@ import 'package:grund_http/grund_http.dart';
 import 'package:test/test.dart';
 
 import '../helpers/http_fixtures.dart';
-import '../helpers/recording_error_log.dart';
+import '../helpers/log_capture.dart';
 
 final class Unprintable {
   @override
@@ -11,10 +11,10 @@ final class Unprintable {
 
 void main() {
   group('ProblemResponder', () {
-    final log = RecordingErrorLog();
-    final responder = ProblemResponder(debug: false, log: log);
+    const responder = ProblemResponder(debug: false);
+    late LogCapture log; // Set in setUp before every test.
 
-    setUp(log.errors.clear);
+    setUp(() => log = LogCapture.start());
 
     test('HttpException keeps status, headers and becomes a problem', () async {
       final response = responder.respond(
@@ -40,7 +40,7 @@ void main() {
         'code': 'token_expired',
         'details': {'realm': 'api'},
       });
-      expect(log.errors, isEmpty);
+      expect(log.unhandledErrors, isEmpty);
     });
 
     test('a pointer becomes an entry of errors', () async {
@@ -147,11 +147,11 @@ void main() {
         'status': 500,
         'detail': 'Internal server error',
       });
-      expect(log.errors, [same(error)]);
+      expect(log.unhandledErrors, [same(error)]);
     });
 
     test('debug mode includes the error and the stack', () async {
-      final debug = ProblemResponder(debug: true, log: RecordingErrorLog());
+      final debug = ProblemResponder(debug: true);
 
       final body =
           await jsonOf(debug.respond(StateError('boom'), StackTrace.current))

@@ -26,6 +26,15 @@ final class LogCapture {
   /// What was recorded, oldest first.
   final List<LogRecord> records = [];
 
+  /// The errors of the `SEVERE` records of `grund.http`, oldest first.
+  List<Object> get unhandledErrors => [
+    for (final record in records)
+      if (record.loggerName == 'grund.http' &&
+          record.level == Level.SEVERE &&
+          record.error != null)
+        record.error!,
+  ];
+
   /// The messages of [loggerName], after letting pending records arrive.
   Future<List<String>> messages(String loggerName) async {
     await Future<void>.delayed(Duration.zero);

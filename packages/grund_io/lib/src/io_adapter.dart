@@ -128,9 +128,9 @@ final class IoAdapter implements HttpAdapter {
     io.HttpRequest native,
     RequestHandler handler,
   ) async {
-    // Request boundary: the HttpServer request handler only fails
-    // when the application's own error logger throws; answer 500 without a body
-    // and keep serving.
+    // Request boundary: the HttpServer request handler answers every error
+    // itself, so a failure here is unexpected; answer 500 without a body and
+    // keep serving.
     try {
       return await handler(IoRequestMapper.map(native));
     } on Object catch (error, stackTrace) {

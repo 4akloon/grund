@@ -87,7 +87,7 @@ void main() {
 
       expect(response.status, 400);
       expect(response.headers['content-type'], 'application/problem+json');
-      expect(harness.log.errors, isEmpty);
+      expect(harness.log.unhandledErrors, isEmpty);
     });
 
     test('a wildcard captures the rest of the path', () async {
@@ -111,7 +111,7 @@ void main() {
       final response = await harness.send('GET', '/items/missing');
 
       expect(response.status, 404);
-      expect(harness.log.errors, isEmpty);
+      expect(harness.log.unhandledErrors, isEmpty);
     });
 
     test('an unexpected error is a logged 500 without internals', () async {
@@ -125,8 +125,8 @@ void main() {
         'detail': 'Internal server error',
         'instance': '/items/broken',
       });
-      expect(harness.log.errors, hasLength(1));
-      expect(harness.log.errors.single, isA<StateError>());
+      expect(harness.log.unhandledErrors, hasLength(1));
+      expect(harness.log.unhandledErrors.single, isA<StateError>());
     });
 
     test('a bad query value is a 400 with a pointer (RF-3)', () async {
