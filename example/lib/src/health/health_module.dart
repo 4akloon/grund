@@ -1,7 +1,12 @@
-import 'package:grund_annotations/grund_annotations.dart';
+import 'package:grund/annotations.dart';
+import 'package:grund/grund.dart' as grund;
 
-import 'health_controller.dart';
+import 'health_api.dart';
+import 'health_module_module.g.dart';
 
-/// The health check; its `appName` comes from the global `ConfigModule`.
-@Module(id: 'health', controllers: [HealthController])
-final class HealthModule {}
+/// The health check; its `AppConfig` comes from the global `ConfigModule`.
+@Module(providers: [HealthApi])
+final class HealthModule extends grund.Module with $HealthModule {
+  /// Creates the module.
+  const HealthModule();
+}

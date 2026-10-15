@@ -1,9 +1,6 @@
-// One suite, four servers: the generated and the hand-written module graph,
+// One suite, four servers: the annotated and the hand-written module graph,
 // each served by dart:io and by shelf on a loopback port.
-import 'package:grund/grund.dart';
-import 'package:tasks_api/explicit.dart';
 import 'package:tasks_api/tasks_api.dart';
-import 'package:tasks_api/tasks_api.grund.dart';
 import 'package:test/test.dart';
 
 import 'helpers/loopback_server.dart';
@@ -12,21 +9,16 @@ const _reader = {'x-api-key': 'reader-key'};
 const _editor = {'x-api-key': 'editor-key'};
 
 void main() {
-  final graphs = <String, Module Function()>{
-    'annotations': appModule,
-    'explicit': explicitAppModule,
-  };
-  graphs.forEach((style, root) {
+  for (final style in ModuleStyle.values) {
     for (final kind in AdapterKind.values) {
-      group('$style on ${kind.name}', () => _suite(root, kind));
+      group('${style.name} on ${kind.name}', () => _suite(style, kind));
     }
-  });
+  }
 }
 
-void _suite(Module Function() root, AdapterKind kind) {
+void _suite(ModuleStyle style, AdapterKind kind) {
   late LoopbackServer server; // Set in setUp before every test.
-
-  setUp(() async => server = await LoopbackServer.start(root, kind));
+  setUp(() async => server = await LoopbackServer.start(style, kind));
   tearDown(() async {
     await server.close();
     expect(server.errors, isEmpty);
@@ -37,7 +29,7 @@ void _suite(Module Function() root, AdapterKind kind) {
   _writing(() => server);
 }
 
-/// What needs no API key: the health check and the middleware.
+/// What needs no API key: the health check, the middleware, the hook.
 void _public(LoopbackServer Function() server) {
   test('GET /health answers without a key', () async {
     final response = await server().send('GET', '/health');
@@ -56,22 +48,24 @@ void _public(LoopbackServer Function() server) {
 
     expect(own.headers['x-request-id'], 'abc');
     expect(unrouted.status, 404);
+    expect(unrouted.headers['content-type'], contains('problem+json'));
     expect(unrouted.headers['x-request-id'], startsWith('req-'));
   });
 
-  test('the interceptor times routed requests', () async {
-    final response = await server().send('GET', '/health');
+  test('the global hook times routed requests, also failed ones', () async {
+    final ok = await server().send('GET', '/health');
+    final failed = await server().send('GET', '/tasks');
+    final timing = matches(RegExp(r'^handler;dur=\d+\.\d$'));
 
-    expect(
-      response.headers['server-timing'],
-      matches(RegExp(r'^handler;dur=\d+\.\d$')),
-    );
+    expect(ok.headers['server-timing'], timing);
+    expect(failed.status, 401);
+    expect(failed.headers['server-timing'], timing);
   });
 }
 
-/// Reading tasks: the key guard, query and path parameters, the filter.
+/// Reading tasks: the key hook, query and path parameters, the error hook.
 void _reading(LoopbackServer Function() server) {
-  test('a missing or unknown key is 401', () async {
+  test('a missing or unknown key is a 401 problem', () async {
     final missing = await server().send('GET', '/tasks');
     final unknown = await server().send(
       'GET',
@@ -80,7 +74,9 @@ void _reading(LoopbackServer Function() server) {
     );
 
     expect(missing.status, 401);
-    expect((missing.json as Map)['message'], 'Send a valid x-api-key.');
+    expect(missing.headers['content-type'], contains('problem+json'));
+    expect(missing.json, containsPair('detail', 'Send a valid x-api-key.'));
+    expect(missing.json, containsPair('code', 'api_key_invalid'));
     expect(unknown.status, 401);
   });
 
@@ -102,21 +98,24 @@ void _reading(LoopbackServer Function() server) {
       {'id': 2, 'title': 'Run grund dev', 'done': true},
     ]);
     expect(invalid.status, 400);
+    expect(invalid.json, containsPair('status', 400));
   });
 
-  test('GET /tasks/:id finds a task; the filter maps a miss to 404', () async {
+  test('GET /tasks/:id finds a task; the hook maps a miss to 404', () async {
     final found = await server().send('GET', '/tasks/1', headers: _reader);
     final missing = await server().send('GET', '/tasks/99', headers: _reader);
     final invalid = await server().send('GET', '/tasks/one', headers: _reader);
 
     expect((found.json as Map)['title'], 'Read the grund README');
     expect(missing.status, 404);
-    expect((missing.json as Map)['message'], 'No task 99.');
+    expect(missing.json, containsPair('detail', 'No task 99.'));
+    expect(missing.json, containsPair('code', 'task_not_found'));
+    expect(missing.headers['server-timing'], isNotNull);
     expect(invalid.status, 400);
   });
 }
 
-/// Changing tasks: the roles guard, the body DTOs and the pipe.
+/// Changing tasks: the roles hook, the bodies, the location hook.
 void _writing(LoopbackServer Function() server) {
   test('a reader cannot create a task: 403', () async {
     final response = await server().send(
@@ -127,6 +126,7 @@ void _writing(LoopbackServer Function() server) {
     );
 
     expect(response.status, 403);
+    expect(response.json, containsPair('code', 'role_required'));
   });
 
   test('an editor creates a task: 201, location, trimmed title', () async {
@@ -153,6 +153,10 @@ void _writing(LoopbackServer Function() server) {
     );
 
     expect(response.status, 400);
+    expect(
+      response.json,
+      containsPair('errors', contains(containsPair('pointer', '/body'))),
+    );
   });
 
   test('PATCH changes the state; a wrong type is 400', () async {

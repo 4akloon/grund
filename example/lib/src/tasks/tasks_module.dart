@@ -1,23 +1,25 @@
-import 'package:grund_annotations/grund_annotations.dart';
+import 'package:grund/annotations.dart';
+import 'package:grund/grund.dart' as grund;
 
 import '../auth/auth_module.dart';
-import '../common/trim_strings_pipe.dart';
 import 'in_memory_task_store.dart';
-import 'task_not_found_filter.dart';
+import 'task_not_found_hook.dart';
 import 'task_store.dart';
-import 'tasks_controller.dart';
+import 'tasks_api.dart';
+import 'tasks_module_module.g.dart';
 import 'tasks_service.dart';
 
-/// Tasks: the store, the service, the controller and its components.
+/// Tasks: the store, the service, the API and its error hook.
 @Module(
-  id: 'tasks',
-  imports: [AuthModule],
+  imports: [AuthModule()],
   providers: [
     Bind<TaskStore, InMemoryTaskStore>(),
     TasksService,
-    TrimStringsPipe,
-    TaskNotFoundFilter,
+    TaskNotFoundHook,
+    TasksApi,
   ],
-  controllers: [TasksController],
 )
-final class TasksModule {}
+final class TasksModule extends grund.Module with $TasksModule {
+  /// Creates the module.
+  const TasksModule();
+}

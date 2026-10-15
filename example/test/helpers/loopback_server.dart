@@ -2,48 +2,61 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:grund/grund.dart';
+import 'package:grund_http/grund_http.dart';
 import 'package:grund_io/grund_io.dart';
 import 'package:grund_shelf/grund_shelf.dart';
+import 'package:logging/logging.dart';
 import 'package:tasks_api/tasks_api.dart';
 
 import 'api_response.dart';
 
 /// The tasks application served by one adapter on 127.0.0.1 and an
-/// ephemeral port, with an `HttpClient` and the errors reported on the way.
+/// ephemeral port, with an `HttpClient` and what went wrong on the way.
 final class LoopbackServer {
-  LoopbackServer._(this.app, this.port, this.errors);
+  LoopbackServer._(this.app, this.port, this.errors, this._logOutput);
 
-  /// Serves [root] with the adapter [kind] names.
+  /// Serves the module graph [style] names with the adapter [kind].
   static Future<LoopbackServer> start(
-    Module Function() root,
+    ModuleStyle style,
     AdapterKind kind,
   ) async {
     final errors = <Object>[];
-    void record(Object error, StackTrace _) => errors.add(error);
-    final HttpAdapter adapter;
-    final int Function() boundPort;
-    switch (kind) {
-      case AdapterKind.io:
-        final io = IoAdapter(onError: record);
-        (adapter, boundPort) = (io, () => io.port);
-      case AdapterKind.shelf:
-        final shelf = ShelfAdapter(onError: record);
-        (adapter, boundPort) = (shelf, () => shelf.port);
-    }
-    final app = await TasksApp.create(root, adapter: adapter, onError: record);
-    await app.listen(port: 0, address: InternetAddress.loopbackIPv4);
-    return LoopbackServer._(app, boundPort(), errors);
+    // An unexpected failure is logged (`SEVERE` on `grund.http`); the
+    // adapters also report to `onError`. Both end up in [errors].
+    final logOutput = LogOutput.console(
+      level: Level.WARNING,
+      color: false,
+      sink: errors.add,
+    ).attach();
+    final app = App(
+      root: ServingModule(
+        TasksApp.graph(style),
+        kind,
+        address: InternetAddress.loopbackIPv4,
+        port: 0,
+        onError: (error, _) => errors.add(error),
+      ),
+    );
+    await app.start();
+    final port = switch (app.container.all<HttpAdapter>().first) {
+      IoAdapter(:final port) => port,
+      ShelfAdapter(:final port) => port,
+      final other => throw StateError('Unexpected adapter $other.'),
+    };
+    return LoopbackServer._(app, port, errors, logOutput);
   }
 
   /// The served application.
-  final Application app;
+  final App app;
 
   /// The port the adapter bound.
   final int port;
 
-  /// What the application and the adapter reported to `onError`.
+  /// What the application logged at `WARNING` or above and what the
+  /// adapter reported as unexpected.
   final List<Object> errors;
 
+  final LogSubscription _logOutput;
   final HttpClient _client = HttpClient();
 
   /// Sends [method] to [target] with [headers] and [json] as the body;
@@ -73,6 +86,8 @@ final class LoopbackServer {
   /// Closes the client and the application.
   Future<void> close() async {
     _client.close(force: true);
-    await app.close(force: true);
+    await app.container.all<HttpAdapter>().first.close(force: true);
+    await app.close();
+    await _logOutput.cancel();
   }
 }

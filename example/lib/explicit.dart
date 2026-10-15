@@ -1,106 +1,156 @@
-/// The tasks API wired by hand with the explicit API: the same classes and
-/// the same module graph as the generated `appModule`, without code
-/// generation.
+/// The same application as `AppModule`, written with the explicit API: no
+/// annotations, no generated code. Compare with the `*.g.dart` files next
+/// to the annotated classes in `lib/src`, which is what the generator
+/// writes for the annotated form.
 library;
 
 import 'package:grund/grund.dart';
+import 'package:grund_http/grund_http.dart';
+import 'package:tasks_api/tasks_api.dart';
 
-import 'tasks_api.dart';
+/// [AppConfig] for every module (`global`).
+final class ExplicitConfigModule extends Module {
+  /// Creates the module.
+  const ExplicitConfigModule();
 
-/// The application root.
-Module explicitAppModule() => Module(
-  id: 'app',
-  imports: [_configModule(), _tasksModule(), _healthModule()],
-  providers: [Provider((i) => TimingInterceptor())],
-);
+  @override
+  bool get global => true;
 
-Module _configModule() => Module(
-  id: 'config',
-  providers: [
-    Provider<String>.value('tasks_api', token: appName),
-    Provider<Map<String, Role>>.value(demoApiKeys, token: apiKeys),
-  ],
-  exports: [appName, apiKeys],
-  global: true,
-);
+  @override
+  List<Binding<Object>> get bindings => [
+    Singleton<AppConfig>((_) => AppConfig.demo, dependsOn: const []),
+  ];
 
-Module _authModule() => Module(
-  id: 'auth',
-  providers: [
-    Provider((i) => ApiKeys(i.get(apiKeys))),
-    Provider((i) => ApiKeyGuard(i.get())),
-    Provider((i) => RolesGuard()),
-  ],
-  exports: [ApiKeyGuard, RolesGuard],
-);
+  @override
+  List<Object> get exports => const [Key<AppConfig>()];
+}
 
-Module _tasksModule() => Module(
-  id: 'tasks',
-  imports: [_authModule()],
-  providers: [
-    Provider<TaskStore>((i) => InMemoryTaskStore()),
-    Provider((i) => TasksService(i.get())),
-    Provider((i) => TrimStringsPipe()),
-    Provider((i) => TaskNotFoundFilter()),
-  ],
-  controllers: [_tasksController()],
-);
+/// The API key check.
+final class ExplicitAuthModule extends Module {
+  /// Creates the module.
+  const ExplicitAuthModule();
 
-const _editorsOnly = Enhancers(guards: [Use<RolesGuard>()]);
-
-Controller<TasksController> _tasksController() => Controller<TasksController>(
-  path: '/tasks',
-  create: (i) => TasksController(i.get()),
-  enhancers: const Enhancers(
-    guards: [Use<ApiKeyGuard>()],
-    pipes: [Use<TrimStringsPipe>()],
-    filters: [Use<TaskNotFoundFilter>()],
-  ),
-  routes: _tasksRoutes(),
-);
-
-List<Route<TasksController>> _tasksRoutes() => [
-  Route.get('', (c, ctx) async => c.list(await ctx.query<bool?>('done'))),
-  Route.get('/:id', (c, ctx) async => c.find(await ctx.param<int>('id'))),
-  Route.post(
-    '',
-    (c, ctx) async => c.create(await ctx.bodyAs(CreateTaskDto.fromJson), ctx),
-    enhancers: _editorsOnly,
-    metadata: const [
-      Roles([Role.editor]),
-    ],
-  ),
-  Route.patch(
-    '/:id',
-    (c, ctx) async => c.update(
-      await ctx.param<int>('id'),
-      await ctx.bodyAs(UpdateTaskDto.fromJson),
+  @override
+  List<Binding<Object>> get bindings => [
+    Singleton<ApiKeyHook>(
+      (i) => ApiKeyHook(i<AppConfig>()),
+      dependsOn: const [Key<AppConfig>()],
     ),
-    enhancers: _editorsOnly,
-    metadata: const [
-      Roles([Role.editor]),
-    ],
-  ),
-  Route.delete(
-    '/:id',
-    (c, ctx) async {
-      c.delete(await ctx.param<int>('id'));
+  ];
+
+  @override
+  List<Object> get exports => const [Key<ApiKeyHook>()];
+}
+
+/// The routes of [TasksApi] written by hand.
+final class ExplicitTasksRoutes extends HttpApi {
+  /// Serves [_api] from the module that declares it.
+  ExplicitTasksRoutes(super.injector, this._api);
+
+  final TasksApi _api;
+
+  @override
+  String get path => '/tasks';
+
+  @override
+  List<HookRef<HttpHook>> get use => const [
+    HookRef<ApiKeyHook>.type(),
+    HookRef<TaskNotFoundHook>.type(),
+  ];
+
+  @override
+  List<Route> get routes => [
+    Route.get('/', (c) => _api.list(done: c.query.booleanOrNull('done'))),
+    Route.get('/:id', (c) => _api.find(c.path.integer('id'))),
+    Route.post(
+      '/',
+      (c) async => _api.create(await c.body(CreateTask.fromJson)),
+      status: 201,
+      use: _editorOnly([const HookRef<LocationHook>.instance(LocationHook())]),
+    ),
+    Route.patch(
+      '/:id',
+      (c) async =>
+          _api.update(c.path.integer('id'), await c.body(UpdateTask.fromJson)),
+      use: _editorOnly(),
+    ),
+    Route.delete('/:id', (c) {
+      _api.remove(c.path.integer('id'));
       return null;
-    },
-    enhancers: _editorsOnly,
-    metadata: const [
-      Roles([Role.editor]),
-    ],
-  ),
-];
+    }, use: _editorOnly()),
+  ];
 
-Module _healthModule() => Module(
-  id: 'health',
-  controllers: [
-    Controller<HealthController>(
-      path: '/health',
-      create: (i) => HealthController(i.get(appName)),
-      routes: [Route.get('', (c, _) => c.check())],
+  static List<HookRef<HttpHook>> _editorOnly([
+    List<HookRef<HttpHook>> more = const [],
+  ]) => [const HookRef<RolesHook>.instance(RolesHook(Role.editor)), ...more];
+}
+
+/// Tasks: the store, the service, the API and its error hook.
+final class ExplicitTasksModule extends Module {
+  /// Creates the module.
+  const ExplicitTasksModule();
+
+  @override
+  List<Module> get imports => const [ExplicitAuthModule()];
+
+  @override
+  List<Binding<Object>> get bindings => [
+    Singleton<TaskStore>((_) => InMemoryTaskStore(), dependsOn: const []),
+    Singleton<TasksService>(
+      (i) => TasksService(i<TaskStore>()),
+      dependsOn: const [Key<TaskStore>()],
     ),
-  ],
-);
+    Singleton<TaskNotFoundHook>((_) => TaskNotFoundHook(), dependsOn: const []),
+    Singleton<TasksApi>(
+      (i) => TasksApi(i<TasksService>()),
+      dependsOn: const [Key<TasksService>()],
+    ),
+    Singleton<ExplicitTasksRoutes>(
+      (i) => ExplicitTasksRoutes(i, i<TasksApi>()),
+      dependsOn: const [Key<TasksApi>()],
+    ),
+  ];
+}
+
+/// The health check, with an inline `HttpApi`.
+final class ExplicitHealthModule extends Module {
+  /// Creates the module.
+  const ExplicitHealthModule();
+
+  @override
+  List<Binding<Object>> get bindings => [
+    Singleton<HealthApi>(
+      (i) => HealthApi(i<AppConfig>()),
+      dependsOn: const [Key<AppConfig>()],
+    ),
+    Singleton<_HealthRoutes>(
+      (i) => _HealthRoutes(i, i<HealthApi>()),
+      dependsOn: const [Key<HealthApi>()],
+    ),
+  ];
+}
+
+final class _HealthRoutes extends HttpApi {
+  _HealthRoutes(super.injector, this._api);
+
+  final HealthApi _api;
+
+  @override
+  String get path => '/health';
+
+  @override
+  List<Route> get routes => [Route.get('/', (c) => _api.check())];
+}
+
+/// The application with the explicit API.
+final class ExplicitAppModule extends Module {
+  /// Creates the module.
+  const ExplicitAppModule();
+
+  @override
+  List<Module> get imports => const [
+    ExplicitConfigModule(),
+    ExplicitTasksModule(),
+    ExplicitHealthModule(),
+  ];
+}

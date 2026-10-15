@@ -1,8 +1,8 @@
 /// Which module graph `bin/main.dart` serves.
 enum ModuleStyle {
-  /// `appModule` from the library generated from the annotations.
+  /// `AppModule`, declared with annotations (its glue is generated).
   annotations,
 
-  /// `explicitAppModule`, written by hand with the explicit API.
+  /// `ExplicitAppModule`, written by hand with the explicit API.
   explicit,
 }

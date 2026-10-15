@@ -5,24 +5,27 @@ import 'package:path/path.dart' as p;
 
 /// The `lib/` of this example package, read from the checkout.
 abstract final class ExampleSources {
-  /// The generated library the CLI writes, relative to the package root.
-  static const generatedLibrary = 'lib/tasks_api.grund.dart';
+  /// Whether [path] names a file the generator writes (`X_module.g.dart`,
+  /// `X_api.g.dart`).
+  static bool isGenerated(String path) =>
+      path.endsWith('_module.g.dart') || path.endsWith('_api.g.dart');
 
-  /// Every file of `lib/` except [generatedLibrary], by path relative to
-  /// the package root with `/` separators (`lib/src/tasks/task.dart`).
-  static Future<Map<String, String>> files() async {
+  /// Every hand-written file of `lib/`, by path relative to the package
+  /// root with `/` separators (`lib/src/tasks/task.dart`).
+  static Future<Map<String, String>> sources() => _read(isGenerated: false);
+
+  /// Every committed generated file of `lib/`, by the same kind of path.
+  static Future<Map<String, String>> committedGenerated() =>
+      _read(isGenerated: true);
+
+  static Future<Map<String, String>> _read({required bool isGenerated}) async {
     final lib = await _lib();
     return {
       for (final file in lib.listSync(recursive: true).whereType<File>())
-        if (_path(lib, file) case final path when path != generatedLibrary)
+        if (_path(lib, file) case final path
+            when ExampleSources.isGenerated(path) == isGenerated)
           path: file.readAsStringSync(),
     };
-  }
-
-  /// The committed [generatedLibrary].
-  static Future<String> committedLibrary() async {
-    final lib = await _lib();
-    return File(p.join(lib.parent.path, generatedLibrary)).readAsStringSync();
   }
 
   static Future<Directory> _lib() async {

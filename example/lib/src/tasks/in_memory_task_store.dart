@@ -1,4 +1,4 @@
-import 'package:grund_annotations/grund_annotations.dart';
+import 'package:grund/annotations.dart';
 
 import 'task.dart';
 import 'task_store.dart';

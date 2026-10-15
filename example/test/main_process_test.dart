@@ -14,19 +14,34 @@ Future<Process> _start(int port) => Process.start(
 );
 
 void main() {
-  test('a port in use: one line on stderr and exit code 1', () async {
-    final blocker = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
-    addTearDown(blocker.close);
+  test(
+    'a port in use: one line of its own on stderr and exit code 1',
+    () async {
+      final blocker = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
+      addTearDown(blocker.close);
 
-    final process = await _start(blocker.port);
-    final err = process.stderr.transform(utf8.decoder).join();
-    unawaited(process.stdout.drain<void>());
+      final process = await _start(blocker.port);
+      final err = process.stderr.transform(utf8.decoder).join();
+      unawaited(process.stdout.drain<void>());
 
-    expect(await process.exitCode.timeout(const Duration(seconds: 60)), 1);
-    final lines = (await err).trim().split('\n');
-    expect(lines, hasLength(1), reason: lines.join('\n'));
-    expect(lines.single, isNot(contains('Unhandled exception')));
-  }, skip: Platform.isWindows ? 'process test' : null);
+      expect(await process.exitCode.timeout(const Duration(seconds: 60)), 1);
+      // The application logs the rollback as one WARNING line (grund.app);
+      // main adds exactly one line of its own, the last.
+      final lines = (await err).trim().split('\n');
+      expect(
+        lines.last,
+        startsWith('Cannot start: '),
+        reason: lines.join('\n'),
+      );
+      expect(
+        lines.where((line) => !line.contains('[grund.app]')),
+        hasLength(1),
+        reason: lines.join('\n'),
+      );
+      expect(lines.join(), isNot(contains('Unhandled exception')));
+    },
+    skip: Platform.isWindows ? 'process test' : null,
+  );
 
   test('SIGTERM closes gracefully with exit code 0', () async {
     final probe = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
@@ -36,10 +51,15 @@ void main() {
     final process = await _start(port);
     addTearDown(process.kill);
     unawaited(process.stderr.drain<void>());
-    final serving = process.stdout
-        .transform(utf8.decoder)
-        .firstWhere((chunk) => chunk.contains('Serving'));
-    await serving.timeout(const Duration(seconds: 60));
+    // Keep reading after the line: a closed pipe would make the log output
+    // of the shutdown fail.
+    final listening = Completer<void>();
+    process.stdout.transform(utf8.decoder).listen((chunk) {
+      if (chunk.contains('listening') && !listening.isCompleted) {
+        listening.complete();
+      }
+    });
+    await listening.future.timeout(const Duration(seconds: 60));
 
     process.kill(ProcessSignal.sigterm);
 

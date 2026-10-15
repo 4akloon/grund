@@ -1,29 +1,26 @@
 import 'package:grund/grund.dart';
 
-import '../common/request_id_middleware.dart';
-import '../common/timing_interceptor.dart';
+import '../../explicit.dart';
+import '../app_module.dart';
+import 'module_style.dart';
+import 'server_options.dart';
+import 'serving_module.dart';
 
-/// Creates the tasks application the same way for both styles, every
-/// adapter and the tests.
+/// Creates the tasks application the same way for `bin/main.dart` and the
+/// tests.
 abstract final class TasksApp {
-  /// The application-level components; resolved from the root module.
-  static const enhancers = Enhancers(interceptors: [Use<TimingInterceptor>()]);
+  /// The module graph [style] names.
+  static Module graph(ModuleStyle style) => switch (style) {
+    ModuleStyle.annotations => const AppModule(),
+    ModuleStyle.explicit => const ExplicitAppModule(),
+  };
 
-  /// Creates the application for [root] (`appModule` from the generated
-  /// library or `explicitAppModule`), served by [adapter] if given.
-  /// [onError] receives unexpected errors (default: print).
-  static Future<Application> create(
-    Module Function() root, {
-    HttpAdapter? adapter,
-    ErrorLogger? onError,
-  }) async {
-    final app = await Application.create(
-      root,
-      adapter: adapter,
-      enhancers: enhancers,
-      onError: onError,
-    );
-    app.use(RequestIdMiddleware().call);
-    return app;
-  }
+  /// The application for [options], served over HTTP.
+  static App create(ServerOptions options) => App(
+    root: ServingModule(
+      graph(options.style),
+      options.adapter,
+      port: options.port,
+    ),
+  );
 }

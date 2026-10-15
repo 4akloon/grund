@@ -1,19 +1,24 @@
 # tasks_api — the grund example
 
 A small tasks API that uses every part of grund: modules with imports,
-exports and a global module, typed tokens, an interface bound to an
-implementation, controllers, a guard chain with route metadata, a pipe, an
-interceptor, an exception filter, middleware, both adapters and hot reload.
+exports and a global module, a `@Provides` method, an interface bound to an
+implementation (`Bind`), `HttpApi` classes with typed path, query and body
+readers, `HttpHook`s (by type and by instance, per route, per API and
+global), a middleware, both adapters and hot reload.
 
 The same application is wired twice:
 
 - with **annotations** (`lib/src/**`), turned by `grund_cli gen` into the
-  committed `lib/tasks_api.grund.dart`, which exports `appModule`;
-- with the **explicit API** by hand in `lib/explicit.dart`, which exports
-  `explicitAppModule` and reuses the same classes.
+  committed `*_module.g.dart` files (the `$Module` mixins) and `*_api.g.dart`
+  parts (the `HttpApi` classes); the root is `AppModule`;
+- with the **explicit API** by hand in `lib/explicit.dart`; the root is
+  `ExplicitAppModule`, and it reuses the same services, hooks and handler
+  classes. It uses no generated file.
 
-`test/e2e_test.dart` runs one suite against both graphs, each served by
-`dart:io` and by shelf on a loopback port.
+`ServingModule` wraps either root with `HttpModule` and the adapter module
+(`IoAdapterModule` or `ShelfAdapterModule`), so the application does not
+know how it is served. `test/e2e_test.dart` runs one suite against both
+graphs, each served by `dart:io` and by shelf on a loopback port.
 
 ## Run it
 
@@ -24,6 +29,9 @@ dart run bin/main.dart                      # annotations, dart:io, port 8080
 dart run bin/main.dart --explicit --shelf   # the explicit graph on shelf
 PORT=9090 dart run bin/main.dart
 ```
+
+`main` runs `App.run`, which attaches the console log (see
+`docs/logging.md`) and closes on Ctrl+C or SIGTERM.
 
 ```sh
 curl localhost:8080/health
@@ -36,42 +44,52 @@ curl -X PATCH -H 'x-api-key: editor-key' -H 'content-type: application/json' \
 curl -X DELETE -H 'x-api-key: editor-key' localhost:8080/tasks/3
 ```
 
+Errors are `application/problem+json` (RFC 9457): a `status`, a `detail`, a
+stable `code` and, for a bad body, `errors` with a JSON `pointer`.
+
 | Request | Answer |
 | --- | --- |
 | `GET /health` | `{"status": "ok", "name": "tasks_api"}`, no key needed |
-| `/tasks` without `x-api-key`, or an unknown key | 401 |
-| `GET /tasks`, `GET /tasks/:id` with `reader-key` or `editor-key` | the tasks; `?done=maybe` or `/tasks/one` is 400, an unknown id 404 |
-| `POST`, `PATCH`, `DELETE` with `reader-key` | 403 |
+| `/tasks` without `x-api-key`, or an unknown key | 401, `code: api_key_invalid` |
+| `GET /tasks`, `GET /tasks/:id` with `reader-key` or `editor-key` | the tasks; `?done=maybe` or `/tasks/one` is 400, an unknown id 404 (`task_not_found`) |
+| `POST`, `PATCH`, `DELETE` with `reader-key` | 403, `code: role_required` |
 | `POST /tasks` with `editor-key` | 201, `location: /tasks/3`, the title trimmed |
-| every response | `x-request-id` (middleware); routed ones also `server-timing` (interceptor) |
+| every response | `x-request-id` (middleware); routed ones also `server-timing` (global hook) |
 
 ## Where each feature is
 
 | Feature | File |
 | --- | --- |
-| Global module, tokens, `Value` | `lib/src/config/config_module.dart` |
+| Global module, `@Provides` | `lib/src/config/config_module.dart` |
 | Module with imports and exports | `lib/src/tasks/tasks_module.dart`, `lib/src/auth/auth_module.dart` |
-| Interface bound to an implementation (`Bind`) | `lib/src/tasks/tasks_module.dart` (`TaskStore` → `InMemoryTaskStore`) |
-| Injection by type and by token (`@Inject`) | `lib/src/tasks/tasks_service.dart`, `lib/src/auth/api_keys.dart` |
-| Controller, routes, parameters, body DTOs | `lib/src/tasks/tasks_controller.dart`, `create_task_dto.dart`, `update_task_dto.dart` |
-| Guards and route metadata | `lib/src/auth/api_key_guard.dart`, `roles_guard.dart`, `roles.dart` |
-| Pipe | `lib/src/common/trim_strings_pipe.dart` |
-| Exception filter | `lib/src/tasks/task_not_found_filter.dart` |
-| Application-level interceptor | `lib/src/common/timing_interceptor.dart`, `lib/src/server/tasks_app.dart` |
-| Middleware | `lib/src/common/request_id_middleware.dart` |
-| Adapter choice | `bin/main.dart` |
+| Interface bound to an implementation (`Bind`) | `lib/src/tasks/tasks_module.dart` (`TaskStore` to `InMemoryTaskStore`) |
+| `@Api`, routes, `@Path`/`@Query`/`@Body` | `lib/src/tasks/tasks_api.dart`, `create_task.dart`, `update_task.dart` |
+| Hook by type (resolved from DI) | `lib/src/auth/api_key_hook.dart` (`HookRef<ApiKeyHook>.type()`) |
+| Hook by instance, per route | `lib/src/auth/roles_hook.dart`, `lib/src/tasks/location_hook.dart` |
+| Hook that turns a domain error into a problem | `lib/src/tasks/task_not_found_hook.dart` |
+| Global hook and middleware | `lib/src/common/timing_hook.dart`, `request_id_middleware.dart`, `lib/src/server/serving_module.dart` |
+| Adapter choice | `lib/src/server/serving_module.dart`, `bin/main.dart` |
+| The generated glue | `lib/src/**/*_module.g.dart`, `lib/src/**/*_api.g.dart` |
 | The explicit-API twin | `lib/explicit.dart` |
 
-## Change the annotations
+## Generated files
 
-After editing an annotated class, regenerate and commit the library:
+A library with a `@Module` gets `<name>_module.g.dart` (the `$Module`
+mixin, imported by the library and applied with `with $Module`); a library
+with an `@Api` gets `<name>_api.g.dart`, a `part` of it (the library says
+`part '<name>_api.g.dart';` and imports `package:grund_http/grund_http.dart
+as http`). After editing an annotated class, regenerate and commit:
 
 ```sh
 dart run grund_cli gen
 ```
 
-`test/generated_library_test.dart` fails while the committed file is out
-of date.
+`test/generated_library_test.dart` runs the same generation in a temporary
+directory and fails while the committed set differs (a changed, missing or
+extra file). Instead of the CLI, `grund_build` generates the same files
+under `dart run build_runner build` (add it as a dev dependency next to
+`build_runner`); both write identical bytes, so either accepts the other's
+output.
 
 ## Hot reload
 
@@ -81,12 +99,12 @@ dart run grund_cli dev                   # or: dart run grund_cli dev -- --shelf
 
 `dev` generates, starts `bin/main.dart` and watches `lib/` and `bin/`:
 
-- Change the body of `HealthController.check` and save: the next
-  `GET /health` answers with the new code, the process id stays and the
-  tasks you created are still there (for example `Reloaded 7 libraries
-  in 82 ms, 0 routes changed.`; the timing and the library count vary).
-- Add a route (`@Get('/live')` on `HealthController`): the library is
-  regenerated and reloaded (`1 route changed`).
+- Change the body of `HealthApi.check` and save: the next `GET /health`
+  answers with the new code, the process id stays and the tasks you created
+  are still there (`Reloaded 7 libraries in 82 ms, 0 added, 0 removed.`;
+  the timing and the library count vary).
+- Add a route (`@Get('/live')` on `HealthApi`): the files are regenerated
+  and reloaded (`1 added, 0 removed` and the line `+ GET /health/live`).
 - Add a field to a class: `dev` restarts the process instead (`Restarting
   bin/main.dart: ... changed a field, a constructor or a top-level
   variable.`) and the in-memory tasks start over.
@@ -100,8 +118,10 @@ dart test
 ```
 
 - `test/e2e_test.dart`: both graphs on both adapters, over loopback.
-- `test/in_process_test.dart`: `TestClient`, no server.
+- `test/in_process_test.dart`: `TestApp` and `TestClient`, no socket.
 - `test/tasks_service_test.dart`: the service alone, and a test module
   with a fake store.
-- `test/generated_library_test.dart`: the committed generated library is
+- `test/server_options_test.dart`, `test/main_process_test.dart`: the
+  command line, a port in use (exit 1) and SIGTERM (exit 0).
+- `test/generated_library_test.dart`: the committed generated files are
   what `grund_cli gen` writes.

@@ -2,6 +2,7 @@
 // the explicit API swaps the store for a fake, even though the application
 // itself is wired with annotations.
 import 'package:grund/grund.dart';
+import 'package:grund/testing.dart';
 import 'package:tasks_api/tasks_api.dart';
 import 'package:test/test.dart';
 
@@ -23,6 +24,20 @@ final class _EmptyStore implements TaskStore {
   bool remove(int id) => false;
 }
 
+/// A test module written with the explicit API.
+final class _FakeStoreModule extends Module {
+  const _FakeStoreModule();
+
+  @override
+  List<Binding<Object>> get bindings => [
+    Singleton<TaskStore>((_) => _EmptyStore(), dependsOn: const []),
+    Singleton<TasksService>(
+      (i) => TasksService(i<TaskStore>()),
+      dependsOn: const [Key<TaskStore>()],
+    ),
+  ];
+}
+
 void main() {
   test('list filters by state', () {
     final service = TasksService(InMemoryTaskStore());
@@ -34,23 +49,15 @@ void main() {
   test('update changes only the given fields', () {
     final service = TasksService(InMemoryTaskStore());
 
-    final task = service.update(2, const UpdateTaskDto(title: 'Run it again'));
+    final task = service.update(2, const UpdateTask(title: 'Run it again'));
 
     expect(task.toJson(), {'id': 2, 'title': 'Run it again', 'done': true});
   });
 
   test('a test module provides a fake store through DI', () async {
-    final container = await Container.create(
-      Module(
-        id: 'test',
-        providers: [
-          Provider<TaskStore>((i) => _EmptyStore()),
-          Provider((i) => TasksService(i.get())),
-        ],
-      ),
-    );
-    addTearDown(container.close);
-    final service = container.root.get<TasksService>();
+    final app = await TestApp.start(root: const _FakeStoreModule());
+    addTearDown(app.close);
+    final service = app<TasksService>();
 
     expect(service.list(), isEmpty);
     expect(() => service.find(1), throwsA(isA<TaskNotFound>()));

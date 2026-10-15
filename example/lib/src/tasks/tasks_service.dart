@@ -1,10 +1,10 @@
-import 'package:grund_annotations/grund_annotations.dart';
+import 'package:grund/annotations.dart';
 
-import 'create_task_dto.dart';
+import 'create_task.dart';
 import 'task.dart';
 import 'task_not_found.dart';
 import 'task_store.dart';
-import 'update_task_dto.dart';
+import 'update_task.dart';
 
 /// The task use cases; knows nothing about HTTP.
 @Injectable()
@@ -25,12 +25,12 @@ final class TasksService {
   Task find(int id) => store.find(id) ?? (throw TaskNotFound(id));
 
   /// Adds a task.
-  Task create(CreateTaskDto dto) => store.add(dto.title);
+  Task create(CreateTask body) => store.add(body.title);
 
-  /// Changes the fields of task [id] that [dto] gives; throws
+  /// Changes the fields of task [id] that [body] gives; throws
   /// [TaskNotFound].
-  Task update(int id, UpdateTaskDto dto) {
-    final task = find(id).copyWith(title: dto.title, done: dto.done);
+  Task update(int id, UpdateTask body) {
+    final task = find(id).copyWith(title: body.title, done: body.done);
     store.replace(task);
     return task;
   }

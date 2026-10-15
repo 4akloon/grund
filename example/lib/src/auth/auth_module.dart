@@ -1,14 +1,12 @@
-import 'package:grund_annotations/grund_annotations.dart';
+import 'package:grund/annotations.dart';
+import 'package:grund/grund.dart' as grund;
 
-import 'api_key_guard.dart';
-import 'api_keys.dart';
-import 'roles_guard.dart';
+import 'api_key_hook.dart';
+import 'auth_module_module.g.dart';
 
-/// API keys and the guards that check them; modules that protect routes
-/// import it.
-@Module(
-  id: 'auth',
-  providers: [ApiKeys, ApiKeyGuard, RolesGuard],
-  exports: [ApiKeyGuard, RolesGuard],
-)
-final class AuthModule {}
+/// The API key check; modules that protect routes import it.
+@Module(providers: [ApiKeyHook], exports: [ApiKeyHook])
+final class AuthModule extends grund.Module with $AuthModule {
+  /// Creates the module.
+  const AuthModule();
+}
