@@ -4,7 +4,7 @@ import 'current_user.dart';
 import 'role.dart';
 
 /// Allows a route only for [role]; runs after `ApiKeyHook`, which stores
-/// the caller. An instance hook: `HookRef<RolesHook>.instance(...)`.
+/// the caller. An instance hook: `use: [RolesHook(Role.editor)]`.
 final class RolesHook extends HttpHook {
   /// Allows [role].
   const RolesHook(this.role);

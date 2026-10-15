@@ -1,5 +1,4 @@
 import 'package:grund_http/annotations.dart';
-import 'package:grund_http/grund_http.dart';
 import 'package:grund_http/grund_http.dart' as http;
 
 import 'auth.dart';
@@ -8,7 +7,7 @@ import 'users.dart';
 part 'users_api.g.dart';
 
 /// The users API.
-@Api('/users', use: [HookRef<UserMissingHook>.type()])
+@Api('/users', use: [UserMissingHook])
 final class UsersApi {
   /// Creates the API.
   UsersApi(this.users);
@@ -46,8 +45,8 @@ final class UsersApi {
     '/',
     status: 201,
     use: [
-      HookRef<AuthHook>.type(),
-      HookRef<RolesHook>.instance(RolesHook(['admin'])),
+      AuthHook,
+      RolesHook(['admin']),
     ],
   )
   Future<User> create(@Body() CreateUser body) async => users.create(body.name);
@@ -56,8 +55,8 @@ final class UsersApi {
   @Delete(
     '/:id',
     use: [
-      HookRef<AuthHook>.type(),
-      HookRef<RolesHook>.instance(RolesHook(['admin'])),
+      AuthHook,
+      RolesHook(['admin']),
     ],
   )
   void remove(@Path() int id) => users.remove(id);

@@ -2,6 +2,11 @@
 
 Initial release.
 
+- `use:` entries of `@Api` and the route annotations: a hook class, a const
+  instance of a hook or a `HookRef` constant, all generated as the same
+  `http.HookRef<T>.type()` / `.instance(...)`. Anything else is reported as
+  `invalid_hook`, naming the entry and the three accepted forms.
+
 - `ApiConstruct`: a `Construct` for `grund_generator` that reads `@Api`
   classes, their routes, parameters, hooks, validators and bodies, claims
   an `@Api` class listed in a module's `providers`, and reports their

@@ -15,8 +15,14 @@ sealed class RouteAnnotation {
   /// The response status; `null` leaves the default of the response.
   final int? status;
 
-  /// `HookRef` constants (`grund_http`), run for this route after the hooks
-  /// of the API.
+  /// The hooks run for this route after the hooks of the API, in order. An
+  /// entry is one of:
+  ///
+  /// - a hook class, `ApiKeyHook`: resolved from the module graph, so the
+  ///   module must provide it;
+  /// - a constant hook instance, `RolesHook(Role.editor)`: its class needs a
+  ///   `const` constructor;
+  /// - a `HookRef` constant (`grund_http`), as in the explicit API.
   final List<Object> use;
 }
 

@@ -1,5 +1,4 @@
 import 'package:grund_http/annotations.dart';
-import 'package:grund_http/grund_http.dart';
 import 'package:grund_http/grund_http.dart' as http;
 
 import '../auth/api_key_hook.dart';
@@ -15,10 +14,7 @@ import 'update_task.dart';
 part 'tasks_api.g.dart';
 
 /// `/tasks`: every route needs an API key; changes need the editor role.
-@Api(
-  '/tasks',
-  use: [HookRef<ApiKeyHook>.type(), HookRef<TaskNotFoundHook>.type()],
-)
+@Api('/tasks', use: [ApiKeyHook, TaskNotFoundHook])
 final class TasksApi {
   /// Serves [service].
   TasksApi(this.service);
@@ -35,22 +31,15 @@ final class TasksApi {
   Task find(@Path() int id) => service.find(id);
 
   /// `POST /tasks`: 201 with the new task and its `location`.
-  @Post(
-    '/',
-    status: 201,
-    use: [
-      HookRef<RolesHook>.instance(RolesHook(Role.editor)),
-      HookRef<LocationHook>.instance(LocationHook()),
-    ],
-  )
+  @Post('/', status: 201, use: [RolesHook(Role.editor), LocationHook()])
   Task create(@Body() CreateTask body) => service.create(body);
 
   /// `PATCH /tasks/:id`: changes the title or the state.
-  @Patch('/:id', use: [HookRef<RolesHook>.instance(RolesHook(Role.editor))])
+  @Patch('/:id', use: [RolesHook(Role.editor)])
   Task update(@Path() int id, @Body() UpdateTask body) =>
       service.update(id, body);
 
   /// `DELETE /tasks/:id`: 204.
-  @Delete('/:id', use: [HookRef<RolesHook>.instance(RolesHook(Role.editor))])
+  @Delete('/:id', use: [RolesHook(Role.editor)])
   void remove(@Path() int id) => service.delete(id);
 }

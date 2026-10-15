@@ -12,6 +12,12 @@ import 'http_hook.dart';
 ///
 /// The hook type is a type argument because the graph is resolved by type
 /// and a `Type` value cannot be turned into an instance without mirrors.
+/// Keep the argument on `.instance` in a list typed `List<HookRef<HttpHook>>`:
+/// without it the context infers `HttpHook` as [hookType].
+///
+/// In the annotations of `grund_http/annotations.dart` the wrapper is not
+/// needed: `use: [ApiKeyHook, RolesHook(Role.editor)]` (a hook class, a const
+/// instance) generates these references.
 final class HookRef<T extends HttpHook> {
   /// Refers to the hook of type [T] that the module graph provides.
   const HookRef.type() : _instance = null;

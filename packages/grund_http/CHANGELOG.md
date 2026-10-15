@@ -1,6 +1,9 @@
 ## 0.1.0
 
 - Initial release.
+- The `use:` of `@Api` and of the route annotations takes a hook class
+  (`ApiKeyHook`), a const hook instance (`RolesHook(Role.editor)`) or a
+  `HookRef` constant; the `HookRef` explicit API is unchanged.
 - `HttpException.cause` and `causeStackTrace` (forwarded by every built-in
   subclass) keep the error a hook or handler replaced. The responder logs
   such an exception on `grund.http` (`SEVERE` from status 500, else `FINE`)

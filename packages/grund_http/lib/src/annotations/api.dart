@@ -6,7 +6,7 @@
 /// `Get`, `Post`, `Put`, `Patch` or `Delete` become routes.
 ///
 /// ```dart
-/// @Api('/tasks', use: [HookRef<ApiKeyHook>.type()])
+/// @Api('/tasks', use: [ApiKeyHook])
 /// final class TasksApi {
 ///   TasksApi(this.service);
 ///   final TasksService service;
@@ -23,6 +23,14 @@ final class Api {
   /// Path prefix of every route.
   final String path;
 
-  /// `HookRef` constants (`grund_http`), run for every route of the API.
+  /// The hooks run for every route of the API, in order. An entry is one of:
+  ///
+  /// - a hook class, `ApiKeyHook`: resolved from the module graph, so the
+  ///   module must provide it;
+  /// - a constant hook instance, `RolesHook(Role.editor)`: its class needs a
+  ///   `const` constructor;
+  /// - a `HookRef` constant (`grund_http`), as in the explicit API.
+  ///
+  /// The generator turns each form into the same `HookRef`.
   final List<Object> use;
 }

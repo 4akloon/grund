@@ -8,6 +8,10 @@ parameters (`@Path`, `@Query`, `@Header`, `@Cookie`, `@Body`), hooks
 request and response bodies. The annotations themselves stay in
 `grund_annotations`.
 
+An entry of `use:` is a hook class (`ApiKeyHook`, taken from the module
+graph), a const hook instance (`RolesHook(Role.editor)`) or a `HookRef`
+constant; all three generate the same code.
+
 A driver (the CLI, the build_runner builder) composes the constructs
 statically:
 

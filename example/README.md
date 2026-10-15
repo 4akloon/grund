@@ -64,7 +64,7 @@ stable `code` and, for a bad body, `errors` with a JSON `pointer`.
 | Module with imports and exports | `lib/src/tasks/tasks_module.dart`, `lib/src/auth/auth_module.dart` |
 | Interface bound to an implementation (`Bind`) | `lib/src/tasks/tasks_module.dart` (`TaskStore` to `InMemoryTaskStore`) |
 | `@Api`, routes, `@Path`/`@Query`/`@Body` | `lib/src/tasks/tasks_api.dart`, `create_task.dart`, `update_task.dart` |
-| Hook by type (resolved from DI) | `lib/src/auth/api_key_hook.dart` (`HookRef<ApiKeyHook>.type()`) |
+| Hook by type (resolved from DI) | `lib/src/auth/api_key_hook.dart` (`use: [ApiKeyHook]`) |
 | Hook by instance, per route | `lib/src/auth/roles_hook.dart`, `lib/src/tasks/location_hook.dart` |
 | Hook that turns a domain error into a problem | `lib/src/tasks/task_not_found_hook.dart` |
 | Global hook and middleware | `lib/src/common/timing_hook.dart`, `request_id_middleware.dart`, `lib/src/server/serving_module.dart` |
