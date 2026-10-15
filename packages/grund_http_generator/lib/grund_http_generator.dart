@@ -20,3 +20,4 @@ export 'src/model/return_kind.dart';
 export 'src/model/route_model.dart';
 export 'src/model/validator_model.dart';
 export 'src/model/value_kind.dart';
+export 'src/standard_generator.dart' show StandardGenerator;

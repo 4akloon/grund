@@ -3,9 +3,9 @@ import 'dart:io';
 
 import 'package:args/command_runner.dart';
 import 'package:grund_generator/grund_generator.dart';
+import 'package:grund_http_generator/grund_http_generator.dart';
 
 import '../dev/terminal_keys.dart';
-import '../generate/default_generator.dart';
 import 'cli_exit_code.dart';
 import 'cli_failure.dart';
 import 'dev_command.dart';
@@ -27,7 +27,7 @@ final class GrundCli {
   GrundCli({
     StringSink? out,
     StringSink? err,
-    this.generator = DefaultGenerator.instance,
+    this.generator = StandardGenerator.instance,
     Interruption? interruption,
     Stream<String> Function()? keys,
   }) : out = out ?? stdout,

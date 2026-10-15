@@ -1,8 +1,8 @@
 import 'package:grund_generator/grund_generator.dart';
+import 'package:grund_http_generator/grund_http_generator.dart';
 import 'package:path/path.dart' as p;
 
 import '../package/package_root.dart';
-import 'default_generator.dart';
 import 'generation_report.dart';
 import 'output_writer.dart';
 import 'package_analysis.dart';
@@ -14,7 +14,7 @@ import 'write_outcome.dart';
 /// the files they are told about. `gen`, `gen --watch` and `dev` drive it.
 final class GenerationSession {
   /// Opens the session for [package], generating with [generator].
-  GenerationSession(this.package, {this.generator = DefaultGenerator.instance})
+  GenerationSession(this.package, {this.generator = StandardGenerator.instance})
     : _analysis = PackageAnalysis(package),
       _writer = OutputWriter(package);
 

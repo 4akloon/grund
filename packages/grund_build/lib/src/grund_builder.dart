@@ -31,15 +31,7 @@ import 'syntax_check.dart';
 /// or not, fails the step as far as writing goes: nothing is written then.
 final class GrundBuilder implements Builder {
   /// Creates the builder, generating with [generator].
-  const GrundBuilder({this.generator = defaultGenerator});
-
-  /// The constructs the builder runs unless it is given others: modules
-  /// with their bindings, and `@Api` classes with their routes; the set
-  /// `grund_cli` runs.
-  static const defaultGenerator = GrundGenerator([
-    ModuleConstruct(),
-    ApiConstruct(),
-  ]);
+  const GrundBuilder({this.generator = StandardGenerator.instance});
 
   /// The constructs that run.
   final GrundGenerator generator;

@@ -104,10 +104,11 @@ its own declares its own builder. With `build`, `grund_build`,
 import 'package:build/build.dart';
 import 'package:grund_build/grund_build.dart';
 import 'package:grund_generator/grund_generator.dart';
+import 'package:grund_http_generator/grund_http_generator.dart';
 
 Builder shopBuilder(BuilderOptions options) => GrundBuilder(
   generator: GrundGenerator([
-    ...GrundBuilder.defaultGenerator.constructs,
+    ...StandardGenerator.instance.constructs,
     // MyConstruct(),
   ]),
 );

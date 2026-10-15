@@ -10,3 +10,6 @@ Initial release.
   http.HttpApi` per `@Api` class. The library that declares the class must
   include the part and import `package:grund_http/grund_http.dart as http`;
   `missing_part_directive` and `missing_required_import` say what to add.
+- `StandardGenerator.instance`: the generator the CLI and the build_runner
+  builder run (`ModuleConstruct` and `ApiConstruct`), so both write the
+  same files.
