@@ -18,6 +18,7 @@ final class PackageModel {
     this.strayProvides = const [],
     this.unsupportedUses = const [],
     this.extensions = const [],
+    this.libraryPaths = const [],
   });
 
   /// The package name; the output is a `X.module.g.dart` per source library
@@ -46,6 +47,10 @@ final class PackageModel {
   /// What the constructs collected for themselves (`Construct.collect`), in
   /// construct order.
   final List<ExtensionModel> extensions;
+
+  /// The package-relative paths of the source libraries (generated outputs
+  /// excluded), in library-URI order: where a generated `part` may attach.
+  final List<String> libraryPaths;
 
   /// The extension model of type [T], or `null` when no construct collected
   /// one.

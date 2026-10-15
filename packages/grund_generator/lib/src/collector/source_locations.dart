@@ -32,6 +32,11 @@ final class SourceLocations {
     );
   }
 
+  /// The package-relative path of the file of [library] (the library URI
+  /// outside [packageRoot]).
+  String pathOf(LibraryElement library) =>
+      _display(library.firstFragment.source.fullName, library.uri);
+
   String _display(String file, Uri libraryUri) {
     if (!p.isWithin(packageRoot, file)) return '$libraryUri';
     return p.posix.joinAll(p.split(p.relative(file, from: packageRoot)));

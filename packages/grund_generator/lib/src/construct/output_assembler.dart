@@ -41,12 +41,12 @@ final class OutputAssembler {
     final duplicates = <Diagnostic>[];
     for (final MapEntry(key: path, value: group) in byPath.entries) {
       duplicates.addAll(_duplicateNames(group));
-      files[path] = _write(path, group);
+      files[path] = _write(path, group, byPath.keys.toSet());
     }
     return (files: files, duplicates: duplicates..sort());
   }
 
-  String _write(String path, List<GeneratedUnit> group) {
+  String _write(String path, List<GeneratedUnit> group, Set<String> targets) {
     if (group.every((unit) => unit is LibraryUnit)) {
       return LibraryWriter.write(
         packageName: package.packageName,
@@ -57,6 +57,7 @@ final class OutputAssembler {
     final parts = group.whereType<PartUnit>().toList();
     final hosts = {for (final part in parts) part.hostPath};
     if (parts.length == group.length && hosts.length == 1) {
+      _requireHost(path, hosts.single, targets);
       return LibraryWriter.writePart(
         partOf: p.posix.relative(hosts.single, from: p.posix.dirname(path)),
         languageVersion: package.languageVersion,
@@ -67,6 +68,19 @@ final class OutputAssembler {
     throw StateError(
       'The generated units for $path cannot form one file: '
       '${group.map((unit) => unit.runtimeType).join(', ')}.',
+    );
+  }
+
+  // A part of nothing, or of itself, is a construct bug, like the other
+  // path disagreements.
+  void _requireHost(String path, String host, Set<String> targets) {
+    if (host != path &&
+        (targets.contains(host) || package.libraryPaths.contains(host))) {
+      return;
+    }
+    throw StateError(
+      'The part $path belongs to $host, which is neither a source library '
+      'of the package nor another generated file.',
     );
   }
 

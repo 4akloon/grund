@@ -8,6 +8,12 @@ final _package = PackageModel(
   languageVersion: Version(3, 8, 0),
 );
 
+final _packageWithTasks = PackageModel(
+  packageName: 'app',
+  languageVersion: Version(3, 8, 0),
+  libraryPaths: const ['lib/src/tasks.dart'],
+);
+
 const _library = 'lib/app.grund.dart';
 
 /// A construct with fixed output.
@@ -198,7 +204,7 @@ void _parts() {
           ),
         ],
       ),
-    ]).generate(_package);
+    ]).generate(_packageWithTasks);
     final part = result.files['lib/src/tasks.api.g.dart'];
 
     expect(part, startsWith(LibraryWriter.header));
@@ -223,5 +229,59 @@ void _parts() {
       throwsStateError,
     );
     expect(() => generate([const _OtherUnit()]), throwsStateError);
+  });
+
+  group('the host of a part', () {
+    PartUnit part({required String path, required String hostPath}) => PartUnit(
+      path: path,
+      hostPath: hostPath,
+      name: 'tasks',
+      spec: Method(
+        (b) => b
+          ..name = 'tasks'
+          ..returns = refer('int')
+          ..lambda = true
+          ..body = const Code('1'),
+      ),
+      origin: const SourceLocation('lib/src/tasks.dart', 1, 1),
+    );
+
+    GenerationResult generate(
+      PackageModel package,
+      List<GeneratedUnit> units,
+    ) => GrundGenerator([_FixedConstruct(units: units)]).generate(package);
+
+    test('is a source library of the package', () {
+      expect(
+        () => generate(_package, [
+          part(path: 'lib/a.api.g.dart', hostPath: 'lib/a.dart'),
+        ]),
+        throwsA(
+          isA<StateError>().having(
+            (e) => e.message,
+            'message',
+            contains('lib/a.dart'),
+          ),
+        ),
+      );
+    });
+
+    test('may be a generated library', () {
+      final result = generate(_package, [
+        _function('a', 1, path: 'lib/a.module.g.dart'),
+        part(path: 'lib/a.api.g.dart', hostPath: 'lib/a.module.g.dart'),
+      ]);
+
+      expect(result.isSuccess, isTrue);
+    });
+
+    test('is not the part itself', () {
+      expect(
+        () => generate(_packageWithTasks, [
+          part(path: 'lib/src/tasks.dart', hostPath: 'lib/src/tasks.dart'),
+        ]),
+        throwsStateError,
+      );
+    });
   });
 }

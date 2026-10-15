@@ -15,6 +15,10 @@
 /// `duplicate_generated_name` and `conflicting_provider_claim` (two
 /// constructs claim one provider).
 ///
+/// The emitters the core uses for bindings, constants, types and strings
+/// are public too, so a construct writes its output the same way (every user
+/// string through [DartString]).
+///
 /// The model, [Construct] with its phases and the collector building
 /// blocks ([Annotations], [TypeReader], [ConstantReader], ...) are public
 /// so other packages can add constructs of their own.
@@ -43,7 +47,13 @@ export 'src/diagnostic/diagnostic.dart';
 export 'src/diagnostic/diagnostic_code.dart';
 export 'src/diagnostic/source_location.dart';
 export 'src/diagnostic/syntax_problem.dart';
+export 'src/emit/binding_emitter.dart';
+export 'src/emit/constant_emitter.dart';
+export 'src/emit/core_references.dart';
+export 'src/emit/dart_string.dart';
 export 'src/emit/library_writer.dart';
+export 'src/emit/override_getter.dart';
+export 'src/emit/type_emitter.dart';
 export 'src/model/binding_key.dart';
 export 'src/model/binding_lookup.dart';
 export 'src/model/binding_model.dart';

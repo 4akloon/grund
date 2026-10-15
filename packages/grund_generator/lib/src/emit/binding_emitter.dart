@@ -22,7 +22,7 @@ abstract final class BindingEmitter {
   static Expression provider(ProviderModel provider) {
     final injectable = provider.injectable;
     final dependencies = injectable.constructor.dependencies;
-    return _binding(
+    return binding(
       key: provider.key,
       lifetime: injectable.lifetime,
       dependencies: dependencies,
@@ -33,20 +33,22 @@ abstract final class BindingEmitter {
   }
 
   /// The binding of a `@Provides` method; [provided] must have a key.
-  static Expression provides(ProvidesModel provided, BindingKey key) =>
-      _binding(
-        key: key,
-        lifetime: provided.lifetime,
-        dependencies: provided.dependencies,
-        create: TypeEmitter.reference(provided.owner)
-            .property(provided.methodName)
-            .call(
-              _positional(provided.dependencies),
-              _named(provided.dependencies),
-            ),
-      );
+  static Expression provides(ProvidesModel provided, BindingKey key) => binding(
+    key: key,
+    lifetime: provided.lifetime,
+    dependencies: provided.dependencies,
+    create: TypeEmitter.reference(provided.owner)
+        .property(provided.methodName)
+        .call(
+          _positional(provided.dependencies),
+          _named(provided.dependencies),
+        ),
+  );
 
-  static Expression _binding({
+  /// The binding of [key] with [lifetime] whose factory is [create], a
+  /// lambda body over the module's `Injector` (see [inject]), and
+  /// [dependencies] are what it resolves.
+  static Expression binding({
     required BindingKey key,
     required Lifetime lifetime,
     required List<DependencyModel> dependencies,
@@ -85,7 +87,8 @@ abstract final class BindingEmitter {
     ]);
   }
 
-  static Expression _inject(BindingKey key) => refer('i').call(
+  /// The expression that resolves [key] from the injector `i`.
+  static Expression inject(BindingKey key) => refer('i').call(
     [if (key.name case final name?) DartString.expression(name)],
     const {},
     [TypeEmitter.reference(key.type)],
@@ -94,12 +97,12 @@ abstract final class BindingEmitter {
   static List<Expression> _positional(List<DependencyModel> dependencies) => [
     for (final dependency in dependencies)
       if (!dependency.isNamed)
-        if (dependency.key case final key?) _inject(key),
+        if (dependency.key case final key?) inject(key),
   ];
 
   static Map<String, Expression> _named(List<DependencyModel> dependencies) => {
     for (final dependency in dependencies)
       if (dependency.isNamed)
-        if (dependency.key case final key?) dependency.name: _inject(key),
+        if (dependency.key case final key?) dependency.name: inject(key),
   };
 }

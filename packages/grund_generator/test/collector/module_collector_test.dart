@@ -21,6 +21,13 @@ void main() {
   ModuleModel module(String name) =>
       package.modules.firstWhere((m) => m.type.name == name);
 
+  test('the source libraries are listed by package-relative path', () {
+    expect(package.libraryPaths, [
+      'lib/modules/basic.dart',
+      'lib/modules/invalid_entries.dart',
+    ]);
+  });
+
   test('modules come in library URI order', () {
     expect(package.languageVersion.toString(), '3.8.0');
     expect(

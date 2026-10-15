@@ -83,6 +83,7 @@ final class PackageCollector {
       strayProvides: parts.strayProvides,
       unsupportedUses: parts.unsupported,
       extensions: _extensions(sorted),
+      libraryPaths: [for (final library in sorted) _locations.pathOf(library)],
     );
   }
 
