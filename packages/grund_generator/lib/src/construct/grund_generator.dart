@@ -1,6 +1,5 @@
 import 'package:code_builder/code_builder.dart';
 
-import '../constructs/api_construct.dart';
 import '../constructs/module_construct.dart';
 import '../diagnostic/diagnostic.dart';
 import '../diagnostic/diagnostic_code.dart';
@@ -20,9 +19,10 @@ final class GrundGenerator {
   /// Creates the generator; [constructs] run in order.
   const GrundGenerator(this.constructs);
 
-  /// The v1 constructs: modules with their bindings, and APIs.
-  const GrundGenerator.core()
-    : constructs = const [ModuleConstruct(), ApiConstruct()];
+  /// The core constructs: modules with their bindings. A driver that
+  /// generates more adds the constructs of other packages with the
+  /// unnamed constructor.
+  const GrundGenerator.core() : constructs = const [ModuleConstruct()];
 
   /// The constructs.
   final List<Construct> constructs;

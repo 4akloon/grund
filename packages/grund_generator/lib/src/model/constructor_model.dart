@@ -1,7 +1,7 @@
 import 'dependency_model.dart';
 
-/// How dependency injection calls the unnamed constructor of a provider or
-/// `@Api` class.
+/// How dependency injection calls the unnamed constructor of an injectable
+/// class.
 final class ConstructorModel {
   /// A usable constructor with its [dependencies] in parameter order.
   const ConstructorModel(this.dependencies) : problem = null;

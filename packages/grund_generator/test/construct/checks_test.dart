@@ -3,7 +3,6 @@ import 'package:grund_generator/src/model/binding_key.dart';
 import 'package:grund_generator/src/model/injectable_model.dart';
 import 'package:grund_generator/src/model/lifetime.dart';
 import 'package:grund_generator/src/model/provider_model.dart';
-import 'package:grund_generator/src/constructs/route_paths.dart';
 import 'package:grund_generator/src/model/package_model.dart';
 import 'package:grund_generator/src/diagnostic/source_location.dart';
 import 'package:grund_generator/src/model/constructor_model.dart';
@@ -17,13 +16,9 @@ import '../helpers/fixture_package.dart';
 import '../helpers/graph_models.dart';
 
 void main() {
-  late PackageModel cases; // Set in setUpAll.
   late PackageModel unsupported; // Set in setUpAll.
 
   setUpAll(() async {
-    cases = await FixturePackage.open(
-      'cases_app',
-    ).collect(['lib/apis/tasks.dart', 'lib/apis/invalid.dart']);
     unsupported = await FixturePackage.open(
       'cases_app',
     ).collect(['lib/unsupported.dart', 'lib/modules/basic.dart']);
@@ -105,26 +100,6 @@ void main() {
     expect(codes(GraphModels.package([module])), ['duplicate_binding']);
   });
 
-  test('the invalid api routes report their stable codes', () {
-    expect(
-      codes(cases).toSet(),
-      containsAll([
-        'invalid_route_handler',
-        'parameter_without_source',
-        'missing_from_json',
-        'unknown_path_parameter',
-        'invalid_handler_parameter',
-        'invalid_validator',
-        'unsupported_return_type',
-        'stream_return_reserved',
-        'duplicate_route',
-        'invalid_hook',
-        'invalid_status',
-        'route_outside_api',
-      ]),
-    );
-  });
-
   test('a Bind to Object is invalid_bind', () {
     final provider = GraphModels.provider('Clock');
     final bound = ProviderModel(
@@ -184,11 +159,5 @@ void main() {
       codes(unsupported),
       containsAll(['unsupported_use', 'invalid_scope']),
     );
-  });
-
-  test('route paths join, list parameters and erase their names', () {
-    expect(RoutePaths.join('/tasks/', '/:id/'), '/tasks/:id');
-    expect(RoutePaths.parameters('/:org/users/:id/*'), ['org', 'id', '*']);
-    expect(RoutePaths.shape('/a/:x/b'), RoutePaths.shape('/a/:y/b'));
   });
 }

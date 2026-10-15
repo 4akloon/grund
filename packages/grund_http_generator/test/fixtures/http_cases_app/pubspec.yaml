@@ -1,0 +1,11 @@
+name: http_cases_app
+description: Small annotated libraries, one scenario each, for grund_http_generator tests.
+version: 0.1.0
+publish_to: none
+environment:
+  sdk: ^3.8.0
+resolution: workspace
+dependencies:
+  grund: ^0.1.0
+  grund_annotations: ^0.1.0
+  grund_http: ^0.1.0

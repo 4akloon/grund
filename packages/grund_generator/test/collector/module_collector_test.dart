@@ -15,7 +15,6 @@ void main() {
     package = await fixture.collect([
       'lib/modules/invalid_entries.dart',
       'lib/modules/basic.dart',
-      'lib/modules/with_api.dart',
     ]);
   });
 
@@ -26,7 +25,7 @@ void main() {
     expect(package.languageVersion.toString(), '3.8.0');
     expect(
       [for (final m in package.modules) m.type.name],
-      ['DbModule', 'AppModule', 'BrokenModule', 'TasksModule'],
+      ['DbModule', 'AppModule', 'BrokenModule'],
     );
   });
 

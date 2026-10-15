@@ -1,4 +1,3 @@
-import 'package:grund_generator/src/model/http_package_model.dart';
 import 'package:grund_generator/src/model/injectable_model.dart';
 import 'package:grund_generator/src/model/lifetime.dart';
 import 'package:grund_generator/src/model/package_model.dart';
@@ -72,14 +71,6 @@ void main() {
   });
 
   group('inherited and misplaced annotations', () {
-    test('an inherited route is recorded', () {
-      expect(uses('InheritingApi').single.reason, contains('Base.inherited'));
-    });
-
-    test('a mixed-in route is recorded', () {
-      expect(uses('MixingApi').single.reason, contains('RouteMixin.mixed'));
-    });
-
     test('an inherited @Provides is recorded', () {
       expect(uses('InheritingModule').single.reason, contains('Base.tx'));
     });
@@ -95,16 +86,5 @@ void main() {
         'lib/unsupported.dart',
       );
     });
-  });
-
-  test('a route path that is not a constant string is a problem', () {
-    final route = package
-        .extensionModel<HttpPackageModel>()!
-        .apis
-        .firstWhere((a) => a.type.name == 'PathApi')
-        .routes
-        .single;
-
-    expect(route.problem, contains('constant string'));
   });
 }

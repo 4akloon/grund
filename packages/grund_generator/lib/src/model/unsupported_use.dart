@@ -11,7 +11,7 @@ final class UnsupportedUse {
     required this.location,
   });
 
-  /// The name of the annotated element, such as `TasksApi` or `Base.list`.
+  /// The name of the annotated element, such as `UsersModule` or `Base.create`.
   final String element;
 
   /// Why the use is unsupported, as a sentence.

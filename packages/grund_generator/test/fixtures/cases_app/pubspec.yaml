@@ -8,4 +8,3 @@ resolution: workspace
 dependencies:
   grund: ^0.1.0
   grund_annotations: ^0.1.0
-  grund_http: ^0.1.0

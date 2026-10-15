@@ -50,31 +50,12 @@ final class ScopedModule extends grund.Module {
   static Future<Tx>? nullable() => null;
 }
 
-/// Routes and providers to inherit.
-mixin RouteMixin {
-  /// A mixed-in route.
-  @Get('/mixed')
-  String mixed() => '';
-}
-
-/// A base with a route and a provider.
+/// A base with a provider.
 base class Base {
-  /// An inherited route.
-  @Get('/inherited')
-  String inherited() => '';
-
   /// An inherited provider.
   @Provides()
   static Tx tx() => Tx();
 }
-
-/// Inherits a route.
-@Api('/a')
-final class InheritingApi extends Base {}
-
-/// Mixes in a route.
-@Api('/b')
-final class MixingApi with RouteMixin {}
 
 /// Inherits a provider.
 @Module()
@@ -87,14 +68,6 @@ mixin AnnotatedMixin {}
 /// Annotation on an enum.
 @Injectable()
 enum AnnotatedEnum { one }
-
-/// Route with a path that is not a constant string.
-@Api('/c')
-final class PathApi {
-  /// The route.
-  @Get(missingPath)
-  String route() => '';
-}
 
 /// An annotation whose constant does not evaluate at all.
 @Injectable(scope: pick())

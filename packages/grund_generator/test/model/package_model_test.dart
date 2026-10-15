@@ -13,26 +13,6 @@ void main() {
     expect(GraphModels.package([GraphModels.module('App')]).isEmpty, isFalse);
   });
 
-  test('an api makes the package non-empty', () {
-    final package = PackageModel(
-      packageName: 'app',
-      languageVersion: Version(3, 8, 0),
-      extensions: [
-        HttpPackageModel(
-          apis: [
-            ApiModel(
-              type: GraphModels.type('TasksApi'),
-              path: '/tasks',
-              location: const SourceLocation('lib/app.dart', 1, 7),
-            ),
-          ],
-        ),
-      ],
-    );
-
-    expect(package.isEmpty, isFalse);
-  });
-
   test('an injectable makes the package non-empty', () {
     final package = PackageModel(
       packageName: 'app',
