@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:grund/grund.dart' show CancelSignal;
 import 'package:grund_http/grund_http.dart';
 import 'package:test/test.dart';
 
@@ -71,6 +72,41 @@ void main() {
       expect(c.response.status, isNull);
       c.response.status = 201;
       expect(c.response.status, 201);
+    });
+  });
+
+  group('HttpCtx call scope', () {
+    test('values set on one context are not visible in another', () {
+      final first = contexts(requestFor('GET', '/'));
+      final second = contexts(requestFor('GET', '/'));
+
+      first.set<String>('mine');
+
+      expect(first<String>(), 'mine');
+      expect(() => second<String>(), throwsA(anything));
+    });
+
+    test('the cancel signal is passed through', () {
+      final cancel = CancelSignal();
+
+      expect(contexts(requestFor('GET', '/'), cancel: cancel).cancel, cancel);
+    });
+  });
+
+  group('HttpCtx cookies', () {
+    test('quoted, repeated and malformed pairs', () {
+      final c = contexts(
+        requestFor(
+          'GET',
+          '/',
+          headers: {'cookie': 'a="x y"; b=1; b=2; junk; =v'},
+        ),
+      );
+
+      expect(c.cookies.string('a'), 'x y');
+      expect(c.cookies.all('b'), ['1', '2']);
+      expect(c.cookies.all('junk'), isEmpty);
+      expect(c.cookies.all(''), isEmpty);
     });
   });
 

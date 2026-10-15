@@ -61,7 +61,7 @@ final class ProblemResponder {
   }) {
     final (listed, extra) = switch (error.details) {
       final List<Object?> list
-          when list.isNotEmpty && list.every((item) => item is ProblemError) =>
+          when list.every((item) => item is ProblemError) =>
         (list.cast<ProblemError>(), null),
       final other => (const <ProblemError>[], other),
     };

@@ -88,7 +88,7 @@ final class Params {
   double? decimalOrNull(String name, {double? min, double? max}) {
     final raw = _first(name);
     if (raw == null) return null;
-    final value = double.tryParse(raw);
+    final value = raw == raw.trim() ? double.tryParse(raw) : null;
     if (value == null || !value.isFinite) _fail(name, raw, 'a number');
     ParamConstraints.checkRange(location, name, value, min: min, max: max);
     return value;

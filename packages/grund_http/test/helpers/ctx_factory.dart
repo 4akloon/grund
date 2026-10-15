@@ -22,12 +22,14 @@ final class CtxFactory {
     HttpRequest request, {
     Map<String, String> pathParameters = const {},
     int? maxBodyBytes,
+    CancelSignal? cancel,
   }) => HttpCtx(
     request: request,
     scope: _app.injector.openCall(),
     response: ResponseHead(),
     pathParameters: pathParameters,
     maxBodyBytes: maxBodyBytes,
+    cancel: cancel,
   );
 
   /// Closes the application.

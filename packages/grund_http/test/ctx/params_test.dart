@@ -110,6 +110,17 @@ void main() {
       }
     });
 
+    test('a decimal with surrounding whitespace is invalid', () {
+      final params = queryOf({
+        'v': [' 1 '],
+      });
+
+      expect(
+        () => params.decimal('v'),
+        throwsA(badRequest('parameter_invalid', '/query/v')),
+      );
+    });
+
     test('an invalid OrNull value is still rejected', () {
       final params = queryOf({
         'page': ['x'],
@@ -192,6 +203,16 @@ void main() {
         () => params.string('partial', pattern: r'[a-z]+\d+'),
         throwsA(badRequest('parameter_invalid', '/query/partial')),
       );
+    });
+
+    test('a pattern alternation and a lazy quantifier match as a whole', () {
+      final params = queryOf({
+        'alt': ['ab'],
+        'lazy': ['aaa'],
+      });
+
+      expect(params.string('alt', pattern: 'a|ab'), 'ab');
+      expect(params.string('lazy', pattern: 'a+?'), 'aaa');
     });
 
     test('oneOf accepts only the listed values', () {

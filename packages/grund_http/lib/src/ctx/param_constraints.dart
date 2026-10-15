@@ -74,14 +74,16 @@ abstract final class ParamConstraints {
   }
 
   /// Checks that [value] matches [pattern] as a whole.
+  ///
+  /// A [pattern] that is not a valid regular expression is a bug of the
+  /// developer, not of the client: it throws a [FormatException] when used.
   static void checkPattern(
     ParamLocation location,
     String name,
     String value,
     String pattern,
   ) {
-    final match = RegExp(pattern).matchAsPrefix(value);
-    if (match != null && match.end == value.length) return;
+    if (RegExp('^(?:$pattern)\$').hasMatch(value)) return;
     throw invalid(location, name, value, 'a value matching /$pattern/');
   }
 

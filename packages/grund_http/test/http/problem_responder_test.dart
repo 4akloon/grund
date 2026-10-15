@@ -94,6 +94,19 @@ void main() {
       expect(body, isNot(contains('details')));
     });
 
+    test(
+      'an empty list of problem errors yields no errors and no details',
+      () async {
+        final response = responder.respond(
+          const BadRequestException(details: <ProblemError>[]),
+          StackTrace.current,
+        );
+
+        final body = await jsonOf(response) as Map<String, Object?>;
+        expect(body, isNot(contains('details')));
+      },
+    );
+
     test('details without a JSON form are sent as text', () async {
       final response = responder.respond(
         BadRequestException(details: Unprintable()),
