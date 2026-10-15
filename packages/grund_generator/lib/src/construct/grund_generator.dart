@@ -40,6 +40,7 @@ final class GrundGenerator {
         ...construct.validate(package, claims),
     }.toList()..sort();
     if (diagnostics.isNotEmpty) return GenerationResult.failed(diagnostics);
+    claims.requireEmissions();
     final output = OutputAssembler(package).assemble([
       for (final construct in constructs)
         ...construct.generate(package, claims),

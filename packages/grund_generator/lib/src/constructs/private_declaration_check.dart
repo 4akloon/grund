@@ -44,8 +44,13 @@ abstract final class PrivateDeclarationCheck {
     }
     for (final provider in module.providers) {
       final injectable = provider.injectable;
-      yield (provider.key.type, injectable.location);
-      yield (injectable.type, injectable.location);
+      // A private class has no usable constructor, which the binding check
+      // already reports at the same place.
+      final reported = injectable.constructor.problem != null;
+      if (!reported || provider.key.type != injectable.type) {
+        yield (provider.key.type, injectable.location);
+      }
+      if (!reported) yield (injectable.type, injectable.location);
       yield* _dependencies(injectable.constructor.dependencies);
     }
     for (final provided in module.provides) {

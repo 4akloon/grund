@@ -21,7 +21,8 @@ import 'unsupported_use_reader.dart';
 ///
 /// The driver resolves every library of `lib/` (the CLI with an
 /// `AnalysisContextCollection`, build_runner with its resolver) and passes
-/// them here; the generated `*.grund.dart` is skipped. The collector reads
+/// them here; the generator's own outputs (`*.module.g.dart`,
+/// `*.api.g.dart`) are skipped, so a re-run never reads its previous output. The collector reads
 /// modules, injectables and `@Provides` itself, and lets each of
 /// [constructs] read its own annotations ([Construct.collect]).
 final class PackageCollector {
@@ -50,12 +51,17 @@ final class PackageCollector {
 
   final SourceLocations _locations;
 
+  static const _outputSuffixes = ['.module.g.dart', '.api.g.dart'];
+
+  static bool _isGeneratorOutput(String uri) =>
+      _outputSuffixes.any(uri.endsWith);
+
   /// The model of [libraries], in library URI order whatever the input
   /// order.
   PackageModel collect(Iterable<LibraryElement> libraries) {
     final sorted = [
       for (final library in libraries)
-        if (!'${library.uri}'.endsWith('.grund.dart')) library,
+        if (!_isGeneratorOutput('${library.uri}')) library,
     ]..sort((a, b) => '${a.uri}'.compareTo('${b.uri}'));
     final annotations = constructs.fold(
       coreAnnotations,

@@ -92,8 +92,17 @@ void main() {
     );
   });
 
-  test('a claimed binding without an emission is a programming error', () {
-    expect(() => _generate(null), throwsStateError);
+  test('a claimed binding without an emission names its construct', () {
+    expect(
+      () => _generate(null),
+      throwsA(
+        isA<StateError>().having(
+          (e) => e.message,
+          'message',
+          allOf(contains('claiming'), contains('Tasks'), contains('emission')),
+        ),
+      ),
+    );
   });
 
   test('the bindings of a claim cannot be changed afterwards', () {

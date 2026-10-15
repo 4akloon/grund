@@ -4,6 +4,7 @@ import '../diagnostic/source_location.dart';
 import '../model/binding_key.dart';
 import '../model/dependency_model.dart';
 import '../model/injectable_model.dart';
+import '../model/lifetime.dart';
 import '../model/module_model.dart';
 import '../model/package_model.dart';
 import '../model/provider_model.dart';
@@ -97,6 +98,14 @@ abstract final class BindingCheck {
         DiagnosticCode.invalidProvides,
         provides.location,
         problem,
+      );
+    }
+    if (provides.isAsync && provides.lifetime != Lifetime.singleton) {
+      yield Diagnostic(
+        DiagnosticCode.invalidProvides,
+        provides.location,
+        '@Provides method ${provides.owner}.${provides.methodName} returns a '
+        'Future but is not a singleton; only singletons can be asynchronous.',
       );
     }
     if (provides.key case final key?) yield* _name(key, provides.location);

@@ -20,7 +20,8 @@ final class PackageModel {
     this.extensions = const [],
   });
 
-  /// The package name; the output is `lib/<packageName>.grund.dart`.
+  /// The package name; the output is a `X.module.g.dart` per source library
+  /// with modules and whatever other files the constructs write.
   final String packageName;
 
   /// The package's language version, used to format the output.

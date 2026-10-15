@@ -69,8 +69,8 @@ abstract final class ModuleEmitter {
         for (final binding in claim.bindings)
           binding.emission ??
               (throw StateError(
-                'The construct that claimed ${provider.injectable.type} gave '
-                'the binding ${binding.key} no emission.',
+                'The binding ${binding.key} has no emission; '
+                'ProviderClaims.requireEmissions must run first.',
               ))
       else
         BindingEmitter.provider(provider),
@@ -83,10 +83,16 @@ abstract final class ModuleEmitter {
       for (final export in module.exports)
         if (export case KeyExport(:final key)) key,
     ]..sort();
-    final modules = [
-      for (final export in module.exports)
-        if (export case ModuleReexport(:final type)) type,
-    ]..sort((a, b) => a.display.compareTo(b.display));
+    final modules =
+        [
+          for (final export in module.exports)
+            if (export case ModuleReexport(:final type)) type,
+        ]..sort((a, b) {
+          final byDisplay = a.display.compareTo(b.display);
+          return byDisplay != 0
+              ? byDisplay
+              : '${a.libraryUri}'.compareTo('${b.libraryUri}');
+        });
     // The core accepts a re-exported module only as an instance (like an
     // entry of `imports`), and the module classes may have no const
     // constructor, so a list with a module is not const.

@@ -69,4 +69,23 @@ void main() {
     );
     expect(result.files, isEmpty);
   });
+
+  test('a private provider class is reported once', () async {
+    final result = await generate(['lib/emit/private_types.dart']);
+    final hidden = [
+      for (final d in result.diagnostics)
+        if (d.location.line == 10) d.code.id,
+    ];
+
+    expect(hidden, ['invalid_constructor']);
+  });
+
+  test('output of an earlier run is not collected', () async {
+    final package = await fixture.collect([
+      'lib/emit/second.dart',
+      'lib/emit/stale.module.g.dart',
+    ]);
+
+    expect([for (final m in package.modules) m.type.name], ['EmitMailModule']);
+  });
 }

@@ -1,0 +1,10 @@
+// Stands for the output of an earlier run: it must not be collected.
+import 'package:grund/grund.dart' as grund;
+import 'package:grund_annotations/grund_annotations.dart';
+
+/// A module that only the stale output declares.
+@Module()
+final class StaleModule extends grund.Module {
+  /// Creates the module.
+  const StaleModule();
+}
