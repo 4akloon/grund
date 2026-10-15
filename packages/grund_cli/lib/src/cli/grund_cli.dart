@@ -5,6 +5,7 @@ import 'package:args/command_runner.dart';
 import 'package:grund_generator/grund_generator.dart';
 
 import '../dev/terminal_keys.dart';
+import '../generate/default_generator.dart';
 import 'cli_exit_code.dart';
 import 'cli_failure.dart';
 import 'dev_command.dart';
@@ -14,7 +15,7 @@ import 'interruption.dart';
 
 /// The `grund_cli` command line.
 ///
-/// `bin/grund_cli.dart` runs it with the core constructs; a package
+/// `bin/grund_cli.dart` runs it with the core and the HTTP constructs; a package
 /// with constructs of its own runs it from `tool/grund.dart`:
 /// `GrundCli(generator: GrundGenerator([...])).run(arguments)`.
 final class GrundCli {
@@ -26,7 +27,7 @@ final class GrundCli {
   GrundCli({
     StringSink? out,
     StringSink? err,
-    this.generator = const GrundGenerator.core(),
+    this.generator = DefaultGenerator.instance,
     Interruption? interruption,
     Stream<String> Function()? keys,
   }) : out = out ?? stdout,

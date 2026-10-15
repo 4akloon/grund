@@ -47,7 +47,7 @@ abstract final class ReservedNames {
 
   static const _dependencies = {
     'grund',
-    'grund_annotations',
+    'grund_http',
     'grund_cli',
     'grund_io',
     'lints',

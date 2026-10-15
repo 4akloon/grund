@@ -1,7 +1,8 @@
 import 'dart:async';
 
+import 'package:path/path.dart' as p;
+
 import '../generate/generation_report.dart';
-import '../generate/write_outcome.dart';
 import 'app_launcher.dart';
 import 'app_process.dart';
 import 'dev_printer.dart';
@@ -106,10 +107,9 @@ final class DevSession {
       printer.waiting(isRunning: _running != null);
       return;
     }
-    if (report.outcome == WriteOutcome.written ||
-        report.outcome == WriteOutcome.deleted) {
-      _unapplied.add(target.package.outputPath);
-    }
+    _unapplied.addAll([
+      for (final file in report.changedFiles) p.join(target.package.path, file),
+    ]);
     await _applyPending(_running);
   }
 

@@ -45,9 +45,6 @@ final class PackageRoot {
   /// Absolute path of `lib/`.
   String get libPath => p.join(path, 'lib');
 
-  /// Absolute path of the generated library `lib/<name>.grund.dart`.
-  String get outputPath => p.join(libPath, '$name.grund.dart');
-
   /// [file] relative to the package root with `/` separators, the way
   /// diagnostics print paths on every platform.
   String display(String file) =>

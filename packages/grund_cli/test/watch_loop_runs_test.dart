@@ -4,6 +4,7 @@ import 'package:grund_cli/src/cli/cli_exit_code.dart';
 import 'package:grund_cli/src/cli/cli_failure.dart';
 import 'package:grund_cli/src/cli/report_printer.dart';
 import 'package:grund_cli/src/generate/generation_report.dart';
+import 'package:grund_cli/src/generate/synced_files.dart';
 import 'package:grund_cli/src/generate/write_outcome.dart';
 import 'package:grund_cli/src/watch/watch_loop.dart';
 import 'package:test/test.dart';
@@ -15,9 +16,9 @@ const _debounce = Duration(milliseconds: 20);
 const _gap = Duration(milliseconds: 60);
 
 final _report = GenerationReport(
-  output: 'lib/x.grund.dart',
   outcome: WriteOutcome.written,
   elapsed: Duration.zero,
+  synced: SyncedFiles(written: ['lib/x_module.g.dart'], deleted: [], total: 1),
 );
 
 /// A loop whose runs the test releases one by one.
@@ -143,8 +144,8 @@ void main() {
     await done;
 
     expect(h.afterRuns, [
-      ' after Generated lib/x.grund.dart in 0 ms.',
-      '/pkg/lib/a.dart after Generated lib/x.grund.dart in 0 ms.',
+      ' after Generated 1 file in 0 ms.',
+      '/pkg/lib/a.dart after Generated 1 file in 0 ms.',
     ]);
   });
 

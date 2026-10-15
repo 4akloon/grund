@@ -12,20 +12,22 @@ Future<CliRun> _gen(TempPackage package) =>
     CliRun.run(['gen', '--directory', package.dir.path]);
 
 void main() {
-  test('gen writes the library and exits with 0', () async {
+  test('gen writes the files and exits with 0', () async {
     final package = await TempPackage.create('shop', ShopSources.files);
 
     final first = await _gen(package);
     final second = await _gen(package);
 
     expect(first.exitCode, CliExitCode.success.code);
-    expect(
-      first.out,
-      matches(RegExp(r'^Generated lib/shop\.grund\.dart in \d+ ms\.\n$')),
-    );
-    expect(package.dir.exists(ShopSources.output), isTrue);
+    expect(first.out, matches(RegExp(r'^Generated 2 files in \d+ ms\.\n$')));
+    for (final output in ShopSources.outputs) {
+      expect(package.dir.exists(output), isTrue);
+    }
     expect(second.exitCode, 0);
-    expect(second.out, contains('lib/shop.grund.dart is up to date'));
+    expect(
+      second.out,
+      matches(RegExp(r'^Generated files are up to date \(2 files, \d+ ms\)')),
+    );
   });
 
   test('diagnostics are printed one per line and exit with 1', () async {
@@ -38,13 +40,20 @@ void main() {
 
     expect(run.exitCode, CliExitCode.problems.code);
     expect(run.out, isEmpty);
+    final lines = run.err.trimRight().split('\n');
+    expect(lines, hasLength(2));
     expect(
-      run.err,
-      'lib/src/time_controller.dart:7:23: error: No provider for Clock in '
-      'module "app" (resolving: TimeController). [missing_provider]\n'
-      '1 problem; lib/shop.grund.dart was not changed.\n',
+      lines.first,
+      allOf(
+        startsWith('lib/src/time_api.dart:'),
+        contains('Clock'),
+        endsWith('[missing_provider]'),
+      ),
     );
-    expect(package.dir.exists(ShopSources.output), isFalse);
+    expect(lines.last, '1 problem; no generated file was changed.');
+    for (final output in ShopSources.outputs) {
+      expect(package.dir.exists(output), isFalse);
+    }
   });
 
   test('a syntax error is a problem too', () async {
@@ -82,12 +91,12 @@ void main() {
 
   test('an output that cannot be written exits with 73', () async {
     final package = await TempPackage.create('shop', ShopSources.files);
-    Directory(package.dir.resolve(ShopSources.output)).createSync();
+    Directory(package.dir.resolve(ShopSources.moduleOutput)).createSync();
 
     final run = await _gen(package);
 
     expect(run.exitCode, CliExitCode.cannotCreate.code);
-    expect(run.err, startsWith('Cannot write lib/shop.grund.dart: '));
+    expect(run.err, startsWith('Cannot write ${ShopSources.moduleOutput}: '));
   });
 
   // Review Focus 9: every way the command line can be wrong.

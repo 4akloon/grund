@@ -15,6 +15,7 @@ abstract final class ProjectTemplate {
     '.gitignore': '.dart_tool/\n',
     'analysis_options.yaml': 'include: package:lints/recommended.yaml\n',
     'bin/main.dart': _main(name),
+    'lib/src/app_module.dart': _appModule,
     'lib/src/hello.dart': _hello,
     'pubspec.yaml': _pubspec(name),
   };
@@ -31,7 +32,7 @@ environment:
 
 dependencies:
   grund: $grundVersion
-  grund_annotations: $grundVersion
+  grund_http: $grundVersion
   grund_io: $grundVersion
 
 dev_dependencies:
@@ -39,8 +40,14 @@ dev_dependencies:
   lints: ^5.1.0
 ''';
 
+  // The `part` and the prefixed import are what a host of `@Api` needs; the
+  // routes are generated into `hello_api.g.dart`.
   static const _hello = '''
-import 'package:grund_annotations/grund_annotations.dart';
+import 'package:grund/annotations.dart';
+import 'package:grund_http/annotations.dart';
+import 'package:grund_http/grund_http.dart' as http;
+
+part 'hello_api.g.dart';
 
 /// Builds greetings.
 @Injectable()
@@ -50,36 +57,52 @@ final class HelloService {
 }
 
 /// `GET /hello?name=...`.
-@Controller('/hello')
-final class HelloController {
-  /// Creates the controller.
-  HelloController(this.service);
+@Api('/hello')
+final class HelloApi {
+  /// Creates the API.
+  HelloApi(this.service);
 
   /// The service.
   final HelloService service;
 
   /// Greets [name], or the world.
-  @Get()
-  Map<String, String> hello(@Query('name') String? name) =>
+  @Get('/')
+  Map<String, String> hello(@Query() String? name) =>
       service.greet(name ?? 'world');
 }
+''';
 
-/// The root module.
-@Module(id: 'app', providers: [HelloService], controllers: [HelloController])
-final class AppModule {}
+  static const _appModule = '''
+import 'package:grund/annotations.dart';
+import 'package:grund/grund.dart' as grund;
+import 'package:grund_http/grund_http.dart';
+import 'package:grund_io/grund_io.dart';
+
+import 'app_module_module.g.dart';
+import 'hello.dart';
+
+/// The root module: the HTTP server over dart:io and the hello API.
+@Module(
+  imports: [HttpModule(), IoAdapterModule()],
+  providers: [HelloService, HelloApi],
+)
+final class AppModule extends grund.Module with \$AppModule {
+  /// Creates the module.
+  const AppModule();
+}
 ''';
 
   static String _main(String name) =>
       '''
 import 'package:grund/grund.dart';
-import 'package:grund_io/grund_io.dart';
-import 'package:$name/$name.grund.dart';
+import 'package:$name/src/app_module.dart';
 
-Future<void> main() async {
-  final adapter = IoAdapter();
-  final app = await Application.create(appModule, adapter: adapter);
-  await app.listen(port: 8080);
-  print('Listening on http://localhost:\${adapter.port}/hello');
+/// Serves the application until Ctrl+C; `--only=http` selects runners.
+///
+/// `run` prints the log to the console; see grund's `docs/logging.md` to
+/// send it elsewhere (`run(log: ...)`).
+Future<void> main(List<String> arguments) async {
+  await App(root: const AppModule()).run(only: Runners.fromArgs(arguments));
 }
 ''';
 }

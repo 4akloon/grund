@@ -10,9 +10,11 @@ import 'package:test/test.dart';
 
 import 'helpers/temp_dir.dart';
 
-const _output = 'lib/shop.grund.dart';
+const _output = 'lib/src/app_module.g.dart';
+const _api = 'lib/src/app_api.g.dart';
 
 const _source = '${LibraryWriter.header}\n\nlibrary;\n';
+const _apiSource = '${LibraryWriter.header}\n\npart of \'app.dart\';\n';
 
 (TempDir, OutputWriter) _package() {
   final dir = TempDir.create();
@@ -35,101 +37,124 @@ String? _cannotChmod() {
   return null;
 }
 
-FileUnit _unit(String path) =>
-    FileUnit(path: path, contentType: ContentType.json, content: '{}');
-
 void main() {
-  test('the library is written once and then left untouched', () {
+  test('the files are written once and then left untouched', () {
     final (dir, writer) = _package();
+    final files = {_output: _source, _api: _apiSource};
 
-    expect(writer.writeLibrary(_source), WriteOutcome.written);
+    final first = writer.sync(files);
     final modified = File(dir.resolve(_output)).lastModifiedSync();
-    expect(writer.writeLibrary(_source), WriteOutcome.unchanged);
+    final second = writer.sync(files);
 
+    expect(first.written, [_api, _output]);
+    expect(first.outcome, WriteOutcome.written);
+    expect(second.written, isEmpty);
+    expect(second.outcome, WriteOutcome.unchanged);
     expect(dir.read(_output), _source);
+    expect(dir.read(_api), _apiSource);
     expect(File(dir.resolve(_output)).lastModifiedSync(), modified);
     expect(dir.exists('$_output.tmp'), isFalse);
   });
 
-  test('a changed library replaces the old one', () {
+  test('only the changed file is written again', () {
     final (dir, writer) = _package();
-    writer.writeLibrary(_source);
+    writer.sync({_output: _source, _api: _apiSource});
 
-    expect(writer.writeLibrary('$_source// v2\n'), WriteOutcome.written);
-    expect(dir.read(_output), '$_source// v2\n');
+    final synced = writer.sync({_output: _source, _api: '$_apiSource// v2\n'});
+
+    expect(synced.written, [_api]);
+    expect(dir.read(_api), '$_apiSource// v2\n');
   });
 
-  // Review Focus 5: a hand-written file at the generated path.
+  // Review Focus 5: a hand-written file at a generated path.
   test('a file the generator did not write is never replaced', () {
+    final (dir, writer) = _package();
+    dir.write(_api, '// my own code\n');
+
+    expect(
+      () => writer.sync({_output: _source, _api: _apiSource}),
+      _cannotCreate('not generated'),
+    );
+    expect(dir.read(_api), '// my own code\n');
+  });
+
+  test('a refused file stops the whole set before anything is written', () {
     final (dir, writer) = _package();
     dir.write(_output, '// my own code\n');
 
-    expect(() => writer.writeLibrary(_source), _cannotCreate('not generated'));
-    expect(writer.deleteLibrary, _cannotCreate('not generated'));
-    expect(dir.read(_output), '// my own code\n');
+    expect(
+      () => writer.sync({_api: _apiSource, _output: _source}),
+      _cannotCreate('not generated'),
+    );
+    expect(dir.exists(_api), isFalse);
   });
 
-  test('a stale generated library is deleted', () {
+  test('a stale generated file is deleted, a hand-written one is not', () {
     final (dir, writer) = _package();
-    writer.writeLibrary(_source);
+    writer.sync({_output: _source, _api: _apiSource});
+    dir.write('lib/other_api.g.dart', '// json_serializable or by hand\n');
 
-    expect(writer.deleteLibrary(), WriteOutcome.deleted);
+    final synced = writer.sync({_output: _source});
+
+    expect(synced.deleted, [_api]);
+    expect(synced.outcome, WriteOutcome.written);
+    expect(dir.exists(_api), isFalse);
+    expect(dir.exists(_output), isTrue);
+    expect(dir.exists('lib/other_api.g.dart'), isTrue);
+  });
+
+  test('an empty set deletes every stale file and then does nothing', () {
+    final (dir, writer) = _package();
+    writer.sync({_output: _source});
+
+    final first = writer.sync({});
+    final second = writer.sync({});
+
+    expect(first.deleted, [_output]);
     expect(dir.exists(_output), isFalse);
-    expect(writer.deleteLibrary(), WriteOutcome.none);
+    expect(second.outcome, WriteOutcome.none);
   });
 
   // Review Focus 2: the output cannot be written.
   test('a path that cannot be written is a cannot-create failure', () {
     final (dir, writer) = _package();
-    Directory(dir.resolve('$_output.tmp')).createSync();
+    Directory(dir.resolve('$_output.tmp')).createSync(recursive: true);
 
     expect(
-      () => writer.writeLibrary(_source),
+      () => writer.sync({_output: _source}),
       _cannotCreate('Cannot write $_output'),
     );
 
     Directory(dir.resolve('$_output.tmp')).deleteSync();
     Directory(dir.resolve(_output)).createSync();
     expect(
-      () => writer.writeLibrary(_source),
+      () => writer.sync({_output: _source}),
       _cannotCreate('Cannot write $_output'),
     );
   });
 
-  test('other generated files stay inside the package', () {
+  test('generated files stay inside the package', () {
     final (dir, writer) = _package();
-    const unit = FileUnit(
-      path: 'doc/api/openapi.json',
-      contentType: ContentType.json,
-      content: '{}',
-    );
-    const escaping = FileUnit(
-      path: 'doc/../../outside.json',
-      contentType: ContentType.json,
-      content: '{}',
-    );
 
-    expect(writer.writeFile(unit), WriteOutcome.written);
-    expect(writer.writeFile(unit), WriteOutcome.unchanged);
-    expect(dir.read('doc/api/openapi.json'), '{}');
-    expect(() => writer.writeFile(escaping), _cannotCreate('outside'));
+    expect(
+      () => writer.sync({'doc/../../outside.json': '{}'}),
+      _cannotCreate('outside'),
+    );
+    for (final path in ['/tmp/evil.json', r'..\evil.json', 'C:x.json']) {
+      expect(() => writer.sync({path: '{}'}), _cannotCreate('outside'));
+    }
+    expect(dir.exists(r'..\evil.json'), isFalse);
   });
 
-  test('writeFile cannot bypass the library header check', () {
+  test('a path spelled with dots is still the same file', () {
     final (dir, writer) = _package();
     dir.write(_output, '// my own code\n');
 
-    expect(() => writer.writeFile(_unit(_output)), _cannotCreate(_output));
+    expect(
+      () => writer.sync({'lib/src/../src/app_module.g.dart': _source}),
+      _cannotCreate(_output),
+    );
     expect(dir.read(_output), '// my own code\n');
-  });
-
-  test('absolute, backslash and drive paths are outside the package', () {
-    final (dir, writer) = _package();
-
-    for (final path in ['/tmp/evil.json', r'..\evil.json', 'C:x.json']) {
-      expect(() => writer.writeFile(_unit(path)), _cannotCreate('outside'));
-    }
-    expect(dir.exists(r'..\evil.json'), isFalse);
   });
 
   test('an existing temporary file is refused, not overwritten', () {
@@ -137,30 +162,19 @@ void main() {
     dir.write('$_output.tmp', 'precious');
 
     expect(
-      () => writer.writeLibrary(_source),
+      () => writer.sync({_output: _source}),
       _cannotCreate('delete it if no other grund run is writing'),
     );
     expect(dir.read('$_output.tmp'), 'precious');
     expect(dir.exists(_output), isFalse);
   });
 
-  test('the library path spelled with dots is still the library', () {
-    final (dir, writer) = _package();
-    dir.write(_output, '// my own code\n');
-
-    expect(
-      () => writer.writeFile(_unit('lib/../lib/shop.grund.dart')),
-      _cannotCreate(_output),
-    );
-    expect(dir.read(_output), '// my own code\n');
-  });
-
   test('a failed rename removes the temporary file', () {
     final (dir, writer) = _package();
-    Directory(dir.resolve(_output)).createSync();
+    Directory(dir.resolve(_output)).createSync(recursive: true);
 
     expect(
-      () => writer.writeLibrary(_source),
+      () => writer.sync({_output: _source}),
       _cannotCreate('Cannot write $_output'),
     );
     expect(dir.exists('$_output.tmp'), isFalse);
@@ -168,11 +182,14 @@ void main() {
 
   test('an unwritable directory is a cannot-create failure', () {
     final (dir, writer) = _package();
-    Process.runSync('chmod', ['500', dir.resolve('lib')]);
-    addTearDown(() => Process.runSync('chmod', ['700', dir.resolve('lib')]));
+    Directory(dir.resolve('lib/src')).createSync();
+    Process.runSync('chmod', ['500', dir.resolve('lib/src')]);
+    addTearDown(
+      () => Process.runSync('chmod', ['700', dir.resolve('lib/src')]),
+    );
 
     expect(
-      () => writer.writeLibrary(_source),
+      () => writer.sync({_output: _source}),
       _cannotCreate('Cannot write $_output'),
     );
     expect(dir.exists('$_output.tmp'), isFalse);

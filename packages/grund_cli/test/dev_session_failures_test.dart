@@ -8,7 +8,7 @@ import 'helpers/hello_app.dart';
 import 'helpers/failing_launcher.dart';
 
 const _greeter = 'lib/src/greeter.dart';
-const _controller = 'lib/src/hello_controller.dart';
+const _api = 'lib/src/hello_api.dart';
 const _newField = 'int count = 0;\n  String greet';
 
 void main() {
@@ -16,15 +16,15 @@ void main() {
     final dev = await Dev.start();
     final before = await Dev.hello(await dev.listening());
     dev.app.edit(_greeter, 'String greet', _newField);
-    dev.app.edit(_controller, 'greeter.greet()', 'greeter.greet(');
+    dev.app.edit(_api, 'greeter.greet()', 'greeter.greet(');
 
-    await dev.change([_greeter, _controller]);
+    await dev.change([_greeter, _api]);
     expect(
       dev.lines.lines.last,
       'bin/main.dart keeps running the previous code.',
     );
-    dev.app.edit(_controller, 'greeter.greet(', 'greeter.greet()');
-    await dev.change([_controller]);
+    dev.app.edit(_api, 'greeter.greet(', 'greeter.greet()');
+    await dev.change([_api]);
 
     expect(
       dev.lines.lines,
@@ -159,8 +159,8 @@ void main() {
     final port = await dev.listening();
     final before = await Dev.hello(port);
     dev.app.edit(_greeter, 'String greet', _newField);
-    dev.app.edit(_controller, 'greeter.greet()', 'greeter.greet(');
-    await dev.change([_greeter, _controller]);
+    dev.app.edit(_api, 'greeter.greet()', 'greeter.greet(');
+    await dev.change([_greeter, _api]);
 
     await dev.session.reload();
 

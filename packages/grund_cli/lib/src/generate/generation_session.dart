@@ -2,9 +2,11 @@ import 'package:grund_generator/grund_generator.dart';
 import 'package:path/path.dart' as p;
 
 import '../package/package_root.dart';
+import 'default_generator.dart';
 import 'generation_report.dart';
 import 'output_writer.dart';
 import 'package_analysis.dart';
+import 'synced_files.dart';
 import 'write_outcome.dart';
 
 /// Generates one package again and again with the analyzer state kept in
@@ -12,11 +14,9 @@ import 'write_outcome.dart';
 /// the files they are told about. `gen`, `gen --watch` and `dev` drive it.
 final class GenerationSession {
   /// Opens the session for [package], generating with [generator].
-  GenerationSession(
-    this.package, {
-    this.generator = const GrundGenerator.core(),
-  }) : _analysis = PackageAnalysis(package),
-       _writer = OutputWriter(package);
+  GenerationSession(this.package, {this.generator = DefaultGenerator.instance})
+    : _analysis = PackageAnalysis(package),
+      _writer = OutputWriter(package);
 
   /// The generated package.
   final PackageRoot package;
@@ -30,6 +30,9 @@ final class GenerationSession {
   /// Generates the package; [changed] lists the absolute paths added,
   /// modified or removed since the previous run of this session.
   ///
+  /// The generated files are written only when the sources have no
+  /// problems; otherwise none is touched.
+  ///
   /// Throws a `CliFailure` when an output file cannot be written.
   Future<GenerationReport> run({Iterable<String> changed = const []}) async {
     final stopwatch = Stopwatch()..start();
@@ -40,50 +43,44 @@ final class GenerationSession {
     final files = _analysis.sourceFiles();
     final syntaxProblems = _analysis.syntaxProblems(files);
     if (syntaxProblems.isNotEmpty) {
-      return _report(stopwatch, WriteOutcome.kept, syntax: syntaxProblems);
-    }
-    final libraries = await _analysis.libraries(files);
-    final model = PackageCollector(
-      package.name,
-      package.path,
-    ).collect(libraries);
-    if (model.isEmpty) {
-      return _report(stopwatch, await _written(_writer.deleteLibrary()));
-    }
-    final result = generator.generate(model);
-    final library = result.library;
-    if (library == null) {
       return _report(
         stopwatch,
-        WriteOutcome.kept,
+        outcome: WriteOutcome.kept,
+        syntax: syntaxProblems,
+      );
+    }
+    final model = generator
+        .collector(package.name, package.path)
+        .collect(await _analysis.libraries(files));
+    final result = generator.generate(model);
+    if (!result.isSuccess) {
+      return _report(
+        stopwatch,
+        outcome: WriteOutcome.kept,
         diagnostics: [...result.diagnostics]..sort(),
       );
     }
-    for (final file in result.files) {
-      _writer.writeFile(file);
-    }
-    return _report(stopwatch, await _written(_writer.writeLibrary(library)));
+    final synced = _writer.sync(result.files);
+    await _analysis.changed([
+      for (final path in [...synced.written, ...synced.deleted])
+        p.join(package.path, path),
+    ]);
+    return _report(stopwatch, outcome: synced.outcome, synced: synced);
   }
 
   /// Releases the analyzer's resources; the session cannot run again.
   Future<void> close() => _analysis.dispose();
 
-  Future<WriteOutcome> _written(WriteOutcome outcome) async {
-    if (outcome == WriteOutcome.written || outcome == WriteOutcome.deleted) {
-      await _analysis.changed([package.outputPath]);
-    }
-    return outcome;
-  }
-
   GenerationReport _report(
-    Stopwatch stopwatch,
-    WriteOutcome outcome, {
+    Stopwatch stopwatch, {
+    required WriteOutcome outcome,
+    SyncedFiles? synced,
     List<SyntaxProblem> syntax = const [],
     List<Diagnostic> diagnostics = const [],
   }) => GenerationReport(
-    output: package.display(package.outputPath),
     outcome: outcome,
     elapsed: stopwatch.elapsed,
+    synced: synced,
     syntaxProblems: syntax,
     diagnostics: diagnostics,
   );

@@ -23,14 +23,14 @@ void main() {
       interruption: Interruption(untilStopped: () => stop.future),
     ).run(['gen', '--watch', '--directory', package.dir.path]);
 
-    expect(await lines.next(), startsWith('Generated lib/shop.grund.dart'));
+    expect(await lines.next(), startsWith('Generated 2 files'));
     expect(await lines.next(), startsWith('Watching lib/ for changes'));
     package.dir.write(
-      'lib/src/time_controller.dart',
-      ShopSources.controller.replaceFirst('@Get()', "@Get('/now')"),
+      'lib/src/time_api.dart',
+      ShopSources.api.replaceFirst("@Get('/')", "@Get('/now')"),
     );
-    expect(await lines.next(), startsWith('Generated lib/shop.grund.dart'));
-    expect(package.dir.read(ShopSources.output), contains("'/now'"));
+    expect(await lines.next(), startsWith('Generated 1 file in'));
+    expect(package.dir.read(ShopSources.apiOutput), contains("'/now'"));
 
     stop.complete();
     expect(await exitCode, CliExitCode.success.code);

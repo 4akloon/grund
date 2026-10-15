@@ -20,21 +20,34 @@ final class ReportPrinter {
       final count = report.problemLines.length;
       err.writeln(
         '$count ${count == 1 ? 'problem' : 'problems'}; '
-        '${report.output} was not changed.',
+        'no generated file was changed.',
       );
       return;
     }
-    final milliseconds = report.elapsed.inMilliseconds;
-    out.writeln(switch (report.outcome) {
-      WriteOutcome.written => 'Generated ${report.output} in $milliseconds ms.',
-      WriteOutcome.unchanged =>
-        '${report.output} is up to date ($milliseconds ms).',
-      WriteOutcome.deleted =>
-        'No annotations in lib/; deleted ${report.output}.',
-      WriteOutcome.none => 'No annotations in lib/; nothing to generate.',
-      WriteOutcome.kept => '${report.output} was not changed.',
-    });
+    out.writeln(_outcome(report));
   }
+
+  static String _outcome(GenerationReport report) {
+    final milliseconds = report.elapsed.inMilliseconds;
+    final written = report.synced?.written.length ?? 0;
+    final deleted = report.synced?.deleted.length ?? 0;
+    final total = report.synced?.total ?? 0;
+    return switch (report.outcome) {
+      WriteOutcome.written when total == 0 =>
+        'No annotations in lib/; deleted ${_files(deleted, 'stale')}.',
+      WriteOutcome.written =>
+        'Generated ${_files(written)}'
+            '${deleted == 0 ? '' : ', deleted ${_files(deleted, 'stale')}'}'
+            ' in $milliseconds ms.',
+      WriteOutcome.unchanged =>
+        'Generated files are up to date (${_files(total)}, $milliseconds ms).',
+      WriteOutcome.none => 'No annotations in lib/; nothing to generate.',
+      WriteOutcome.kept => 'No generated file was changed.',
+    };
+  }
+
+  static String _files(int count, [String? kind]) =>
+      '$count ${kind == null ? '' : '$kind '}${count == 1 ? 'file' : 'files'}';
 
   /// Prints that [directory] (relative to the package root) is watched.
   void watching(String directory) =>

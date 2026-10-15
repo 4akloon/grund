@@ -19,8 +19,8 @@ void main() {
     final first = await session.run();
     cold.stop();
     final file = package.dir.write(
-      BenchmarkSources.controllerPath(7),
-      BenchmarkSources.changedController(7),
+      BenchmarkSources.apiPath(7),
+      BenchmarkSources.changedApi(7),
     );
     final change = await session.run(changed: [file]);
     final timings =
@@ -38,7 +38,7 @@ void main() {
       reason: '${first.problemLines}',
     );
     expect(change.outcome, WriteOutcome.written);
-    expect(package.dir.read('lib/bench.grund.dart'), contains("'/v2'"));
+    expect(package.dir.read('lib/src/f7/api_api.g.dart'), contains("'/v2'"));
     expect(
       cold.elapsed,
       lessThan(const Duration(seconds: 10)),

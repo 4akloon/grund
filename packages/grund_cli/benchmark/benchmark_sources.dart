@@ -1,5 +1,5 @@
 /// A generated annotated package of `4 * features + 1` libraries: per
-/// feature a repository, a service, a controller and a module, plus the
+/// feature a repository, a service, an API and a module, plus the
 /// root module that imports every feature.
 abstract final class BenchmarkSources {
   /// The files of the package (relative path → content).
@@ -8,17 +8,17 @@ abstract final class BenchmarkSources {
     'lib/app.dart': _root(features),
   };
 
-  /// The controller of feature [i] with one more route.
-  static String changedController(int i) =>
-      _controller(i).replaceFirst('@Get()', "@Get('/v2')");
+  /// The API of feature [i] with one more route.
+  static String changedApi(int i) =>
+      _api(i).replaceFirst("@Get('/')", "@Get('/v2')");
 
-  /// The path of feature [i]'s controller.
-  static String controllerPath(int i) => 'lib/src/f$i/controller.dart';
+  /// The path of feature [i]'s API.
+  static String apiPath(int i) => 'lib/src/f$i/api.dart';
 
   static Map<String, String> _feature(int i) => {
     'lib/src/f$i/repository.dart':
         '''
-import 'package:grund_annotations/grund_annotations.dart';
+import 'package:grund/annotations.dart';
 
 @Injectable()
 final class Repository$i {
@@ -27,7 +27,7 @@ final class Repository$i {
 ''',
     'lib/src/f$i/service.dart':
         '''
-import 'package:grund_annotations/grund_annotations.dart';
+import 'package:grund/annotations.dart';
 
 import 'repository.dart';
 
@@ -40,41 +40,44 @@ final class Service$i {
   List<String> list() => repository.all();
 }
 ''',
-    controllerPath(i): _controller(i),
+    apiPath(i): _api(i),
     'lib/src/f$i/module.dart':
         '''
-import 'package:grund_annotations/grund_annotations.dart';
+import 'package:grund/annotations.dart';
+import 'package:grund/grund.dart' as grund;
 
-import 'controller.dart';
+import 'api.dart';
+import 'module_module.g.dart';
 import 'repository.dart';
 import 'service.dart';
 
-@Module(
-  id: 'f$i',
-  providers: [Repository$i, Service$i],
-  controllers: [Feature${i}Controller],
-)
-final class Feature${i}Module {}
+@Module(providers: [Repository$i, Service$i, Feature${i}Api])
+final class Feature${i}Module extends grund.Module with \$Feature${i}Module {
+  const Feature${i}Module();
+}
 ''',
   };
 
-  static String _controller(int i) =>
+  static String _api(int i) =>
       '''
-import 'package:grund_annotations/grund_annotations.dart';
+import 'package:grund_http/annotations.dart';
+import 'package:grund_http/grund_http.dart' as http;
 
 import 'service.dart';
 
-@Controller('/f$i')
-final class Feature${i}Controller {
-  Feature${i}Controller(this.service);
+part 'api_api.g.dart';
+
+@Api('/f$i')
+final class Feature${i}Api {
+  Feature${i}Api(this.service);
 
   final Service$i service;
 
-  @Get()
+  @Get('/')
   List<String> list() => service.list();
 
   @Get('/:id')
-  Map<String, Object?> one(@Param('id') int id) => {'id': id};
+  Map<String, Object?> one(@Path() int id) => {'id': id};
 }
 ''';
 
@@ -82,14 +85,18 @@ final class Feature${i}Controller {
     final imports = [
       for (var i = 0; i < features; i++) "import 'src/f$i/module.dart';",
     ];
-    final modules = [for (var i = 0; i < features; i++) 'Feature${i}Module'];
+    final modules = [for (var i = 0; i < features; i++) 'Feature${i}Module()'];
     return '''
-import 'package:grund_annotations/grund_annotations.dart';
+import 'package:grund/annotations.dart';
+import 'package:grund/grund.dart' as grund;
 
+import 'app_module.g.dart';
 ${imports.join('\n')}
 
-@Module(id: 'app', imports: [${modules.join(', ')}])
-final class AppModule {}
+@Module(imports: [${modules.join(', ')}])
+final class AppModule extends grund.Module with \$AppModule {
+  const AppModule();
+}
 ''';
   }
 }

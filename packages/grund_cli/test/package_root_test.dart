@@ -20,8 +20,7 @@ void main() {
 
     expect(package.name, 'shop');
     expect(package.path, dir.path);
-    expect(package.outputPath, dir.resolve('lib/shop.grund.dart'));
-    expect(package.display(package.outputPath), 'lib/shop.grund.dart');
+    expect(package.display(package.libPath), 'lib');
   });
 
   // Review Focus 1: run outside a package.

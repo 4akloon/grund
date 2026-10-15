@@ -2,7 +2,13 @@
 
 Initial release.
 
-- `grund gen` and `gen --watch`: write `lib/<package>.grund.dart`.
+- `grund gen` and `gen --watch`: write the generated file set
+  (`*_module.g.dart`, `*_api.g.dart`) of the module and `@Api` constructs,
+  only the files that changed, and delete stale generated files; a file
+  without the generator's header is never overwritten or deleted.
 - `grund dev`: runs the application and hot reloads it on every change,
-  restarting it when a change of shape needs it.
-- `grund init`: scaffolds a new application.
+  restarting it when a change of shape needs it; it prints what a reload
+  added to and removed from what the application serves (for the HTTP
+  server `+ GET /hello/bye`).
+- `grund init`: scaffolds a new application (`App`, `@Module`, `@Api`,
+  `HttpModule`, `IoAdapterModule`).

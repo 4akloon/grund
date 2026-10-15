@@ -8,6 +8,7 @@ import 'package:grund_generator/grund_generator.dart';
 import '../cli/cli_exit_code.dart';
 import '../cli/cli_failure.dart';
 import '../package/package_root.dart';
+import 'generated_outputs.dart';
 
 /// The analyzer's view of a package's `lib/`, kept in memory between
 /// generations so that a later run re-reads only the files it is told
@@ -22,8 +23,8 @@ final class PackageAnalysis {
 
   final AnalysisContextCollection _collection;
 
-  /// Absolute paths of the Dart files of `lib/` except generated
-  /// `*.grund.dart` files, sorted.
+  /// Absolute paths of the Dart files of `lib/` except the files the
+  /// generator wrote (a name of [GeneratedOutputs] and its header), sorted.
   ///
   /// Throws a [CliFailure] with [CliExitCode.noInput] when `lib/` or one of
   /// its directories cannot be listed (deleted meanwhile, unreadable).
@@ -110,6 +111,17 @@ final class PackageAnalysis {
     );
   }
 
+  // A generated file is never a source: reading it back would let a broken
+  // output block the run that replaces it.
   static bool _isSource(String path) =>
-      path.endsWith('.dart') && !path.endsWith('.grund.dart');
+      path.endsWith('.dart') &&
+      !(GeneratedOutputs.hasGeneratedName(path) && _isGenerated(path));
+
+  static bool _isGenerated(String path) {
+    try {
+      return GeneratedOutputs.hasHeader(File(path).readAsStringSync());
+    } on FileSystemException {
+      return false;
+    }
+  }
 }

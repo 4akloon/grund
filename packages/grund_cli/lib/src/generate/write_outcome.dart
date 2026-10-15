@@ -1,17 +1,14 @@
-/// What a generation did to the generated library on disk.
+/// What a generation did to the generated files on disk.
 enum WriteOutcome {
-  /// The library was written: it was missing or its content changed.
+  /// At least one file was written or a stale one deleted.
   written,
 
-  /// The library already had the generated content; it was not touched.
+  /// Every generated file already had the generated content.
   unchanged,
 
-  /// The package has no annotations any more; the library was deleted.
-  deleted,
-
-  /// The package has no annotations and there is no library.
+  /// The package has no annotations and no generated files.
   none,
 
-  /// The sources have problems; the library was left as it was.
+  /// The sources have problems; the generated files were left as they were.
   kept,
 }

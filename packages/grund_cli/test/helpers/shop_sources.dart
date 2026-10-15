@@ -1,12 +1,18 @@
-/// Sources of a small annotated package `shop`: a clock service, a
-/// controller that uses it and the root module.
+/// Sources of a small annotated package `shop`: a clock service, an API
+/// that uses it and the root module.
 abstract final class ShopSources {
-  /// The generated library of `shop`.
-  static const output = 'lib/shop.grund.dart';
+  /// The generated module library of `lib/src/app_module.dart`.
+  static const moduleOutput = 'lib/src/app_module_module.g.dart';
+
+  /// The generated part of `lib/src/time_api.dart`.
+  static const apiOutput = 'lib/src/time_api_api.g.dart';
+
+  /// Every file the valid package generates.
+  static const outputs = [moduleOutput, apiOutput];
 
   /// `lib/src/clock.dart`.
   static const clock = '''
-import 'package:grund_annotations/grund_annotations.dart';
+import 'package:grund/annotations.dart';
 
 @Injectable()
 final class Clock {
@@ -14,48 +20,59 @@ final class Clock {
 }
 ''';
 
-  /// `lib/src/time_controller.dart`.
-  static const controller = '''
-import 'package:grund_annotations/grund_annotations.dart';
+  /// `lib/src/time_api.dart`.
+  static const api = '''
+import 'package:grund_http/annotations.dart';
+import 'package:grund_http/grund_http.dart' as http;
 
 import 'clock.dart';
 
-@Controller('/time')
-final class TimeController {
-  TimeController(this.clock);
+part 'time_api_api.g.dart';
+
+@Api('/time')
+final class TimeApi {
+  TimeApi(this.clock);
 
   final Clock clock;
 
-  @Get()
+  @Get('/')
   Map<String, String> now() => {'now': clock.now().toIso8601String()};
 }
 ''';
 
   /// `lib/src/app_module.dart`.
   static const module = '''
-import 'package:grund_annotations/grund_annotations.dart';
+import 'package:grund/annotations.dart';
+import 'package:grund/grund.dart' as grund;
 
+import 'app_module_module.g.dart';
 import 'clock.dart';
-import 'time_controller.dart';
+import 'time_api.dart';
 
-@Module(id: 'app', providers: [Clock], controllers: [TimeController])
-final class AppModule {}
+@Module(providers: [Clock, TimeApi])
+final class AppModule extends grund.Module with \$AppModule {
+  const AppModule();
+}
 ''';
 
   /// `lib/src/app_module.dart` without the clock: a `missing_provider`.
   static const moduleWithoutClock = '''
-import 'package:grund_annotations/grund_annotations.dart';
+import 'package:grund/annotations.dart';
+import 'package:grund/grund.dart' as grund;
 
-import 'time_controller.dart';
+import 'app_module_module.g.dart';
+import 'time_api.dart';
 
-@Module(id: 'app', controllers: [TimeController])
-final class AppModule {}
+@Module(providers: [TimeApi])
+final class AppModule extends grund.Module with \$AppModule {
+  const AppModule();
+}
 ''';
 
   /// The files of the valid package.
   static const files = {
     'lib/src/clock.dart': clock,
-    'lib/src/time_controller.dart': controller,
+    'lib/src/time_api.dart': api,
     'lib/src/app_module.dart': module,
   };
 }

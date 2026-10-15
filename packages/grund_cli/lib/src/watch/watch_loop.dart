@@ -6,6 +6,7 @@ import 'package:watcher/watcher.dart';
 
 import '../cli/cli_failure.dart';
 import '../cli/report_printer.dart';
+import '../generate/generated_outputs.dart';
 import '../generate/generation_report.dart';
 import '../generate/generation_session.dart';
 
@@ -14,8 +15,8 @@ import '../generate/generation_session.dart';
 /// Events are debounced: a burst (an editor saving through a temporary
 /// file, a branch switch) gives one run with every changed path. Runs never
 /// overlap; paths that change during a run are collected into exactly one
-/// follow-up run. Generated `*.grund.dart` files (the session's own
-/// output) and non-Dart files are ignored. A [CliFailure] of a run is
+/// follow-up run. Files named like the session's own output
+/// (`*_module.g.dart`, `*_api.g.dart`) and non-Dart files are ignored. A [CliFailure] of a run is
 /// printed and watching goes on; any other failure of a run ends [run] with
 /// it at once, and so does an error of the watcher's event stream (OP8):
 /// the `finally` of [run] still stops the run in flight, so whoever started
@@ -148,5 +149,6 @@ final class WatchLoop {
   }
 
   static bool _isSource(WatchEvent event) =>
-      event.path.endsWith('.dart') && !event.path.endsWith('.grund.dart');
+      event.path.endsWith('.dart') &&
+      !GeneratedOutputs.hasGeneratedName(event.path);
 }

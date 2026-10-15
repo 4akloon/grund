@@ -13,7 +13,7 @@ import 'helpers/temp_package.dart';
 
 const _quiet = Duration(milliseconds: 500);
 
-final _generated = RegExp(r'^Generated lib/shop\.grund\.dart in \d+ ms\.$');
+final _generated = RegExp(r'^Generated \d+ files? in \d+ ms\.$');
 
 /// A running [WatchLoop] over a fresh `shop` package.
 final class _Loop {
@@ -68,21 +68,22 @@ void main() {
     final loop = await _Loop.start();
 
     loop.change(
-      'lib/src/time_controller.dart',
-      ShopSources.controller.replaceFirst('@Get()', "@Get('/now')"),
+      'lib/src/time_api.dart',
+      ShopSources.api.replaceFirst("@Get('/')", "@Get('/now')"),
       times: 5,
     );
 
     expect(await loop.lines.next(), matches(_generated));
     expect(await loop.lines.after(_quiet), isEmpty);
-    expect(loop.package.dir.read(ShopSources.output), contains("'/now'"));
+    expect(loop.package.dir.read(ShopSources.apiOutput), contains("'/now'"));
   });
 
   test('its own output and other files do not start a run', () async {
     final loop = await _Loop.start();
 
     loop.watcher
-      ..modify(loop.package.dir.resolve(ShopSources.output))
+      ..modify(loop.package.dir.resolve(ShopSources.moduleOutput))
+      ..modify(loop.package.dir.resolve(ShopSources.apiOutput))
       ..modify(loop.package.dir.resolve('lib/notes.txt'));
 
     expect(await loop.lines.after(_quiet), isEmpty);
@@ -95,23 +96,23 @@ void main() {
     expect(await loop.lines.next(), endsWith('[missing_provider]'));
     expect(
       await loop.lines.next(),
-      '1 problem; lib/shop.grund.dart was not changed.',
+      '1 problem; no generated file was changed.',
     );
 
     loop.change('lib/src/app_module.dart', ShopSources.module);
-    expect(await loop.lines.next(), contains('is up to date'));
+    expect(await loop.lines.next(), contains('are up to date'));
   });
 
   test('a failure to write is reported and watching goes on', () async {
     final loop = await _Loop.start();
-    final output = loop.package.dir.resolve(ShopSources.output);
+    final output = loop.package.dir.resolve(ShopSources.moduleOutput);
     File(output).deleteSync();
     Directory(output).createSync();
 
     loop.change('lib/src/clock.dart', '${ShopSources.clock}// v2\n');
     expect(
       await loop.lines.next(),
-      startsWith('Cannot write lib/shop.grund.dart: '),
+      startsWith('Cannot write ${ShopSources.moduleOutput}: '),
     );
 
     Directory(output).deleteSync();

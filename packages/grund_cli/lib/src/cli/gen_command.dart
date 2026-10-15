@@ -8,8 +8,8 @@ import 'cli_exit_code.dart';
 import 'grund_cli.dart';
 import 'report_printer.dart';
 
-/// `gen`: writes `lib/<package>.grund.dart` from the annotations of
-/// `lib/`, once or on every change (`--watch`).
+/// `gen`: writes the generated files from the annotations of `lib/`, once
+/// or on every change (`--watch`).
 final class GenCommand extends Command<int> {
   /// Creates the command of [cli].
   GenCommand(this.cli) {
@@ -37,7 +37,7 @@ final class GenCommand extends Command<int> {
 
   @override
   String get description =>
-      'Generates lib/<package>.grund.dart from the annotations in lib/.';
+      'Generates *_module.g.dart and *_api.g.dart from the annotations in lib/.';
 
   @override
   void printUsage() => cli.out.writeln(usage);

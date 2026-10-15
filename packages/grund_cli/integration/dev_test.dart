@@ -110,12 +110,13 @@ void main() {
     // Review Focus 8: the route reaches the application only through the
     // generated file, which is written before the reload.
     dev.app.edit(
-      'lib/src/hello_controller.dart',
-      '  @Get()',
+      'lib/src/hello_api.dart',
+      "  @Get('/')",
       "  @Get('/bye')\n  Map<String, Object> bye() => {'text': 'bye'};\n\n"
-          '  @Get()',
+          "  @Get('/')",
     );
-    await until(dev.lines, (line) => line.endsWith(', 1 route changed.'));
+    await until(dev.lines, (line) => line.endsWith(', 1 added, 0 removed.'));
+    await until(dev.lines, (line) => line == '  + GET /hello/bye');
     expect(await HelloApp.get(dev.port, '/hello/bye'), {'text': 'bye'});
     expect((await hello(dev.port))['pid'], first);
 
