@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:analyzer/dart/analysis/analysis_context_collection.dart';
 import 'package:analyzer/dart/analysis/results.dart';
 import 'package:analyzer/dart/element/element.dart';
@@ -7,7 +9,7 @@ import 'package:path/path.dart' as p;
 
 /// A fixture package under `test/fixtures/<name>`, resolved with the
 /// analyzer the way a driver would: every library of its `lib/` except the
-/// generated `*.grund.dart`.
+/// generated `*.g.dart` files.
 ///
 /// One instance holds one analysis context; open it once per test file
 /// (`setUpAll`), because resolving the SDK takes a few seconds.
@@ -36,14 +38,27 @@ final class FixturePackage {
   final AnalysisContextCollection _collection;
 
   /// The [PackageModel] of [paths] (relative to [root], for example
-  /// `lib/apis/tasks.dart`), collected with [constructs].
-  Future<PackageModel> collect(List<String> paths) async {
-    final libraries = [
-      for (final path in paths) await _resolve(p.join(root, path)),
-    ];
+  /// `lib/apis/tasks.dart`), or of every source library of `lib/` when
+  /// [paths] is `null`, collected with [constructs].
+  Future<PackageModel> collect([List<String>? paths]) async {
+    final files = paths == null
+        ? _libraryFiles()
+        : [for (final path in paths) p.join(root, path)];
+    final libraries = [for (final file in files) await _resolve(file)];
     return const GrundGenerator(
       constructs,
     ).collector(name, root).collect(libraries);
+  }
+
+  List<String> _libraryFiles() {
+    final files = Directory(p.join(root, 'lib'))
+        .listSync(recursive: true)
+        .whereType<File>()
+        .map((file) => file.path)
+        .where((path) => path.endsWith('.dart'))
+        .where((path) => !path.endsWith('.g.dart'))
+        .toList();
+    return files..sort();
   }
 
   Future<LibraryElement> _resolve(String file) async {
