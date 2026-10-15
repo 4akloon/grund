@@ -18,7 +18,13 @@ void main() {
   setUpAll(() async {
     fixture = FixturePackage.open('users_app');
     result = await generate(fixture);
-    if (GoldenFiles.updateRequested && result.diagnostics.isEmpty) {
+    if (GoldenFiles.updateRequested) {
+      if (result.diagnostics.isNotEmpty) {
+        fail(
+          'GRUND_UPDATE_GOLDENS=1 but users_app has diagnostics, nothing '
+          'was written:\n${result.diagnostics.join('\n')}',
+        );
+      }
       GoldenFiles(fixture.root).write(result.files);
     }
   });

@@ -78,10 +78,23 @@ void main() {
       final b = await TestClient.of(
         written,
       ).request(method, target, json: json, headers: headers);
-      expect((a.status, a.text), (b.status, b.text), reason: '$method $target');
+      expect(
+        (a.status, a.text, _compared(a)),
+        (b.status, b.text, _compared(b)),
+        reason: '$method $target',
+      );
     }
   });
 }
+
+/// The headers that must agree, as `name: value` lines in name order;
+/// anything else (`date`, `server`, `content-length`) may legitimately differ.
+const _comparedHeaders = ['content-type', 'www-authenticate', 'allow'];
+
+String _compared(TestResponse response) => [
+  for (final name in _comparedHeaders)
+    if (response.headers[name] case final value?) '$name: $value',
+].join('\n');
 
 List<String> _routes(TestApp app) =>
     app.app.container.all<HttpServer>().single.routes;

@@ -62,7 +62,7 @@ final class BadApi {
   @Get('/k', use: ['hook'], status: 700)
   void hook() {}
 
-  /// Named the same as a path parameter of another route.
+  /// An optional named and an optional positional query parameter: valid.
   @Get('/l')
   Future<void> optional(@Query() int? a, [@Query() int b = 1]) async {}
 }
