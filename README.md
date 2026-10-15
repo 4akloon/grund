@@ -2,22 +2,24 @@
 
 A NestJS-style modular backend framework for Dart, without `dart:mirrors`.
 
-Modules, providers, controllers, guards, interceptors, pipes and exception
-filters work the way they do in NestJS, but they are plain Dart values: a
-module is a `Module(...)`, a provider is a typed factory, a route is a
-closure. The container checks the whole module graph before it creates
-anything, so a missing or circular dependency fails at startup with the
-chain that led to it, never in the middle of a request. Annotations are an
-optional layer on top: a generator turns them into the same values, checks
-the graph at build time and writes one ordinary Dart file per package.
+Modules, providers, hooks (guards, interceptors and exception filters in
+one type), middleware and APIs work the way they do in NestJS, but they are
+plain Dart values: a module is a class with `imports`, `bindings` and
+`exports`, a provider is a typed factory, a route is a closure. The
+container checks the whole module graph before it creates anything, so a
+missing or circular dependency fails at startup with the chain that led to
+it, never in the middle of a request. Annotations are an optional layer on
+top: a generator turns them into the same classes, checks the graph at
+build time and writes one ordinary Dart file next to each annotated
+library.
 
 - **No reflection, no magic at runtime.** The explicit API works in tests,
   scripts and AOT builds without any code generation.
-- **Errors before the first request.** Typed `InjectionError`s with the
+- **Errors before the first request.** Typed `GrundError`s with the
   resolution chain; with annotations, `path:line:column` diagnostics.
-- **Typed tokens** (`Token<String>('db.url')`) instead of strings.
+- **Typed keys** (`Key<Clock>()`, `Key<Clock>('primary')`) instead of strings.
 - **Hot reload that keeps state.** `grund dev` reloads code changes into
-  the running server; providers keep their instances, routes are rebuilt.
+  the running server; singletons keep their instances, routes are rebuilt.
 - **Two servers, one contract.** `dart:io` or shelf, both checked by the
   same conformance suite on real sockets.
 
@@ -30,30 +32,66 @@ dart pub global activate grund_cli
 grund init my_app
 cd my_app
 dart pub get
-grund gen          # writes lib/my_app.grund.dart
+grund gen          # writes lib/src/app_module.g.dart and lib/src/hello.g.dart
 grund dev          # runs bin/main.dart and hot reloads it
 curl 'http://localhost:8080/hello?name=you'    # {"message":"Hello, you!"}
 ```
 
-`init` writes this controller (`lib/src/hello.dart`):
+`init` writes this API (`lib/src/hello.dart`):
 
 ```dart
-@Controller('/hello')
-final class HelloController {
-  HelloController(this.service);
-  final HelloService service;
+import 'package:grund/annotations.dart';
+import 'package:grund_http/annotations.dart';
+import 'package:grund_http/grund_http.dart' as http;
 
-  @Get()
-  Map<String, String> hello(@Query('name') String? name) =>
-      service.greet(name ?? 'world');
+part 'hello.g.dart';
+
+@Injectable()
+final class HelloService {
+  Map<String, String> greet(String name) => {'message': 'Hello, $name!'};
 }
 
-@Module(id: 'app', providers: [HelloService], controllers: [HelloController])
-final class AppModule {}
+@Api('/hello')
+final class HelloApi {
+  HelloApi(this.service);
+  final HelloService service;
+
+  @Get('/')
+  Map<String, String> hello(@Query() String? name) =>
+      service.greet(name ?? 'world');
+}
 ```
 
-and the generator turns `AppModule` into `Module appModule()`, which
-`bin/main.dart` passes to `Application.create`.
+and this root module (`lib/src/app_module.dart`):
+
+```dart
+import 'package:grund/annotations.dart';
+import 'package:grund/grund.dart' as grund;
+import 'package:grund_http/grund_http.dart';
+import 'package:grund_io/grund_io.dart';
+
+import 'app_module.g.dart';
+import 'hello.dart';
+
+@Module(
+  imports: [HttpModule(), IoAdapterModule()],
+  providers: [HelloService, HelloApi],
+)
+final class AppModule extends grund.Module with $AppModule {
+  const AppModule();
+}
+```
+
+The annotations are in `package:grund/annotations.dart` and
+`package:grund_http/annotations.dart`, libraries of their own because
+`Module`, `Pattern` and `Cookie` would clash with the explicit API and with
+`dart:core`; the explicit API is imported with a prefix (`as grund`,
+`as http`). For every library with annotations the generator writes one
+file next to it, `X.g.dart`: the `$AppModule` mixin for a `@Module`, the
+`part` with `HelloRoutes extends http.HttpApi` for an `@Api`. A library
+declares one of the two. Hooks go in `use:`, by type or by instance:
+`@Api('/tasks', use: [ApiKeyHook, RolesHook(Role.editor)])`. The generated
+files are committed; they change only when the annotations do.
 
 ### Without code generation
 
@@ -61,46 +99,53 @@ and the generator turns `AppModule` into `Module appModule()`, which
 # pubspec.yaml
 dependencies:
   grund: ^0.1.0
+  grund_http: ^0.1.0
   grund_io: ^0.1.0
 ```
 
 ```dart
 import 'package:grund/grund.dart';
+import 'package:grund_http/grund_http.dart';
 import 'package:grund_io/grund_io.dart';
 
 final class Greeter {
   Map<String, String> greet(String name) => {'message': 'Hello, $name!'};
 }
 
-final class HelloController {
-  HelloController(this.greeter);
-  final Greeter greeter;
+final class HelloRoutes extends HttpApi {
+  HelloRoutes(super.injector, this._greeter);
 
-  Map<String, String> hello(String? name) => greeter.greet(name ?? 'world');
-}
+  final Greeter _greeter;
 
-Module appModule() => Module(
-  id: 'app',
-  providers: [Provider((i) => Greeter())],
-  controllers: [
-    Controller<HelloController>(
-      path: '/hello',
-      create: (i) => HelloController(i.get()),
-      routes: [
-        Route.get(
-          '',
-          (c, ctx) async => c.hello(await ctx.query<String?>('name')),
-        ),
-      ],
+  @override
+  String get path => '/hello';
+
+  @override
+  List<Route> get routes => [
+    Route.get(
+      '/',
+      (c) => _greeter.greet(c.query.stringOrNull('name') ?? 'world'),
     ),
-  ],
-);
-
-Future<void> main() async {
-  final app = await Application.create(appModule, adapter: IoAdapter());
-  await app.listen(port: 8080);
-  print('Listening on http://localhost:8080/hello');
+  ];
 }
+
+final class AppModule extends Module {
+  const AppModule();
+
+  @override
+  List<Module> get imports => const [HttpModule(), IoAdapterModule()];
+
+  @override
+  List<Binding<Object>> get bindings => [
+    Singleton<Greeter>((_) => Greeter(), dependsOn: const []),
+    Singleton<HelloRoutes>(
+      (i) => HelloRoutes(i, i<Greeter>()),
+      dependsOn: const [Key<Greeter>()],
+    ),
+  ];
+}
+
+Future<void> main() => App(root: const AppModule()).run();
 ```
 
 The two styles mix freely: a generated module can import a hand-written one
@@ -110,13 +155,14 @@ and the other way round.
 
 | Package | What it is |
 | --- | --- |
-| [`grund`](packages/grund) | The core: modules, DI, controllers, the request pipeline, `TestClient`, the hot reload hooks. No `dart:io`. |
-| [`grund_io`](packages/grund_io) | `IoAdapter`: serves an application on a `dart:io` `HttpServer`. |
-| [`grund_shelf`](packages/grund_shelf) | `ShelfAdapter`, and `shelfHandler(app)` to mount an application in a shelf pipeline. |
-| [`grund_annotations`](packages/grund_annotations) | `@Module`, `@Injectable`, `@Controller`, `@Get`, ... No dependencies. |
-| [`grund_generator`](packages/grund_generator) | Turns the annotations into code and validates the module graph. A library for the drivers below. |
+| [`grund`](packages/grund) | The core: modules, typed DI, call scopes, runners, logging, the DI annotations (`package:grund/annotations.dart`), `TestApp`. No HTTP, no `dart:io` server. |
+| [`grund_http`](packages/grund_http) | The HTTP layer: `HttpModule`, `HttpApi`, routes, hooks, middleware, RFC 9457 problem responses, the adapter contract and the HTTP annotations (`package:grund_http/annotations.dart`). |
+| [`grund_io`](packages/grund_io) | `IoAdapterModule`: serves an application on a `dart:io` `HttpServer`. |
+| [`grund_shelf`](packages/grund_shelf) | `ShelfAdapterModule`, and `shelfHandler(app)` to mount an application in a shelf pipeline. |
+| [`grund_generator`](packages/grund_generator) | Turns `@Module`, `@Injectable`, `@Provides` and `Bind` into code and validates the module graph. Knows no HTTP; a library for the drivers below. |
+| [`grund_http_generator`](packages/grund_http_generator) | The `@Api` part of the generator: routes, parameters, hooks, validators, bodies. |
 | [`grund_cli`](packages/grund_cli) | The `grund` command: `gen`, `gen --watch`, `dev` (hot reload), `init`. |
-| [`grund_build`](packages/grund_build) | The same generator as a build_runner builder. |
+| [`grund_build`](packages/grund_build) | The same generation as a build_runner builder. |
 
 Every package README lists the exact rules of that package.
 
@@ -124,40 +170,39 @@ Every package README lists the exact rules of that package.
 
 | NestJS | grund (explicit API) | grund (annotations) |
 | --- | --- | --- |
-| `@Module({imports, providers, controllers, exports})` | `Module(id: ..., imports: ..., ...)` | `@Module(id: ..., ...)` on a class |
-| `@Global()` | `Module(global: true)` | `@Module(global: true)` |
-| `@Injectable()` class | `Provider((i) => Service(i.get()))` | `@Injectable()` |
-| `{provide: TOKEN, useValue: v}` | `Provider.value(v, token: Token<T>('name'))` | `Value(v, token: ...)` |
-| `{provide: Abstract, useClass: Impl}` | `Provider<Abstract>((i) => Impl())` | `Bind<Abstract, Impl>()` |
-| `useFactory` with `async`, `forRootAsync` | `Provider.async((i) async => ...)` | a function returning a `Module`, in `imports` |
-| `@Inject(TOKEN)` | `i.get(token)` | `@Inject(token)` |
-| `@Controller('users')`, `@Get(':id')` | `Controller<T>(path: '/users', routes: [Route.get('/:id', ...)])` | `@Controller('/users')`, `@Get('/:id')` |
-| `@Param`, `@Query`, `@Body`, `@Headers` | `ctx.param<T>`, `ctx.query<T>`, `ctx.bodyAs`, `ctx.header` | `@Param`, `@Query`, `@Body`, `@Header` |
-| `CanActivate`, `@UseGuards` | `Guard`, `Enhancers(guards: [...])` | `@UseGuards([...])` |
-| `NestInterceptor`, `PipeTransform` | `Interceptor`, `Pipe<I, O>` | `@UseInterceptors`, `@UsePipes` |
-| `ExceptionFilter`, `@Catch(E)` | `ExceptionFilter<E>` | `@UseFilters([...])` |
-| `SetMetadata` + `Reflector` | a `RouteMetadata` subclass + `ctx.metadata<T>()` | the same class as an annotation |
-| `NestMiddleware`, `app.use` | `app.use(middleware)` | the same |
-| `NotFoundException`, `HttpException` | the same names | the same |
-| `NestFactory.create(AppModule)` | `Application.create(appModule, adapter: IoAdapter())` | the same, with the generated `appModule` |
+| `@Module({imports, providers, controllers, exports})` | `class M extends Module` with `imports`, `bindings`, `exports` | `@Module(imports: ..., providers: ...)` on a class |
+| `@Global()` | `bool get global => true` | `@Module(global: true)` |
+| `@Injectable()` class | `Singleton<T>((i) => T(i<Dep>()), dependsOn: [...])` | `@Injectable()` |
+| `{provide: TOKEN, useValue: v}` | a `Singleton` of a named `Key` | `@Provides` method of the module |
+| `{provide: Abstract, useClass: Impl}` | `Singleton<Abstract>((i) => Impl())` | `Bind<Abstract, Impl>()` |
+| `useFactory` with `async`, `forRootAsync` | `Singleton` with an async factory; a function returning a `Module` | a function returning a `Module`, in `imports` |
+| `@Inject(TOKEN)` | `i<T>()`, `Key<T>('name')` | `@Named('name')` |
+| `@Controller('users')`, `@Get(':id')` | `HttpApi` with `path` and `Route.get('/:id', ...)` | `@Api('/users')`, `@Get('/:id')` |
+| `@Param`, `@Query`, `@Body`, `@Headers` | `c.path`, `c.query`, `await c.body(T.fromJson)`, `c.headers` | `@Path`, `@Query`, `@Body`, `@Header` |
+| `CanActivate`, `NestInterceptor`, `ExceptionFilter` | `HttpHook` (`before`, `after`, `onError`), `HookRef` | `use: [MyHook, RolesHook(Role.editor)]` |
+| `PipeTransform`, `ValidationPipe` | `Params` readers with bounds | `@Range`, `@Length`, `@Pattern`, `@OneOf` |
+| `NestMiddleware` | `Middleware`, `HttpModule(middleware: [...])` | the same |
+| `NotFoundException`, `HttpException` | the same names, answered as `application/problem+json` | the same |
+| `NestFactory.create(AppModule)` | `App(root: const AppModule()).run()` | the same |
 | platform-express / platform-fastify | `grund_io` / `grund_shelf` | the same |
-| `Test.createTestingModule`, supertest | `Container.create(testModule)`, `TestClient(app)` | the same |
+| `Test.createTestingModule`, supertest | `TestApp`, overrides | the same |
 | `nest start --watch` | `grund dev` (reload, not restart) | the same |
 | `nest new` | `grund init` | the same |
 
-Not in 0.1.0: request-scoped providers, lifecycle hooks (`OnModuleInit`),
-WebSockets, SSE, GraphQL, microservice transports, OpenAPI generation. See
+Not in 0.1.0: request-scoped providers beyond call scopes, WebSockets, SSE,
+GraphQL, microservice transports, OpenAPI generation. See
 [docs/faq.md](docs/faq.md).
 
 ## Documentation
 
 - [Getting started](docs/getting-started.md)
 - [Modules and dependency injection](docs/modules-and-di.md)
-- [Controllers and the request pipeline](docs/controllers-and-pipeline.md)
+- [HTTP APIs, hooks and errors](docs/http-and-hooks.md)
 - [Annotations and code generation](docs/annotations-and-codegen.md)
 - [Adapters: dart:io and shelf](docs/adapters.md)
 - [Dev mode and hot reload](docs/dev-mode.md)
 - [build_runner](docs/build-runner.md)
+- [Logging](docs/logging.md)
 - [Testing](docs/testing.md)
 - [FAQ and known limitations](docs/faq.md)
 
