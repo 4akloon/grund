@@ -73,12 +73,23 @@ failure goes to the zone the listener was registered in. In a plain `main`
 without `runZonedGuarded` it is an uncaught asynchronous error that ends the
 isolate, and the server with it. Listeners must not throw (wrap the code of an
 error tracker in `try/catch`), or the application must run inside
-`runZonedGuarded`:
+`runZonedGuarded` **and the listener must be registered inside that zone**:
+a listener added before `runZonedGuarded` reports to the outer zone, where the
+guard does not see it. A `LogOutput` passed to `App.run(log:)` is attached by
+`run`, so it is inside the zone in the example below; your own
+`Logger.root.onRecord.listen(...)` has to be called in the guarded callback
+too:
 
 ```dart
 Future<void> main(List<String> args) async {
   await runZonedGuarded(
-    () => App(root: const AppModule()).run(only: Runners.fromArgs(args)),
+    () {
+      // Registered here, in the guarded zone, not before runZonedGuarded.
+      Logger.root.onRecord.listen(errorTracker.record);
+      return App(
+        root: const AppModule(),
+      ).run(only: Runners.fromArgs(args), log: const LogOutput.none());
+    },
     (error, stack) => stderr.writeln('Uncaught: $error\n$stack'),
   );
 }

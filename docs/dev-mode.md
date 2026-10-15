@@ -39,7 +39,11 @@ close, requests in flight finish, a new process starts) when a saved file
 changed:
 
 - a field, a constructor, a top-level or static variable, or an enum value;
-- anything the VM refuses to reload (for example a type parameter).
+- the header of a class, mixin, enum, extension or extension type: its kind,
+  modifiers, type parameters, `extends`, `with` or `implements`;
+- a class, mixin, enum, extension or extension type added to a file that
+  already existed, removed from it or renamed (a new file is not a change);
+- anything else the VM refuses to reload.
 
 The restart line names the file. State held in memory starts over.
 

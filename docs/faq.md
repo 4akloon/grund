@@ -46,7 +46,10 @@ goes to the zone the listener was registered in. In a plain `main` without
 `runZonedGuarded` it is an uncaught asynchronous error that ends the
 isolate, and with it the server. Keep listeners from throwing (wrap the
 code of an error tracker in `try/catch`) or run the application inside
-`runZonedGuarded`. See [logging.md](logging.md#errors).
+`runZonedGuarded` with the listener registered inside that zone (a
+`LogOutput` given to `App.run(log:)` already is; your own
+`Logger.root.onRecord.listen` must be called in the guarded callback, not
+before it). See [logging.md](logging.md#errors).
 
 **Should I commit the generated files?**
 Yes. They are ordinary Dart that changes only when the annotations do, and
@@ -111,8 +114,8 @@ routes. Import the type without a prefix in the library that declares the
 
 **The generator cannot see into a module from another package.** A `@Module`
 class from another package, `HttpModule` and the adapter modules included, and
-a module that a function returns are opaque to the generator. While a package imports one, a dependency that
-no module of the package binds is not reported as `missing_provider` by
+a module that a function returns are opaque to the generator. While a package
+imports one, a dependency that no module of the package binds is not reported as `missing_provider` by
 `grund gen`, because the opaque module might export it. A key that a module
 of the package binds but does not export to the module that needs it is
 still reported, and cycles and captive dependencies among the package's own
@@ -122,8 +125,10 @@ resolution chain.
 
 **`dev` may restart when a reload would have been enough.** The check that
 decides between a reload and a restart compares fields, constructors,
-top-level and static variables and enum values as text, without resolving
-types. Any change there restarts the process, also when a reload could have
+top-level and static variables, enum values and the headers of classes and
+similar declarations as text, without resolving types. Adding, removing or
+renaming such a declaration in an existing file counts as a change too. Any
+change there restarts the process, also when a reload could have
 handled it (a new field with an initializer, a reformatted constructor). The
 reverse does not happen for files `dev` watches; for files it does not watch
 (path dependencies, `tool/`), press `R` after changing a field.

@@ -229,8 +229,8 @@ sent as an entry of `errors`), `details` (a JSON value; a list of
 built-in subclasses take a subset: `pointer` only on `BadRequestException`
 and `UnprocessableContentException`, `headers` only on
 `UnauthorizedException` (`MethodNotAllowedException` sets `allow` from its
-list of allowed methods); the others take `message`, `code`, `details` and
-`cause`.
+list of allowed methods, and it takes no `details`); the others take
+`message`, `code`, `details` and `cause`.
 
 Anything else that is thrown is a 500 with the detail `Internal server
 error`. It is logged as `SEVERE` on `grund.http` (message `Unhandled
