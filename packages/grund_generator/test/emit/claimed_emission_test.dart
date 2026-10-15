@@ -4,7 +4,7 @@ import 'package:test/test.dart';
 
 import '../helpers/graph_models.dart';
 
-const _output = 'lib/app.module.g.dart';
+const _output = 'lib/app_module.g.dart';
 
 /// Claims the provider `Tasks` and registers it with [emission].
 final class _Claiming extends Construct {

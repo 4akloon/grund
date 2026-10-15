@@ -1,7 +1,7 @@
 import 'package:code_builder/code_builder.dart';
 import 'package:grund_generator/grund_generator.dart';
 
-/// How a generated `X.api.g.dart` names the declarations of
+/// How a generated `X_api.g.dart` names the declarations of
 /// `package:grund_http`.
 ///
 /// A part has no imports, so its names come from the host library; to be

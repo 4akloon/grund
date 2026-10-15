@@ -21,7 +21,7 @@ final class PackageModel {
     this.libraryPaths = const [],
   });
 
-  /// The package name; the output is a `X.module.g.dart` per source library
+  /// The package name; the output is a `X_module.g.dart` per source library
   /// with modules and whatever other files the constructs write.
   final String packageName;
 

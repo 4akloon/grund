@@ -12,7 +12,7 @@ import 'route_conflict_check.dart';
 
 /// Collects and validates the `@Api` classes of a package and their
 /// routes, claims an `@Api` class listed in a module's `providers`, and
-/// writes the routes of every `@Api` class into the part `X.api.g.dart` of
+/// writes the routes of every `@Api` class into the part `X_api.g.dart` of
 /// its library.
 final class ApiConstruct extends Construct {
   /// Creates the construct.

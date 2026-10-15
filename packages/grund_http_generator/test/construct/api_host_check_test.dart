@@ -48,7 +48,7 @@ void main() {
     );
     expect(result.single.location.path, 'lib/apis/no_part.dart');
     expect(result.single.location.line, 7);
-    expect(result.single.message, contains("part 'no_part.api.g.dart';"));
+    expect(result.single.message, contains("part 'no_part_api.g.dart';"));
   });
 
   test(
@@ -109,7 +109,7 @@ void main() {
     ).generate(package);
 
     expect(result.diagnostics, isEmpty);
-    expect(result.files.keys, ['lib/apis/in_part.api.g.dart']);
+    expect(result.files.keys, ['lib/apis/in_part_api.g.dart']);
     expect(
       package.extensionModel<HttpPackageModel>()?.hosts.single.path,
       'lib/apis/in_part.dart',

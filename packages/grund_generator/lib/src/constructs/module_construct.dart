@@ -14,7 +14,7 @@ import 'private_declaration_check.dart';
 import 'unsupported_use_check.dart';
 
 /// Validates the modules of a package and their bindings, and writes the
-/// mixin of each module into the `X.module.g.dart` next to its library.
+/// mixin of each module into the `X_module.g.dart` next to its library.
 final class ModuleConstruct extends Construct {
   /// Creates the construct.
   const ModuleConstruct();

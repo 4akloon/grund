@@ -3,6 +3,7 @@ import 'package:pub_semver/pub_semver.dart';
 
 import '../construct/construct.dart';
 import '../construct/construct_annotations.dart';
+import '../emit/library_writer.dart';
 import '../model/extension_model.dart';
 import '../model/injectable_model.dart';
 import '../model/module_model.dart';
@@ -21,8 +22,8 @@ import 'unsupported_use_reader.dart';
 ///
 /// The driver resolves every library of `lib/` (the CLI with an
 /// `AnalysisContextCollection`, build_runner with its resolver) and passes
-/// them here; the generator's own outputs (`*.module.g.dart`,
-/// `*.api.g.dart`) are skipped, so a re-run never reads its previous output. The collector reads
+/// them here; the generator's own outputs (`*_module.g.dart`,
+/// `*_api.g.dart`) are skipped, so a re-run never reads its previous output. The collector reads
 /// modules, injectables and `@Provides` itself, and lets each of
 /// [constructs] read its own annotations ([Construct.collect]).
 final class PackageCollector {
@@ -51,17 +52,22 @@ final class PackageCollector {
 
   final SourceLocations _locations;
 
-  static const _outputSuffixes = ['.module.g.dart', '.api.g.dart'];
+  static const _outputSuffixes = ['_module.g.dart', '_api.g.dart'];
 
-  static bool _isGeneratorOutput(String uri) =>
-      _outputSuffixes.any(uri.endsWith);
+  /// Whether [library] is a file this generator wrote: the name alone is not
+  /// enough (another tool may own a `foo_api.g.dart`), so the header decides.
+  static bool _isGeneratorOutput(LibraryElement library) =>
+      _outputSuffixes.any('${library.uri}'.endsWith) &&
+      library.firstFragment.source.contents.data.startsWith(
+        LibraryWriter.header,
+      );
 
   /// The model of [libraries], in library URI order whatever the input
   /// order.
   PackageModel collect(Iterable<LibraryElement> libraries) {
     final sorted = [
       for (final library in libraries)
-        if (!_isGeneratorOutput('${library.uri}')) library,
+        if (!_isGeneratorOutput(library)) library,
     ]..sort((a, b) => '${a.uri}'.compareTo('${b.uri}'));
     final annotations = constructs.fold(
       coreAnnotations,

@@ -7,7 +7,7 @@ import '../helpers/fixture_package.dart';
 
 /// The generated part that is committed in the fixture, so the root
 /// `dart analyze` compiles it against `grund_http`.
-const _committed = 'test/fixtures/http_cases_app/lib/apis/tasks.api.g.dart';
+const _committed = 'test/fixtures/http_cases_app/lib/apis/tasks_api.g.dart';
 
 void main() {
   late FixturePackage fixture; // Set in setUpAll.
@@ -23,7 +23,7 @@ void main() {
     final result = await generate(['lib/apis/tasks.dart']);
 
     expect(result.diagnostics, isEmpty);
-    expect(result.files.keys, ['lib/apis/tasks.api.g.dart']);
+    expect(result.files.keys, ['lib/apis/tasks_api.g.dart']);
   });
 
   test('the module file binds the routes right after the api', () async {
@@ -31,7 +31,7 @@ void main() {
       'lib/modules/with_api.dart',
       'lib/apis/tasks.dart',
     ]);
-    final module = result.files['lib/modules/with_api.module.g.dart'] ?? '';
+    final module = result.files['lib/modules/with_api_module.g.dart'] ?? '';
 
     expect(module, contains('grund.Singleton<i1.TasksApiRoutes>('));
     expect(module, contains('(i) => i1.TasksApiRoutes(i, i<i1.TasksApi>())'));
@@ -39,7 +39,7 @@ void main() {
       module.indexOf('Singleton<i1.TasksApi>('),
       lessThan(module.indexOf('Singleton<i1.TasksApiRoutes>(')),
     );
-    expect(module, isNot(contains('tasks.api.g.dart')));
+    expect(module, isNot(contains('tasks_api.g.dart')));
   });
 
   test('two runs write the same bytes', () async {
@@ -53,7 +53,7 @@ void main() {
 
   test('the committed part is what the generator writes', () async {
     final result = await generate(['lib/apis/tasks.dart']);
-    final generated = result.files['lib/apis/tasks.api.g.dart'] ?? '';
+    final generated = result.files['lib/apis/tasks_api.g.dart'] ?? '';
 
     if (Platform.environment['GRUND_UPDATE_GOLDENS'] == '1') {
       File(_committed).writeAsStringSync(generated);

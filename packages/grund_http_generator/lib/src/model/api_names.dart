@@ -5,11 +5,11 @@ abstract final class ApiNames {
   static String routes(String className) => '${className}Routes';
 
   /// The part file of the source library at [sourcePath] (relative to the
-  /// package root, with `/` separators): `lib/a.dart` → `lib/a.api.g.dart`.
+  /// package root, with `/` separators): `lib/a.dart` → `lib/a_api.g.dart`.
   static String partPath(String sourcePath) {
     final stem = sourcePath.endsWith('.dart')
         ? sourcePath.substring(0, sourcePath.length - '.dart'.length)
         : sourcePath;
-    return '$stem.api.g.dart';
+    return '${stem}_api.g.dart';
   }
 }

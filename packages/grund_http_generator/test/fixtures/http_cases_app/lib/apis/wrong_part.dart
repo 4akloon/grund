@@ -2,7 +2,7 @@
 import 'package:grund_annotations/grund_annotations.dart';
 import 'package:grund_http/grund_http.dart' as http;
 
-part '../other/wrong_part.api.g.dart';
+part '../other/wrong_part_api.g.dart';
 
 /// Answers pings.
 @Api('/wrong')

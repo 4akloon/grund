@@ -12,14 +12,14 @@ void main() {
       'http_cases_app',
     ).collect(['lib/modules/with_api.dart', 'lib/apis/tasks.dart']);
     result = const GrundGenerator(FixturePackage.constructs).generate(package);
-    source = result.files['lib/apis/tasks.api.g.dart'] ?? '';
+    source = result.files['lib/apis/tasks_api.g.dart'] ?? '';
   });
 
   test('the package generates without diagnostics', () {
     expect(result.diagnostics, isEmpty);
     expect(result.files.keys, [
-      'lib/apis/tasks.api.g.dart',
-      'lib/modules/with_api.module.g.dart',
+      'lib/apis/tasks_api.g.dart',
+      'lib/modules/with_api_module.g.dart',
     ]);
   });
 

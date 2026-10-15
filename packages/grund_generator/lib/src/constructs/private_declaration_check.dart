@@ -8,7 +8,7 @@ import '../model/module_model.dart';
 import '../model/package_model.dart';
 import '../model/type_model.dart';
 
-/// Checks that the code generated into `X.module.g.dart` can name every
+/// Checks that the code generated into `X_module.g.dart` can name every
 /// class it uses: a private class (`_Foo`) of the module's library is not
 /// visible from another library.
 abstract final class PrivateDeclarationCheck {
