@@ -6,6 +6,8 @@ import '../di/module.dart';
 import '../di/module_graph.dart';
 import '../errors/app_errors.dart';
 import '../errors/resolution_errors.dart';
+import '../log/log_output.dart';
+import 'app_log.dart';
 import 'hot_reload_extension.dart';
 import 'reassemble_report.dart';
 import 'runner.dart';
@@ -56,16 +58,19 @@ final class App {
   /// it fails, what was created is undone and the application is closed.
   Future<void> start({Set<String>? only}) async {
     _expect(_AppState.created, 'start');
+    final log = AppLog()..starting();
     final Container container;
     try {
       container = await Container.create(
         ModuleGraph.build(root, overrides: overrides),
       );
-    } on Object {
+    } on Object catch (error) {
       // The graph or a factory is user code; nothing was left running.
       _state = _AppState.closed;
+      log.rollingBack(error);
       rethrow;
     }
+    log.singletonsCreated(container.all<Object>().length);
     try {
       final runners = RunnerSet.select(container.all<Runner>(), only: only);
       await runners.prepare(container.root);
@@ -73,10 +78,12 @@ final class App {
       await _attach(runners);
       _running = _Running(container, runners, only);
       _state = _AppState.started;
+      log.started();
     } on Object catch (error, stackTrace) {
       // Boundary: runners are user code; undo the container and report the
       // original failure.
       _state = _AppState.closed;
+      log.rollingBack(error);
       await _undo(container, error, stackTrace);
       rethrow;
     }
@@ -95,10 +102,23 @@ final class App {
   }
 
   /// Starts, then waits for `SIGINT`/`SIGTERM` (or [signals]) and closes.
-  Future<void> run({Set<String>? only, StopSignals? signals}) async {
-    await start(only: only);
-    await (signals ?? StopSignals()).wait();
-    await close();
+  ///
+  /// [log] is attached to `Logger.root` for the duration of the call and
+  /// defaults to `LogOutput.console()`; pass `LogOutput.none()` to configure
+  /// logging yourself. [start] attaches nothing.
+  Future<void> run({
+    Set<String>? only,
+    StopSignals? signals,
+    LogOutput log = const LogOutput.console(),
+  }) async {
+    final attached = log.attach();
+    try {
+      await start(only: only);
+      await (signals ?? StopSignals()).wait();
+      await close();
+    } finally {
+      await attached.cancel();
+    }
   }
 
   /// Rebuilds the graph from [root] and applies it to the running
@@ -125,8 +145,16 @@ final class App {
     }
     final pending = _reassemble();
     _reassembling = pending;
+    final log = AppLog();
     try {
-      return await pending;
+      final report = await pending;
+      log.reassembled(report);
+      return report;
+    } on Object catch (error) {
+      // Boundary: the graph, factories and runners are user code; the caller
+      // gets the error, the log gets a warning.
+      log.reassembleFailed(error);
+      rethrow;
     } finally {
       _reassembling = null;
     }
@@ -163,6 +191,7 @@ final class App {
   }
 
   Future<void> _close() async {
+    final log = AppLog()..shuttingDown();
     HotReloadExtension.detach(this);
     _state = _AppState.closed;
     final pending = _reassembling;
@@ -181,6 +210,7 @@ final class App {
     } on ShutdownError catch (error) {
       failures.addAll(error.failures);
     }
+    log.closed();
     if (failures.isNotEmpty) throw ShutdownError(failures);
   }
 

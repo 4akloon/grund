@@ -1,3 +1,5 @@
+import 'package:logging/logging.dart';
+
 import '../errors/grund_error.dart';
 import '../errors/resolution_errors.dart';
 import 'disposable.dart';
@@ -9,6 +11,8 @@ import 'shutdown_steps.dart';
 final class ContainerLifecycle {
   /// Creates the lifecycle over [_runtime].
   ContainerLifecycle(this._runtime);
+
+  static final Logger _log = Logger('grund.modules');
 
   final InjectionRuntime _runtime;
   final Set<ModuleIdentity> _initialised = {};
@@ -23,6 +27,7 @@ final class ContainerLifecycle {
         _initialised.add(identity);
         continue;
       }
+      final clock = Stopwatch()..start();
       try {
         await node.module.onInit(_runtime.viewOf(node));
       } on Object catch (error, stackTrace) {
@@ -40,6 +45,7 @@ final class ContainerLifecycle {
       }
       _initialised.add(identity);
       _fresh.add(identity);
+      _log.info('$identity initialized +${clock.elapsedMilliseconds}ms');
     }
   }
 
