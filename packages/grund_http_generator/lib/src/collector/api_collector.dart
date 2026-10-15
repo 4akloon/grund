@@ -2,9 +2,11 @@ import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:grund_generator/grund_generator.dart';
 
+import '../model/api_host.dart';
 import '../model/api_model.dart';
 import '../model/http_package_model.dart';
 import '../model/route_model.dart';
+import 'api_host_reader.dart';
 import 'api_reader.dart';
 import 'dto_reader.dart';
 import 'route_reader.dart';
@@ -18,8 +20,10 @@ abstract final class ApiCollector {
     final apis = ApiReader(context.locations, routes);
     final apiModels = <ApiModel>[];
     final strayRoutes = <RouteModel>[];
+    final hosts = <ApiHost>[];
     final dtoRoots = <DartType>[];
     for (final library in context.libraries) {
+      final declared = apiModels.length;
       for (final element in library.classes) {
         if (Annotations.find(element, 'Api') case final api?) {
           apiModels.add(apis.read(element, api));
@@ -28,11 +32,21 @@ abstract final class ApiCollector {
           strayRoutes.addAll(routes.read(element));
         }
       }
+      if (apiModels.length > declared) {
+        hosts.add(
+          ApiHostReader.read(
+            library,
+            context.locations.pathOf(library),
+            apiModels[declared].location,
+          ),
+        );
+      }
     }
     return HttpPackageModel(
       apis: apiModels,
       strayRoutes: strayRoutes,
       dtos: DtoReader.read(dtoRoots),
+      hosts: hosts,
     );
   }
 

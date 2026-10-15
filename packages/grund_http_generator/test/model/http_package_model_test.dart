@@ -17,6 +17,7 @@ void main() {
               type: GraphModels.type('TasksApi'),
               path: '/tasks',
               location: const SourceLocation('lib/app.dart', 1, 7),
+              libraryPath: 'lib/app.dart',
             ),
           ],
         ),

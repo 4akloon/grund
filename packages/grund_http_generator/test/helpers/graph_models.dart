@@ -50,22 +50,16 @@ abstract final class GraphModels {
     modules: modules,
     injectables: injectables,
     extensions: [HttpPackageModel(apis: apis)],
+    libraryPaths: const ['lib/app.dart'],
   );
 
   /// The diagnostic codes of the module and api constructs over
   /// [package], sorted by location.
-  ///
-  /// It runs the claim and validation phases only: the api construct writes
-  /// no output yet, and the module construct cannot write a claimed binding
-  /// that has no emission.
   static List<String> codes(PackageModel package) {
-    final claims = ProviderClaims.collect(package, FixturePackage.constructs);
-    final diagnostics = [
-      ...claims.conflicts,
-      for (final construct in FixturePackage.constructs)
-        ...construct.validate(package, claims),
-    ]..sort();
-    return [for (final d in diagnostics) d.code.id];
+    final result = const GrundGenerator(
+      FixturePackage.constructs,
+    ).generate(package);
+    return [for (final d in result.diagnostics) d.code.id];
   }
 
   /// An api class [name] at [path].
@@ -74,6 +68,7 @@ abstract final class GraphModels {
         type: type(name),
         path: '/',
         location: const SourceLocation('lib/app.dart', 9, 1),
+        libraryPath: 'lib/app.dart',
         use: use,
       );
 }

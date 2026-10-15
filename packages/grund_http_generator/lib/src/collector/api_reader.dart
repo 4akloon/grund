@@ -23,6 +23,7 @@ final class ApiReader {
       type: TypeReader.read(element.thisType),
       path: Annotations.field(annotation, 'path')?.toStringValue() ?? '',
       location: locations.of(element),
+      libraryPath: locations.pathOf(element.library),
       use: EntryRead.values(hooks),
       routes: _routes.read(element),
       invalidEntries: EntryRead.problems(hooks),

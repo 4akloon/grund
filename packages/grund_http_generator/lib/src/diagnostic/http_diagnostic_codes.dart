@@ -56,6 +56,16 @@ abstract final class HttpDiagnosticCodes {
   /// Two routes have the same method and path.
   static const duplicateRoute = DiagnosticCode('duplicate_route');
 
+  /// A library with an `@Api` class has no `part` directive for its
+  /// generated routes.
+  static const missingPartDirective = DiagnosticCode('missing_part_directive');
+
+  /// A library with an `@Api` class lacks the prefixed import the generated
+  /// routes need.
+  static const missingRequiredImport = DiagnosticCode(
+    'missing_required_import',
+  );
+
   /// Every code of this catalog, in declaration order.
   static const values = [
     invalidApi,
@@ -72,5 +82,7 @@ abstract final class HttpDiagnosticCodes {
     unsupportedReturnType,
     streamReturnReserved,
     duplicateRoute,
+    missingPartDirective,
+    missingRequiredImport,
   ];
 }

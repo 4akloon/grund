@@ -3,6 +3,9 @@ import 'dart:typed_data';
 
 import 'package:grund_annotations/grund_annotations.dart';
 import 'package:grund_http/grund_http.dart';
+import 'package:grund_http/grund_http.dart' as http;
+
+part 'tasks.api.g.dart';
 
 /// How urgent a task is.
 enum Priority {

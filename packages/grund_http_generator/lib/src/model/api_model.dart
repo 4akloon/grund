@@ -15,6 +15,7 @@ final class ApiModel {
     required this.type,
     required this.path,
     required this.location,
+    required this.libraryPath,
     this.use = const [],
     this.routes = const [],
     this.invalidEntries = const [],
@@ -29,6 +30,10 @@ final class ApiModel {
 
   /// Where the class is declared.
   final SourceLocation location;
+
+  /// The package-relative path of the library that declares the class: the
+  /// host of its generated part.
+  final String libraryPath;
 
   /// Hooks of every route, in order.
   final List<HookModel> use;

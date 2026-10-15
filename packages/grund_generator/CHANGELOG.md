@@ -8,3 +8,8 @@ Initial release.
   static validation of the module graph and diagnostics with a location and
   a code.
 - Deterministic, formatted output; custom `Construct`s.
+- The emitters (`BindingEmitter`, `ConstantEmitter`, `TypeEmitter`,
+  `DartString`, `CoreReferences`, `OverrideGetter`) are public for
+  constructs of other packages; a `PartUnit` must belong to a source
+  library of the package (`PackageModel.libraryPaths`) or to another
+  generated file.

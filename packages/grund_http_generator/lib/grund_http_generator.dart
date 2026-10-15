@@ -4,6 +4,7 @@ library;
 
 export 'src/construct/api_construct.dart';
 export 'src/diagnostic/http_diagnostic_codes.dart';
+export 'src/model/api_host.dart';
 export 'src/model/api_model.dart';
 export 'src/model/api_names.dart';
 export 'src/model/body_kind.dart';

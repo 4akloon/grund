@@ -2,14 +2,18 @@ import 'package:grund_generator/grund_generator.dart';
 
 import '../collector/api_collector.dart';
 import '../collector/route_reader.dart';
-import '../model/api_model.dart';
 import '../model/api_names.dart';
 import '../model/http_package_model.dart';
+import '../emit/api_emitter.dart';
 import 'api_check.dart';
+import 'api_claim.dart';
+import 'api_host_check.dart';
 import 'route_conflict_check.dart';
 
 /// Collects and validates the `@Api` classes of a package and their
-/// routes, and claims an `@Api` class listed in a module's `providers`.
+/// routes, claims an `@Api` class listed in a module's `providers`, and
+/// writes the routes of every `@Api` class into the part `X.api.g.dart` of
+/// its library.
 final class ApiConstruct extends Construct {
   /// Creates the construct.
   const ApiConstruct();
@@ -32,53 +36,11 @@ final class ApiConstruct extends Construct {
   /// `XRoutes`, which depends on the class.
   @override
   ProviderClaim? claimProvider(ProviderModel provider, PackageModel package) {
-    final injectable = provider.injectable;
     final api = _model(
       package,
-    ).apis.where((api) => api.type == injectable.type).firstOrNull;
-    if (api == null) return null;
-    return ProviderClaim([
-      BindingModel(
-        key: provider.key,
-        lifetime: injectable.lifetime,
-        dependencies: injectable.constructor.dependencies,
-        location: injectable.location,
-        lookups: _hookLookups(api),
-      ),
-      _routesBinding(api, provider),
-    ]);
+    ).apis.where((api) => api.type == provider.injectable.type).firstOrNull;
+    return api == null ? null : ApiClaim.of(provider, api);
   }
-
-  static List<BindingLookup> _hookLookups(ApiModel api) => [
-    for (final hook in [
-      ...api.use,
-      for (final route in api.routes) ...route.use,
-    ])
-      if (!hook.isInstance) BindingLookup(BindingKey(hook.type), api.location),
-  ];
-
-  // The routes share the api's lifetime, so a non-singleton api is reported
-  // once, as invalid_api, and not also as a captive dependency.
-  static BindingModel _routesBinding(ApiModel api, ProviderModel provider) =>
-      BindingModel(
-        key: BindingKey(
-          TypeModel(
-            name: ApiNames.routes(api.type.name),
-            kind: TypeKind.interface,
-            libraryUri: api.type.libraryUri,
-          ),
-        ),
-        lifetime: provider.injectable.lifetime,
-        dependencies: [
-          DependencyModel.injected(
-            name: 'api',
-            isNamed: false,
-            location: api.location,
-            key: provider.key,
-          ),
-        ],
-        location: api.location,
-      );
 
   @override
   Iterable<Diagnostic> validate(PackageModel package, ProviderClaims claims) {
@@ -86,6 +48,7 @@ final class ApiConstruct extends Construct {
     return [
       ...ApiCheck.check(package, model),
       ...RouteConflictCheck.check(model),
+      ...ApiHostCheck.check(model),
     ];
   }
 
@@ -93,7 +56,16 @@ final class ApiConstruct extends Construct {
   Iterable<GeneratedUnit> generate(
     PackageModel package,
     ProviderClaims claims,
-  ) => const [];
+  ) => [
+    for (final api in _model(package).apis)
+      PartUnit(
+        path: ApiNames.partPath(api.libraryPath),
+        hostPath: api.libraryPath,
+        name: ApiNames.routes(api.type.name),
+        spec: ApiEmitter.emit(api),
+        origin: api.location,
+      ),
+  ];
 
   /// The model [collect] added to [package].
   ///
