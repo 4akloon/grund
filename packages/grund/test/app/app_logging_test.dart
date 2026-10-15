@@ -53,8 +53,19 @@ void main() {
 
       expect(await capture.messages(AppLog.loggerName), [
         AppLog.startingMessage,
-        '1 singletons created',
+        '1 singleton created',
         matches(r'^Application started \+\d+ms$'),
+      ]);
+    });
+
+    test('the singleton count is plural except for one', () async {
+      AppLog()
+        ..singletonsCreated(0)
+        ..singletonsCreated(2);
+
+      expect(await capture.messages(AppLog.loggerName), [
+        '0 singletons created',
+        '2 singletons created',
       ]);
     });
 

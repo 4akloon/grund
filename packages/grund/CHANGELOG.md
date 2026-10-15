@@ -20,3 +20,5 @@ Initial release.
 - The dependency-injection annotations (`@Module`, `@Injectable`, `@Provides`,
   `Bind`, `@Named`, `Scope`) in `package:grund/annotations.dart`, a library of
   their own because `Module` shares its name with the base class.
+- `LogSubscription.cancel` is idempotent (a second call no longer restores the
+  root level again); the start log says "1 singleton created".

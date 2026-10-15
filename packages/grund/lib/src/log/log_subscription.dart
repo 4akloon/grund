@@ -20,10 +20,15 @@ final class LogSubscription {
   final StreamSubscription<LogRecord>? _subscription;
   final Level? _previousLevel;
 
+  // Set before the first await, so a second call, also a concurrent one,
+  // does not restore the root level again over a level set since.
+  bool _isCancelled = false;
+
   /// Stops the output. Idempotent.
   Future<void> cancel() async {
     final subscription = _subscription;
-    if (subscription == null) return;
+    if (subscription == null || _isCancelled) return;
+    _isCancelled = true;
     await subscription.cancel();
     final previous = _previousLevel;
     if (previous != null) Logger.root.level = previous;

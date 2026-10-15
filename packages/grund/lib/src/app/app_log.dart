@@ -38,8 +38,9 @@ final class AppLog {
   void starting() => _logger.info(startingMessage);
 
   /// Reports how many singletons the container holds.
-  void singletonsCreated(int count) =>
-      _logger.info('$count singletons created');
+  void singletonsCreated(int count) => _logger.info(
+    count == 1 ? '1 singleton created' : '$count singletons created',
+  );
 
   /// Reports the start, with the time since this log was created.
   void started() =>

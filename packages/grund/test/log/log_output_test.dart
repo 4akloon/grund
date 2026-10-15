@@ -77,6 +77,17 @@ void main() {
     expect(Logger.root.level, Level.SEVERE);
   });
 
+  test('a second cancel leaves the root level alone', () async {
+    Logger.root.level = Level.SEVERE;
+    final subscription = const LogOutput.console().attach();
+    await subscription.cancel();
+    Logger.root.level = Level.FINE;
+
+    await subscription.cancel();
+
+    expect(Logger.root.level, Level.FINE);
+  });
+
   test('none attaches nothing', () async {
     Logger.root.level = Level.SEVERE;
     final subscription = const LogOutput.none().attach();
