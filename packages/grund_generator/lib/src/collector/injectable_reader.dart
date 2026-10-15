@@ -23,10 +23,12 @@ final class InjectableReader {
   InjectableModel read(InterfaceElement element) {
     final injectable = Annotations.find(element, 'Injectable');
     final isApi = Annotations.find(element, 'Api') != null;
+    final scope = LifetimeReader.read(injectable);
     return InjectableModel(
       type: TypeReader.read(element.thisType),
       name: Annotations.named(element),
-      lifetime: LifetimeReader.read(injectable),
+      lifetime: scope.lifetime,
+      scopeProblem: scope.problem,
       isAnnotated: injectable != null || isApi,
       isApi: isApi,
       constructor: _constructors.read(element),

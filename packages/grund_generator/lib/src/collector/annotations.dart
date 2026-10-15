@@ -22,6 +22,18 @@ abstract final class Annotations {
       if (isAnnotation(value.type, names)) value,
   ];
 
+  /// The class names, among [names], of annotations on [element] whose
+  /// constant value cannot be evaluated (an argument does not resolve).
+  static List<String> unresolved(Element element, Set<String> names) => [
+    for (final annotation in element.metadata.annotations)
+      if (annotation.computeConstantValue() == null)
+        if (annotation.element case final ConstructorElement constructor)
+          if (constructor.enclosingElement.name case final name?)
+            if (names.contains(name) &&
+                '${constructor.library.uri}'.startsWith(packageUri))
+              name,
+  ];
+
   /// Whether [type] is one of the classes [names] of the annotations
   /// package.
   static bool isAnnotation(DartType? type, Set<String> names) =>

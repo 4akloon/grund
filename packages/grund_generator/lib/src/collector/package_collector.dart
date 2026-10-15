@@ -8,6 +8,7 @@ import '../model/module_model.dart';
 import '../model/package_model.dart';
 import '../model/provides_model.dart';
 import '../model/route_model.dart';
+import '../model/unsupported_use.dart';
 import 'annotations.dart';
 import 'api_reader.dart';
 import 'dto_reader.dart';
@@ -16,6 +17,7 @@ import 'module_reader.dart';
 import 'provides_reader.dart';
 import 'route_reader.dart';
 import 'source_locations.dart';
+import 'unsupported_use_reader.dart';
 
 /// Builds the [PackageModel] of one package from its resolved libraries.
 ///
@@ -40,45 +42,55 @@ final class PackageCollector {
       for (final library in libraries)
         if (!'${library.uri}'.endsWith('.grund.dart')) library,
     ]..sort((a, b) => '${a.uri}'.compareTo('${b.uri}'));
-    final modules = ModuleReader(packageName, _locations);
-    final injectables = InjectableReader(_locations);
-    final apis = ApiReader(_locations);
-    final provides = ProvidesReader(_locations);
     final routes = RouteReader(_locations);
-    final moduleModels = <ModuleModel>[];
-    final injectableModels = <InjectableModel>[];
-    final apiModels = <ApiModel>[];
-    final strayProvides = <ProvidesModel>[];
-    final strayRoutes = <RouteModel>[];
-    final dtoRoots = <DartType>[];
-    for (final element in [for (final l in sorted) ...l.classes]) {
-      final module = Annotations.find(element, 'Module');
-      final api = Annotations.find(element, 'Api');
-      if (module != null) {
-        moduleModels.add(modules.read(element, module));
-      } else {
-        strayProvides.addAll(provides.read(element));
-      }
-      if (api != null) {
-        apiModels.add(apis.read(element, api));
-        dtoRoots.addAll(_dtoRoots(element));
-      } else {
-        strayRoutes.addAll(routes.read(element));
-      }
-      if (Annotations.all(element, const {'Injectable', 'Api'}).isNotEmpty) {
-        injectableModels.add(injectables.read(element));
+    final readers = _Readers(
+      ModuleReader(packageName, _locations),
+      InjectableReader(_locations),
+      ApiReader(_locations, routes),
+      ProvidesReader(_locations),
+      routes,
+    );
+    final parts = _Parts();
+    for (final library in sorted) {
+      parts.unsupported.addAll(UnsupportedUseReader(_locations).read(library));
+      for (final element in library.classes) {
+        _collectClass(element, readers, parts);
       }
     }
     return PackageModel(
       packageName: packageName,
       languageVersion: _languageVersion(sorted),
-      modules: moduleModels,
-      injectables: injectableModels,
-      apis: apiModels,
-      strayProvides: strayProvides,
-      strayRoutes: strayRoutes,
-      dtos: DtoReader.read(dtoRoots),
+      modules: parts.modules,
+      injectables: parts.injectables,
+      apis: parts.apis,
+      strayProvides: parts.strayProvides,
+      strayRoutes: parts.strayRoutes,
+      dtos: DtoReader.read(parts.dtoRoots),
+      unsupportedUses: parts.unsupported,
     );
+  }
+
+  static void _collectClass(
+    ClassElement element,
+    _Readers readers,
+    _Parts parts,
+  ) {
+    final module = Annotations.find(element, 'Module');
+    final api = Annotations.find(element, 'Api');
+    if (module != null) {
+      parts.modules.add(readers.modules.read(element, module));
+    } else {
+      parts.strayProvides.addAll(readers.provides.read(element));
+    }
+    if (api != null) {
+      parts.apis.add(readers.apis.read(element, api));
+      parts.dtoRoots.addAll(_dtoRoots(element));
+    } else {
+      parts.strayRoutes.addAll(readers.routes.read(element));
+    }
+    if (Annotations.all(element, const {'Injectable', 'Api'}).isNotEmpty) {
+      parts.injectables.add(readers.injectables.read(element));
+    }
   }
 
   static List<DartType> _dtoRoots(ClassElement api) => [
@@ -96,4 +108,32 @@ final class PackageCollector {
         ? Version(3, 8, 0)
         : Version(version.major, version.minor, 0);
   }
+}
+
+/// The readers [PackageCollector] applies to every class.
+final class _Readers {
+  _Readers(
+    this.modules,
+    this.injectables,
+    this.apis,
+    this.provides,
+    this.routes,
+  );
+
+  final ModuleReader modules;
+  final InjectableReader injectables;
+  final ApiReader apis;
+  final ProvidesReader provides;
+  final RouteReader routes;
+}
+
+/// What [PackageCollector] accumulates while it walks the classes.
+final class _Parts {
+  final modules = <ModuleModel>[];
+  final injectables = <InjectableModel>[];
+  final apis = <ApiModel>[];
+  final strayProvides = <ProvidesModel>[];
+  final strayRoutes = <RouteModel>[];
+  final dtoRoots = <DartType>[];
+  final unsupported = <UnsupportedUse>[];
 }

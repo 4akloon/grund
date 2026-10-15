@@ -29,7 +29,7 @@ enum DiagnosticCode {
   /// A class provider is not annotated with `@Injectable()`.
   notInjectable('not_injectable'),
 
-  /// A provider or controller class cannot be created through its unnamed
+  /// A provider or `@Api` class cannot be created through its unnamed
   /// constructor.
   invalidConstructor('invalid_constructor'),
 
@@ -55,12 +55,17 @@ enum DiagnosticCode {
   /// A `@Param` name is not a parameter of the route path.
   unknownPathParameter('unknown_path_parameter'),
 
-  /// Two routes have the same method and path, or a controller is listed
+  /// Two routes have the same method and path, or an `@Api` class is listed
   /// by more than one module (its routes would be registered twice).
   duplicateRoute('duplicate_route'),
 
   /// Two generated declarations would have the same name.
-  duplicateGeneratedName('duplicate_generated_name');
+  duplicateGeneratedName('duplicate_generated_name'),
+
+  /// An annotation sits where the generator does not read it (inherited or
+  /// mixed-in members, mixins, enums, extensions) or has an argument it
+  /// cannot evaluate.
+  unsupportedUse('unsupported_use');
 
   const DiagnosticCode(this.id);
 

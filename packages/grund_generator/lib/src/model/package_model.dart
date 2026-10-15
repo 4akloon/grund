@@ -6,6 +6,7 @@ import 'injectable_model.dart';
 import 'module_model.dart';
 import 'provides_model.dart';
 import 'route_model.dart';
+import 'unsupported_use.dart';
 
 /// Everything the generator collected from one package: the input of every
 /// `Construct`.
@@ -20,6 +21,7 @@ final class PackageModel {
     this.strayProvides = const [],
     this.strayRoutes = const [],
     this.dtos = const [],
+    this.unsupportedUses = const [],
   });
 
   /// The package name; the output is `lib/<packageName>.grund.dart`.
@@ -47,6 +49,10 @@ final class PackageModel {
 
   /// Request bodies and handler results, sorted by library URI, then name.
   final List<DtoModel> dtos;
+
+  /// Annotations the generator cannot honour, in library-URI order, then
+  /// source order; the checks report each as `unsupported_use`.
+  final List<UnsupportedUse> unsupportedUses;
 
   /// Whether the package has no modules, injectables or APIs: there is
   /// nothing to generate, and a driver removes a library it generated

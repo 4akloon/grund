@@ -12,7 +12,7 @@ import 'type_reader.dart';
 /// Reads an `@Api` class into an [ApiModel].
 final class ApiReader {
   /// Creates the reader.
-  ApiReader(this.locations) : _routes = RouteReader(locations);
+  ApiReader(this.locations, this._routes);
 
   /// Locations of declarations.
   final SourceLocations locations;

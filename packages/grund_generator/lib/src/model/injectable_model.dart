@@ -16,6 +16,7 @@ final class InjectableModel {
     required this.location,
     this.name,
     this.isApi = false,
+    this.scopeProblem,
     this.documentation,
   });
 
@@ -33,6 +34,10 @@ final class InjectableModel {
 
   /// Whether the class is annotated with `@Api(...)`.
   final bool isApi;
+
+  /// Why the `scope` of `@Injectable` is unusable, as a sentence; `null`
+  /// when it is fine.
+  final String? scopeProblem;
 
   /// How to create an instance.
   final ConstructorModel constructor;

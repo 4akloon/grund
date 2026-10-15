@@ -40,9 +40,11 @@ final class RouteReader {
     required bool isSingle,
   }) {
     final hooks = HookReader.read(route);
+    final verb = Annotations.field(route, 'method')?.toStringValue();
+    final path = Annotations.field(route, 'path')?.toStringValue();
     return RouteModel(
-      method: _string(method, route, 'method'),
-      path: _string(method, route, 'path'),
+      method: verb ?? '',
+      path: path ?? '',
       handlerName: method.displayName,
       returnType: TypeReader.read(method.returnType),
       returnKind: ReturnReader.read(method.returnType),
@@ -55,20 +57,11 @@ final class RouteReader {
       use: EntryRead.values(hooks),
       invalidEntries: EntryRead.problems(hooks),
       documentation: method.documentationComment,
-      problem: _problem(method, isSingle: isSingle),
+      problem: verb == null || path == null
+          ? 'The route annotation on ${method.displayName} needs a constant '
+                'string path.'
+          : _problem(method, isSingle: isSingle),
     );
-  }
-
-  /// The string field [field] of the route annotation [route] on [method].
-  static String _string(MethodElement method, DartObject route, String field) {
-    final value = Annotations.field(route, field)?.toStringValue();
-    if (value == null) {
-      throw StateError(
-        'The route annotation on ${method.displayName} has no constant '
-        'string "$field".',
-      );
-    }
-    return value;
   }
 
   static String? _problem(MethodElement method, {required bool isSingle}) {

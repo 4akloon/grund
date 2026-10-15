@@ -35,7 +35,8 @@ final class ProvidesReader {
   ) {
     final name = '${owner.displayName}.${method.displayName}';
     final provided = _provided(method.returnType);
-    final problem = _problem(method, name, provided);
+    final scope = LifetimeReader.read(annotation);
+    final problem = _problem(method, name, provided) ?? scope.problem;
     return ProvidesModel(
       owner: TypeReader.read(owner.thisType),
       methodName: method.displayName,
@@ -43,7 +44,7 @@ final class ProvidesReader {
       key: problem != null || provided == null
           ? null
           : BindingKey(TypeReader.read(provided), Annotations.named(method)),
-      lifetime: LifetimeReader.read(annotation),
+      lifetime: scope.lifetime,
       isAsync: _isAsync(method.returnType),
       dependencies: [
         for (final parameter in method.formalParameters)
@@ -57,10 +58,12 @@ final class ProvidesReader {
   /// The `T` of `T`, `Future<T>` and `FutureOr<T>`; `null` when the type is
   /// not a non-nullable class type.
   static InterfaceType? _provided(DartType returned) {
+    if (returned.nullabilitySuffix != NullabilitySuffix.none) return null;
     final type = _isAsync(returned) && returned is InterfaceType
         ? returned.typeArguments.single
         : returned;
     return type is InterfaceType &&
+            !_isAsync(type) &&
             type.nullabilitySuffix == NullabilitySuffix.none &&
             !type.isDartCoreObject
         ? type
