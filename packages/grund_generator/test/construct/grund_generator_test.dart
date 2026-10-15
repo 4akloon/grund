@@ -124,7 +124,7 @@ void main() {
 }
 
 void _edges() {
-  test('only files: the library holds just the header', () {
+  test('only files: no library is written', () {
     final result = GrundGenerator([
       _FixedConstruct(
         units: [
@@ -139,14 +139,14 @@ void _edges() {
 
     expect(result.isSuccess, isTrue);
     expect(result.files['a.txt'], 'a');
-    expect(result.files[_library], startsWith(LibraryWriter.header));
+    expect(result.files.keys, ['a.txt']);
   });
 
-  test('no constructs generate an empty library', () {
+  test('no constructs generate no files', () {
     final result = const GrundGenerator([]).generate(_package);
 
     expect(result.isSuccess, isTrue);
-    expect(result.files.keys, [_library]);
+    expect(result.files, isEmpty);
     expect(result.diagnostics, isEmpty);
   });
 

@@ -1,3 +1,4 @@
+import 'package:code_builder/code_builder.dart';
 import 'package:grund_generator/grund_generator.dart';
 import 'package:test/test.dart';
 
@@ -76,6 +77,7 @@ BindingModel _binding(
   lookups: [
     for (final n in looksUp) BindingLookup(GraphModels.key(n), _lookupAt),
   ],
+  emission: refer('claimed$name', 'package:app/app.dart'),
 );
 
 List<Diagnostic> _diagnostics(

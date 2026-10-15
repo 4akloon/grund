@@ -54,12 +54,19 @@ abstract final class GraphModels {
 
   /// The diagnostic codes of the module and api constructs over
   /// [package], sorted by location.
-  static List<String> codes(PackageModel package) => [
-    for (final d in const GrundGenerator(
-      FixturePackage.constructs,
-    ).generate(package).diagnostics)
-      d.code.id,
-  ];
+  ///
+  /// It runs the claim and validation phases only: the api construct writes
+  /// no output yet, and the module construct cannot write a claimed binding
+  /// that has no emission.
+  static List<String> codes(PackageModel package) {
+    final claims = ProviderClaims.collect(package, FixturePackage.constructs);
+    final diagnostics = [
+      ...claims.conflicts,
+      for (final construct in FixturePackage.constructs)
+        ...construct.validate(package, claims),
+    ]..sort();
+    return [for (final d in diagnostics) d.code.id];
+  }
 
   /// An api class [name] at [path].
   static ApiModel api(String name, {List<HookModel> use = const []}) =>

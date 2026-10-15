@@ -6,7 +6,6 @@ import '../diagnostic/diagnostic.dart';
 import '../diagnostic/diagnostic_code.dart';
 import '../diagnostic/source_location.dart';
 import '../emit/library_writer.dart';
-import '../model/generated_names.dart';
 import '../model/package_model.dart';
 import 'file_unit.dart';
 import 'generated_unit.dart';
@@ -16,8 +15,8 @@ import 'part_unit.dart';
 /// Joins the units of all constructs into files: the units of one path
 /// into one library, one part file or one plain file.
 ///
-/// The package library `lib/<package>.grund.dart` is always written, even
-/// without units, so a driver can replace the one it generated before.
+/// A path no unit targets is not written: a package without modules has
+/// no files.
 final class OutputAssembler {
   /// Creates the assembler for [package].
   const OutputAssembler(this.package);
@@ -34,8 +33,7 @@ final class OutputAssembler {
   ({Map<String, String> files, List<Diagnostic> duplicates}) assemble(
     List<GeneratedUnit> units,
   ) {
-    final byPath = SplayTreeMap<String, List<GeneratedUnit>>()
-      ..[GeneratedNames.libraryPath(package.packageName)] = [];
+    final byPath = SplayTreeMap<String, List<GeneratedUnit>>();
     for (final unit in units) {
       byPath.putIfAbsent(unit.path, () => []).add(unit);
     }

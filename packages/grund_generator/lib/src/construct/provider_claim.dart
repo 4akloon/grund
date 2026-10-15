@@ -8,8 +8,10 @@ import '../model/binding_model.dart';
 /// dependencies) see each of [bindings] as a binding of the module.
 final class ProviderClaim {
   /// Creates the claim; [bindings] must not be empty.
-  const ProviderClaim(this.bindings) : assert(bindings.length > 0);
+  ProviderClaim(List<BindingModel> bindings)
+    : assert(bindings.isNotEmpty),
+      bindings = List.unmodifiable(bindings);
 
-  /// The bindings, in the order the module writes them.
+  /// The bindings, in the order the module writes them; unmodifiable.
   final List<BindingModel> bindings;
 }
