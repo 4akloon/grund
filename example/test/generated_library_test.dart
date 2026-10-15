@@ -5,7 +5,9 @@
 //
 // The test runs the CLI's own `GenerationSession` on a copy of the
 // hand-written sources in a temporary directory, so it writes nothing into
-// the example.
+// the example. Both sides are formatted again with the same `DartFormatter`
+// before they are compared: the bytes depend on the `dart_style` release,
+// the content must not.
 import 'dart:io';
 
 import 'package:grund_cli/grund_cli.dart';
@@ -13,6 +15,7 @@ import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
 import 'helpers/example_sources.dart';
+import 'helpers/normalized_source.dart';
 import 'helpers/temp_dir.dart';
 import 'helpers/workspace_package_config.dart';
 
@@ -32,8 +35,8 @@ void main() {
 
     expect(report.problemLines, isEmpty);
     expect(
-      _generatedIn(copy.path),
-      await ExampleSources.committedGenerated(),
+      NormalizedSource.allOf(_generatedIn(copy.path)),
+      NormalizedSource.allOf(await ExampleSources.committedGenerated()),
       reason: 'Run `dart run grund_cli gen` in example/ and commit.',
     );
   });

@@ -21,3 +21,5 @@ Initial release.
   `export` or `part`, except a not yet generated `x.g.dart`) is the
   diagnostic `unresolved_uri`, so a typo in an annotation import no longer
   drops the library's outputs silently.
+- The output bytes depend on the resolved `dart_style` release: the same
+  sources and the same `dart_style` give identical files.

@@ -17,3 +17,5 @@ Initial release.
 - A source library with an unresolved `import`, `export` or `part` is a
   problem (`unresolved_uri`): `gen` writes and deletes nothing, exits with 1,
   instead of deleting the generated files.
+- `gen` rewrites the generated files once after a change of the resolved
+  `dart_style` release; the content is the same.

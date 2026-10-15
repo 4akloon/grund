@@ -101,9 +101,14 @@ only. It has not run yet.
 - **Fail fast and before running.** Structural problems surface in
   `ModuleGraph.build` / the generator before any factory runs; no partially
   started container is ever returned.
-- **Deterministic generator output.** The same sources give byte-identical
-  generated files: sort everything, no hash-ordered iteration when emitting.
-  A change of generated output is a breaking change of the generator.
+- **Deterministic generator output.** The same sources and the same
+  `dart_style` version give byte-identical generated files: sort everything,
+  no hash-ordered iteration when emitting. A change of generated output is a
+  breaking change of the generator. The formatter version is part of the
+  output contract (the SDK floor is not raised for it), so a golden check of
+  a committed file that must pass across `dart_style` releases compares both
+  texts after the same `DartFormatter` (`example/test/helpers/
+  normalized_source.dart`).
 - **The core has no codegen and no server.** `grund` depends only on the
   Dart SDK, `package:meta` and `package:logging`: no `dart:mirrors`, no `dart:io` server, no
   shelf, no analyzer. Annotations are dependency-free libraries of the

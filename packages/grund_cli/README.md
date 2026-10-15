@@ -221,6 +221,13 @@ and calls `dart run tool/grund.dart gen`. `GenerationSession` is the
 same generation as a library: `run(changed: [...])` regenerates with the
 analysis kept in memory, for tools that decide themselves when to run.
 
+## Output bytes and `dart_style`
+
+The generated files are formatted with the `dart_style` that resolves for
+your package, so their bytes follow that release. Another version (a
+teammate's `pub get`, an upgrade) makes the next `gen` rewrite the files
+once, with the same content; commit the result, or pin `dart_style`.
+
 ## build_runner
 
 `grund_build` runs the same generation as a build_runner builder and
