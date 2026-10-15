@@ -31,3 +31,6 @@ export 'src/routing/routing_error.dart';
 export 'src/serialize/response_codec.dart';
 export 'src/serialize/serialization_error.dart';
 export 'src/serialize/serializer_registry.dart';
+export 'src/server/http_config.dart';
+export 'src/server/http_module.dart';
+export 'src/server/http_server.dart';

@@ -1,17 +1,17 @@
 import '../http/http_request.dart';
 import '../http/http_response.dart';
 
-/// Answers one request. `Application.listen` passes adapters an
-/// implementation equal to `Application.handle` but not counted by the
-/// application's in-flight counter: adapters count their own requests.
+/// Answers one request. `HttpServer` passes adapters an
+/// implementation equal to `HttpServer.handle` but not counted by the
+/// server's in-flight counter: adapters count their own requests.
 typedef RequestHandler = Future<HttpResponse> Function(HttpRequest request);
 
-/// Connects an HTTP server library to an `Application`.
+/// Connects an HTTP server library to an `HttpServer`.
 ///
 /// Implemented outside this package (`grund_io`, `grund_shelf`).
 /// Contract:
 ///
-/// - [listen] is called at most once, by `Application.listen`, and completes
+/// - [listen] is called at most once, by `HttpServer.start`, and completes
 ///   when the server accepts connections. For every native request the
 ///   adapter builds an [HttpRequest] (upper-cased method; `uri` with path and
 ///   query; every header value, multi-valued headers included; the body as
@@ -27,7 +27,7 @@ typedef RequestHandler = Future<HttpResponse> Function(HttpRequest request);
 ///   wait (e.g. a `closeTimeout`) and then drop the remaining connections
 ///   as `force: true` does. With `force: true` it drops open connections at
 ///   once. It is idempotent and completes at once if [listen] was never
-///   called. `Application.close` calls it first and does not itself wait
+///   called. `HttpServer.stop` calls it first and does not itself wait
 ///   for the requests the adapter delivered: that wait is the adapter's.
 abstract interface class HttpAdapter {
   /// Starts serving [handler] on [address] and [port].
