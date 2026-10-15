@@ -12,5 +12,6 @@ workspace:
   - packages/grund_generator
   - packages/grund_generator/test/fixtures/cases_app
   - packages/grund_generator/test/fixtures/users_app
+  - packages/grund_http
   - packages/grund_io
   - packages/grund_shelf

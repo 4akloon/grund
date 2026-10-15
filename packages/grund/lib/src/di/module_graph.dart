@@ -8,8 +8,8 @@ import 'module.dart';
 /// provider instances: duplicate ids with different shape, import cycles,
 /// duplicate provider keys, invalid exports, keys exported to one module by
 /// several modules. Modules with equal ids are
-/// compared by shape only (id, `global`, import ids, provider keys,
-/// controller types and export keys); the first-seen instance wins.
+/// compared by shape only (id, `global`, import ids, provider keys and
+/// export keys); the first-seen instance wins.
 final class ModuleGraph {
   ModuleGraph._(this.root, this.ordered, this._byId);
 
@@ -161,9 +161,9 @@ final class ModuleGraph {
     }
   }
 
-  /// Structural equality (id, `global`, import ids, provider keys, controller
-  /// types and export keys; not factory configuration) used
-  /// to accept the same dynamic module imported from several places.
+  /// Structural equality (id, `global`, import ids, provider keys and export
+  /// keys; not factory configuration) used to accept the same dynamic module
+  /// imported from several places.
   static bool _sameShape(Module a, Module b) {
     if (a.id != b.id || a.global != b.global) return false;
     if (!_sameList(a.imports.map((m) => m.id), b.imports.map((m) => m.id))) {
@@ -172,12 +172,6 @@ final class ModuleGraph {
     if (!_sameList(
       a.providers.map((p) => p.key),
       b.providers.map((p) => p.key),
-    )) {
-      return false;
-    }
-    if (!_sameList(
-      a.controllers.map((c) => c.type),
-      b.controllers.map((c) => c.type),
     )) {
       return false;
     }
