@@ -1,4 +1,5 @@
 import 'binding.dart';
+import 'dependency_validator.dart';
 import 'module.dart';
 import 'module_collector.dart';
 import 'module_identity.dart';
@@ -13,8 +14,8 @@ final class ModuleGraph {
 
   /// Reads and validates the graph below [root], with [overrides] applied.
   ///
-  /// Every problem of structure and visibility is a `GraphError` thrown
-  /// here, before any factory runs.
+  /// Every problem of structure, visibility and declared dependencies is a
+  /// `GraphError` thrown here, before any factory runs.
   factory ModuleGraph.build(
     Module root, {
     List<Binding<Object>> overrides = const [],
@@ -24,6 +25,7 @@ final class ModuleGraph {
       overrides,
     );
     final visibility = VisibilityIndex.build(nodes);
+    DependencyValidator(nodes, visibility).validate();
     final rootIdentity = ModuleIdentity.of(root);
     return ModuleGraph._(nodes, visibility, {
       for (final node in nodes) node.identity: node,
