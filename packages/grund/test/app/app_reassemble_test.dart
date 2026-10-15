@@ -152,5 +152,30 @@ void main() {
         expect(log.last, 'stop a');
       },
     );
+
+    test(
+      'a dropped runner that fails to stop reports it and keeps the new state',
+      () async {
+        code.bindings = () => [
+          runnerBinding(FakeRunner('old', log, stopFailure: StateError('x'))),
+        ];
+        final app = await started();
+        final oldContainer = app.container;
+        log.clear();
+        code.bindings = () => [
+          runnerBinding(FakeRunner('fresh', log)),
+          Singleton<Tracked>((i) => Tracked('cache', log), dependsOn: const []),
+        ];
+
+        await expectLater(app.reassemble(), throwsA(isA<ShutdownError>()));
+
+        expect(app.isRunning, isTrue);
+        expect(app.container, isNot(same(oldContainer)));
+        expect(log, isNot(contains('dispose cache')));
+        expect(log, contains('start fresh'));
+        await app.close();
+        expect(log, contains('stop fresh'));
+      },
+    );
   });
 }

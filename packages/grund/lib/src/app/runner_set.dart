@@ -85,12 +85,16 @@ final class RunnerSet {
   ///
   /// A runner that is in both is reassembled; a runner only [next] selects is
   /// prepared and started; a running runner [next] no longer has is stopped.
-  /// When it fails, what [next] started is stopped again and this set keeps
-  /// running.
-  Future<ReassembleReport> reassembleInto(
-    RunnerSet next,
-    Injector injector,
-  ) async {
+  /// When one of those steps fails, what [next] started is stopped again and
+  /// this set keeps running. A shared runner whose own `reassemble` fails is
+  /// the exception: its default implementation stops it first, so it stays
+  /// stopped. Runners are matched by instance, not by name.
+  ///
+  /// When only stopping a dropped runner fails, everything else has already
+  /// moved to [next]; the failures are returned in the outcome and [next]
+  /// is the state to keep.
+  Future<({ReassembleReport report, List<ShutdownFailure> dropFailures})>
+  reassembleInto(RunnerSet next, Injector injector) async {
     var report = ReassembleReport.none;
     try {
       for (final runner in next._available) {
@@ -108,9 +112,7 @@ final class RunnerSet {
       for (final runner in _running.reversed)
         if (!next._running.contains(runner)) runner,
     ];
-    final failures = await _stop(dropped);
-    if (failures.isNotEmpty) throw ShutdownError(failures);
-    return report;
+    return (report: report, dropFailures: await _stop(dropped));
   }
 
   Future<ReassembleReport> _adopt(

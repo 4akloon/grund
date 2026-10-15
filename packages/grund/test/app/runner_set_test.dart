@@ -162,7 +162,7 @@ void main() {
         await previous.start(i);
         final next = RunnerSet.select([shared]);
 
-        final report = await previous.reassembleInto(next, i);
+        final report = (await previous.reassembleInto(next, i)).report;
 
         expect(report.added, ['x']);
         expect(shared.reassembled, 1);

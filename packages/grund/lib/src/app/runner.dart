@@ -25,7 +25,8 @@ abstract class Runner {
   /// Applies the new graph (hot reload) and returns what changed.
   ///
   /// By default the runner is stopped, prepared again and started. A runner
-  /// that can swap its structures without a gap overrides this.
+  /// that can swap its structures without a gap overrides this. If this
+  /// throws after the runner was stopped, the runner stays stopped.
   Future<ReassembleReport> reassemble(Injector injector) async {
     await stop();
     await prepare(injector);

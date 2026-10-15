@@ -70,6 +70,7 @@ final class App {
       final runners = RunnerSet.select(container.all<Runner>(), only: only);
       await runners.prepare(container.root);
       await runners.start(container.root);
+      await _attach(runners);
       _running = _Running(container, runners, only);
       _state = _AppState.started;
     } on Object catch (error, stackTrace) {
@@ -79,7 +80,18 @@ final class App {
       await _undo(container, error, stackTrace);
       rethrow;
     }
-    HotReloadExtension.attach(this);
+  }
+
+  // Registering the service extensions can fail; the runners are already
+  // serving then, so they are stopped before the start is reported failed.
+  Future<void> _attach(RunnerSet runners) async {
+    try {
+      HotReloadExtension.attach(this);
+    } on Object {
+      // Boundary: the VM service registration; undo, then report it.
+      await runners.stop();
+      rethrow;
+    }
   }
 
   /// Starts, then waits for `SIGINT`/`SIGTERM` (or [signals]) and closes.
@@ -92,8 +104,17 @@ final class App {
   /// Rebuilds the graph from [root] and applies it to the running
   /// application (hot reload).
   ///
-  /// Singletons whose module and key are unchanged are kept. When anything
-  /// fails the previous state keeps serving and the error is thrown.
+  /// Singletons whose module and key are unchanged are kept. When building
+  /// the graph, creating singletons, or preparing, starting or reassembling
+  /// a runner fails, the new container is abandoned, the error is thrown and
+  /// the previous state keeps serving; the exception is a shared runner whose
+  /// own `reassemble` fails, which is left stopped. When only stopping a
+  /// dropped runner fails, the new state is kept and the [ShutdownError] is
+  /// thrown afterwards.
+  ///
+  /// The `Disposable`s of the old container that
+  /// were not adopted are not disposed by a reassemble, and runners are
+  /// matched across a reassemble by instance, not by name.
   Future<ReassembleReport> reassemble() async {
     _started('reassemble');
     if (_reassembling != null) {
@@ -121,16 +142,24 @@ final class App {
     final current = _started('reassemble');
     final graph = ModuleGraph.build(root, overrides: overrides);
     final next = await current.container.reassemble(graph);
+    final RunnerSet runners;
+    final ({ReassembleReport report, List<ShutdownFailure> dropFailures})
+    outcome;
     try {
-      final runners = RunnerSet.select(next.all<Runner>(), only: current.only);
-      final report = await current.runners.reassembleInto(runners, next.root);
-      _running = _Running(next, runners, current.only);
-      return report;
+      runners = RunnerSet.select(next.all<Runner>(), only: current.only);
+      outcome = await current.runners.reassembleInto(runners, next.root);
     } on Object {
       // Boundary: runners are user code; the previous state keeps serving.
       await next.abandon();
       rethrow;
     }
+    // Every runner now uses [next], so it is kept even if a dropped runner
+    // failed to stop.
+    _running = _Running(next, runners, current.only);
+    if (outcome.dropFailures.isNotEmpty) {
+      throw ShutdownError(outcome.dropFailures);
+    }
+    return outcome.report;
   }
 
   Future<void> _close() async {
