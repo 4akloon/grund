@@ -9,7 +9,7 @@
 (розділи 2–8). Рішення користувача, на яких він стоїть: вивід по вихідних
 бібліотеках; модулі — бібліотека `X_module.g.dart`, `@Api` — `part`
 `X_api.g.dart`; суфікс `.g.dart`; HTTP-частина генератора — окремий пакет
-`grund_http_generator` (анотації лишаються в `grund_annotations`); `grund_cli`
+`grund_http_generator` (анотації: DI — в ядрі `grund`, HTTP — в `grund_http`; пакета `grund_annotations` немає, задача 18a); `grund_cli`
 і `grund_build` знають обидва пакети статично.
 
 ## Глобальні обмеження, що додаються
@@ -119,3 +119,15 @@ CLI і білдер пишуть однакові байти. `GenerationSession
 `*.g.dart` закомічено. 21: документація й `CLAUDE.md` (правила CLI-виводу,
 вісім пакетів, `RELEASING.md`, `.g.dart`-імена, `part` для `@Api`, межа ядра і
 HTTP, `hide`/`as` для `Pattern`/`Cookie`, README генератора), CHANGELOG-и.
+
+## Задача 18a (нова): анотації переїжджають у ядро і `grund_http`
+
+Рішення користувача: пакета `grund_annotations` немає. DI-анотації (`Module`,
+`Injectable`, `Provides`, `Bind`, `Named`, `Scope`) — у `grund`, бібліотека
+`package:grund/annotations.dart` (окрема від `grund.dart`: ім'я `Module`
+збігається з базовим класом); HTTP-анотації (`Api`, `Get`/`Post`/`Put`/`Patch`/
+`Delete`, `Path`/`Query`/`Header`/`Cookie`/`Body`, `Range`/`Length`/`Pattern`/
+`OneOf`) — у `grund_http`, бібліотека `package:grund_http/annotations.dart`.
+Генератори розпізнають анотації за іменем і URI цих бібліотек; ядро
+генератора не знає HTTP-URI. Пакет видаляється з workspace, CI, `RELEASING.md`
+(лишається сім опублікованих пакетів). Задача виконується між 18 і 19.

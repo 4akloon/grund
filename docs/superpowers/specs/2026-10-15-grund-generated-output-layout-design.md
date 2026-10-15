@@ -113,9 +113,18 @@ Golden-фікстура `users_app` стає набором файлів (біб
 ## 8. Межа ядра генератора і HTTP
 
 Ядро генератора не знає про HTTP. Рішення користувача: HTTP-частина — окремий
-опублікований пакет `grund_http_generator`; анотації `@Api`, `@Get`, `@Path`,
-`@Body` та інші лишаються в `grund_annotations` (окремого пакета анотацій
-немає).
+опублікований пакет `grund_http_generator`. Окремого пакета анотацій немає
+(рішення користувача, після першого затвердження цього spec): анотації DI —
+`@Module`, `@Injectable`, `@Provides`, `Bind`, `@Named`, `Scope` — частина
+ядра, окрема бібліотека `package:grund/annotations.dart` (без залежностей;
+окрема, бо анотація `Module` має те саме ім'я, що базовий клас `Module` у
+`package:grund/grund.dart`); HTTP-анотації — `@Api`, `@Get`/`@Post`/…,
+`@Path`/`@Query`/`@Header`/`@Cookie`/`@Body`, валідатори — частина
+`grund_http`, бібліотека `package:grund_http/annotations.dart` (ядро не знає
+HTTP, тож HTTP-анотації не в `grund`; окрема бібліотека, щоб `Pattern` і
+`Cookie` не конфліктували з `dart:core`/`dart:io` у тих, хто їх не вживає).
+Хост-файл імпортує обидві без префікса, а `grund.dart` і `grund_http.dart` — з
+префіксами `grund`/`http`, як і раніше.
 
 - **`grund_generator` (ядро)**: колектор модулів, `@Injectable`, `@Provides`,
   `Bind`; `ModuleConstruct`, перевірки DI (граф, видимість, цикли, captive,
