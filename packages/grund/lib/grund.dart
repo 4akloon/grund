@@ -24,3 +24,8 @@ export 'src/errors/app_errors.dart';
 export 'src/errors/graph_errors.dart';
 export 'src/errors/grund_error.dart' show GrundError;
 export 'src/errors/resolution_errors.dart';
+export 'src/log/console_log_formatter.dart' show ConsoleLogFormatter;
+export 'src/log/json_log_formatter.dart' show JsonLogFormatter;
+export 'src/log/log_formatter.dart' show LogFormatter;
+export 'src/log/log_output.dart' show LogOutput;
+export 'src/log/log_subscription.dart' show LogSubscription;
