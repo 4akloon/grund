@@ -1,5 +1,5 @@
 import '../diagnostic/diagnostic.dart';
-import '../diagnostic/diagnostic_code.dart';
+import '../diagnostic/http_diagnostic_codes.dart';
 import '../model/param_model.dart';
 import '../model/param_source.dart';
 import '../model/validator_model.dart';
@@ -14,7 +14,7 @@ abstract final class ValidatorCheck {
       final problem = _problem(param, validator);
       if (problem == null) continue;
       yield Diagnostic(
-        DiagnosticCode.invalidValidator,
+        HttpDiagnosticCodes.invalidValidator,
         param.location,
         '${validator.display} on parameter ${param.name}: $problem',
       );

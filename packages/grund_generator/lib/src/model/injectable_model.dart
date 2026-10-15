@@ -15,7 +15,6 @@ final class InjectableModel {
     required this.constructor,
     required this.location,
     this.name,
-    this.isApi = false,
     this.scopeProblem,
     this.documentation,
   });
@@ -29,11 +28,9 @@ final class InjectableModel {
   /// The lifetime of the binding.
   final Lifetime lifetime;
 
-  /// Whether the class is annotated with `@Injectable()` or `@Api(...)`.
+  /// Whether the class is annotated with `@Injectable()` or with an
+  /// annotation a construct marks injectable.
   final bool isAnnotated;
-
-  /// Whether the class is annotated with `@Api(...)`.
-  final bool isApi;
 
   /// Why the `scope` of `@Injectable` is unusable, as a sentence; `null`
   /// when it is fine.

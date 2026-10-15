@@ -16,7 +16,10 @@ void main() {
   });
 
   test('a different code, location or message makes them differ', () {
-    expect(_diagnostic(code: DiagnosticCode.values.last), isNot(_diagnostic()));
+    expect(
+      _diagnostic(code: DiagnosticCode.duplicateGeneratedName),
+      isNot(_diagnostic()),
+    );
     expect(
       _diagnostic(location: const SourceLocation('lib/a.dart', 1, 3)),
       isNot(_diagnostic()),

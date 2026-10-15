@@ -1,5 +1,6 @@
 import 'package:grund_generator/src/model/api_model.dart';
 import 'package:grund_generator/src/model/body_kind.dart';
+import 'package:grund_generator/src/model/http_package_model.dart';
 import 'package:grund_generator/src/model/package_model.dart';
 import 'package:grund_generator/src/model/param_model.dart';
 import 'package:grund_generator/src/model/param_source.dart';
@@ -19,8 +20,10 @@ void main() {
     ).collect(['lib/apis/tasks.dart', 'lib/apis/invalid.dart']);
   });
 
-  ApiModel api(String name) =>
-      package.apis.firstWhere((a) => a.type.name == name);
+  ApiModel api(String name) => package
+      .extensionModel<HttpPackageModel>()!
+      .apis
+      .firstWhere((a) => a.type.name == name);
 
   RouteModel route(String api_, String name) =>
       api(api_).routes.firstWhere((r) => r.handlerName == name);
@@ -154,6 +157,12 @@ void main() {
   });
 
   test('routes outside an api are collected apart', () {
-    expect([for (final r in package.strayRoutes) r.handlerName], ['stray']);
+    expect(
+      [
+        for (final r in package.extensionModel<HttpPackageModel>()!.strayRoutes)
+          r.handlerName,
+      ],
+      ['stray'],
+    );
   });
 }

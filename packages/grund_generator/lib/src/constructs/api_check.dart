@@ -1,6 +1,7 @@
 import '../diagnostic/diagnostic.dart';
-import '../diagnostic/diagnostic_code.dart';
+import '../diagnostic/http_diagnostic_codes.dart';
 import '../model/api_model.dart';
+import '../model/http_package_model.dart';
 import '../model/injectable_model.dart';
 import '../model/lifetime.dart';
 import '../model/package_model.dart';
@@ -10,18 +11,22 @@ import 'route_paths.dart';
 /// Checks the `@Api` classes of a package: how they are provided, their
 /// hooks and each of their routes.
 abstract final class ApiCheck {
-  /// The problems of the apis of [package].
-  static Iterable<Diagnostic> check(PackageModel package) sync* {
-    for (final api in package.apis) {
+  /// The problems of the apis of [http], provided by the modules of
+  /// [package].
+  static Iterable<Diagnostic> check(
+    PackageModel package,
+    HttpPackageModel http,
+  ) sync* {
+    for (final api in http.apis) {
       yield* _provided(api, package);
       yield* _hooks(api);
       for (final route in api.routes) {
         yield* RouteCheck.check(route, RoutePaths.join(api.path, route.path));
       }
     }
-    for (final route in package.strayRoutes) {
+    for (final route in http.strayRoutes) {
       yield Diagnostic(
-        DiagnosticCode.routeOutsideApi,
+        HttpDiagnosticCodes.routeOutsideApi,
         route.location,
         'Route ${route.handlerName} is in a class that is not annotated with '
         '@Api; it is never served.',
@@ -36,7 +41,7 @@ abstract final class ApiCheck {
     final injectable = _injectable(api, package);
     if (injectable != null && injectable.lifetime != Lifetime.singleton) {
       yield Diagnostic(
-        DiagnosticCode.invalidApi,
+        HttpDiagnosticCodes.invalidApi,
         api.location,
         '${api.type} is an @Api but its @Injectable has scope '
         '${injectable.lifetime.name}; an API is created once, so it must be '
@@ -50,7 +55,7 @@ abstract final class ApiCheck {
     ];
     if (owners.length > 1) {
       yield Diagnostic(
-        DiagnosticCode.duplicateApi,
+        HttpDiagnosticCodes.duplicateApi,
         api.location,
         '${api.type} is provided by modules [${owners.join(', ')}]; its '
         'routes would be registered twice. Provide it in one module.',
@@ -64,7 +69,7 @@ abstract final class ApiCheck {
   static Iterable<Diagnostic> _hooks(ApiModel api) sync* {
     for (final problem in api.invalidEntries) {
       yield Diagnostic(
-        DiagnosticCode.invalidHook,
+        HttpDiagnosticCodes.invalidHook,
         api.location,
         'Api ${api.type}: $problem',
       );

@@ -8,29 +8,32 @@ import 'source_locations.dart';
 import 'type_reader.dart';
 
 /// Reads a class that dependency injection creates: a provider class, a
-/// `Bind` implementation or an `@Api` class.
+/// `Bind` implementation or a class carrying an annotation a construct
+/// marks injectable.
 final class InjectableReader {
-  /// Creates the reader.
-  InjectableReader(this.locations)
+  /// Creates the reader; [annotations] are the class annotations that make
+  /// a class injectable.
+  InjectableReader(this.locations, this.annotations)
     : _constructors = ConstructorReader(locations);
 
   /// Locations of classes and parameters.
   final SourceLocations locations;
+
+  /// The class annotations that make a class injectable.
+  final Set<String> annotations;
 
   final ConstructorReader _constructors;
 
   /// The model of [element].
   InjectableModel read(InterfaceElement element) {
     final injectable = Annotations.find(element, 'Injectable');
-    final isApi = Annotations.find(element, 'Api') != null;
     final scope = LifetimeReader.read(injectable);
     return InjectableModel(
       type: TypeReader.read(element.thisType),
       name: Annotations.named(element),
       lifetime: scope.lifetime,
       scopeProblem: scope.problem,
-      isAnnotated: injectable != null || isApi,
-      isApi: isApi,
+      isAnnotated: Annotations.all(element, annotations).isNotEmpty,
       constructor: _constructors.read(element),
       location: locations.of(element),
       documentation: element.documentationComment,

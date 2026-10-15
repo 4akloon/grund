@@ -19,7 +19,7 @@ final class CaptiveFinder {
   /// directly or through transient ones.
   List<Diagnostic> find() => [
     for (final module in _modules)
-      for (final binding in module.bindings)
+      for (final binding in _scope.bindingsOf(module))
         if (binding.lifetime == Lifetime.singleton)
           ..._captive((owner: module, binding: binding)),
   ];

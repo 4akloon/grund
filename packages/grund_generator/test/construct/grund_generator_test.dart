@@ -3,6 +3,7 @@ import 'package:grund_generator/src/construct/construct.dart';
 import 'package:grund_generator/src/construct/grund_generator.dart';
 import 'package:grund_generator/src/construct/content_type.dart';
 import 'package:grund_generator/src/construct/generated_unit.dart';
+import 'package:grund_generator/src/construct/provider_claims.dart';
 import 'package:grund_generator/src/emit/library_writer.dart';
 import 'package:grund_generator/src/diagnostic/diagnostic.dart';
 import 'package:grund_generator/src/diagnostic/diagnostic_code.dart';
@@ -17,7 +18,7 @@ final _package = PackageModel(
 );
 
 /// A construct with fixed output.
-final class _FixedConstruct implements Construct {
+final class _FixedConstruct extends Construct {
   _FixedConstruct({this.diagnostics = const [], this.units = const []});
 
   final List<Diagnostic> diagnostics;
@@ -27,10 +28,14 @@ final class _FixedConstruct implements Construct {
   int generated = 0;
 
   @override
-  Iterable<Diagnostic> validate(PackageModel package) => diagnostics;
+  Iterable<Diagnostic> validate(PackageModel package, ProviderClaims claims) =>
+      diagnostics;
 
   @override
-  Iterable<GeneratedUnit> generate(PackageModel package) {
+  Iterable<GeneratedUnit> generate(
+    PackageModel package,
+    ProviderClaims claims,
+  ) {
     generated++;
     return units;
   }

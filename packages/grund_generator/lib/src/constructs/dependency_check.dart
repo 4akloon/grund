@@ -1,24 +1,21 @@
+import '../construct/provider_claims.dart';
 import '../diagnostic/diagnostic.dart';
 import '../diagnostic/diagnostic_code.dart';
 import '../diagnostic/source_location.dart';
-import '../model/api_model.dart';
 import '../model/binding_key.dart';
 import '../model/module_export.dart';
 import '../model/module_model.dart';
 import '../model/module_reference.dart';
 import '../model/package_model.dart';
-import '../model/type_model.dart';
 import 'captive_finder.dart';
 import 'dependency_cycle_finder.dart';
 import 'module_scope.dart';
 
-/// Checks that every dependency of a binding is visible in its module and
-/// that the bindings form no cycle and no captive dependency.
+/// Checks that every dependency and lookup of a binding is visible in its
+/// module and that the bindings form no cycle and no captive dependency.
 final class DependencyCheck {
-  DependencyCheck._(this._package, this._scope)
-    : _isPartial = _hasOpaqueReference(_package.modules);
-
-  final PackageModel _package;
+  DependencyCheck._(this._scope, List<ModuleModel> modules)
+    : _isPartial = _hasOpaqueReference(modules);
 
   final ModuleScope _scope;
 
@@ -26,12 +23,13 @@ final class DependencyCheck {
   // only keys that a module of this package binds are reported.
   final bool _isPartial;
 
-  /// The dependency problems of the modules of [package].
+  /// The dependency problems of the modules of [package], whose bindings
+  /// are as [claims] say.
   ///
   /// The import graph must be acyclic.
-  static List<Diagnostic> check(PackageModel package) {
+  static List<Diagnostic> check(PackageModel package, ProviderClaims claims) {
     final modules = package.modules;
-    final check = DependencyCheck._(package, ModuleScope(modules));
+    final check = DependencyCheck._(ModuleScope(modules, claims), modules);
     return [
       for (final module in modules) ...check._missing(module),
       ...DependencyCycleFinder(check._scope, modules).find(),
@@ -52,37 +50,20 @@ final class DependencyCheck {
 
   Iterable<Diagnostic> _missing(ModuleModel module) sync* {
     final visible = _scope.visibleIn(module);
-    for (final binding in module.bindings) {
+    bool isMissing(BindingKey key) =>
+        !visible.containsKey(key) && !_isUnknowable(key);
+    for (final binding in _scope.bindingsOf(module)) {
       for (final dependency in binding.dependencies) {
         final key = dependency.key;
-        if (key == null || visible.containsKey(key)) continue;
-        if (_isUnknowable(key)) continue;
+        if (key == null || !isMissing(key)) continue;
         yield _diagnostic(module, key, binding.key, dependency.location);
       }
-    }
-    yield* _hooks(module, visible.containsKey);
-  }
-
-  Iterable<Diagnostic> _hooks(
-    ModuleModel module,
-    bool Function(BindingKey) isVisible,
-  ) sync* {
-    for (final provider in module.providers) {
-      final api = _apiOf(provider.injectable.type);
-      if (api == null) continue;
-      for (final hook in [
-        ...api.use,
-        for (final route in api.routes) ...route.use,
-      ]) {
-        final key = BindingKey(hook.type);
-        if (hook.isInstance || isVisible(key) || _isUnknowable(key)) continue;
-        yield _diagnostic(module, key, provider.key, api.location);
+      for (final lookup in binding.lookups) {
+        if (!isMissing(lookup.key)) continue;
+        yield _diagnostic(module, lookup.key, binding.key, lookup.location);
       }
     }
   }
-
-  ApiModel? _apiOf(TypeModel type) =>
-      _package.apis.where((api) => api.type == type).firstOrNull;
 
   bool _isUnknowable(BindingKey key) =>
       _isPartial && _scope.declaring(key).isEmpty;

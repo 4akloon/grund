@@ -1,5 +1,6 @@
 import '../diagnostic/source_location.dart';
 import 'binding_key.dart';
+import 'binding_lookup.dart';
 import 'dependency_model.dart';
 import 'lifetime.dart';
 
@@ -13,6 +14,7 @@ final class BindingModel {
     required this.lifetime,
     required this.dependencies,
     required this.location,
+    this.lookups = const [],
   });
 
   /// What the binding is looked up by.
@@ -26,4 +28,8 @@ final class BindingModel {
 
   /// Where the binding is declared.
   final SourceLocation location;
+
+  /// What the instance looks up while it is used, in addition to
+  /// [dependencies]; a construct that claims a provider sets it.
+  final List<BindingLookup> lookups;
 }

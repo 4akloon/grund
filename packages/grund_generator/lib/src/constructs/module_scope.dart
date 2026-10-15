@@ -1,4 +1,6 @@
+import '../construct/provider_claims.dart';
 import '../model/binding_key.dart';
+import '../model/binding_model.dart';
 import '../model/module_export.dart';
 import '../model/module_model.dart';
 import '../model/module_reference.dart';
@@ -11,11 +13,14 @@ import 'scoped_binding.dart';
 ///
 /// Modules from other packages are not known here and see/export nothing.
 final class ModuleScope {
-  /// Creates the scope over the [_modules] of one package.
-  ModuleScope(this._modules)
+  /// Creates the scope over the [_modules] of one package, whose bindings
+  /// are as [_claims] say.
+  ModuleScope(this._modules, this._claims)
     : _byType = {for (final module in _modules) module.type: module};
 
   final List<ModuleModel> _modules;
+
+  final ProviderClaims _claims;
 
   final Map<TypeModel, ModuleModel> _byType;
 
@@ -27,10 +32,14 @@ final class ModuleScope {
   Map<BindingKey, ScopedBinding> visibleIn(ModuleModel module) =>
       _visible.putIfAbsent(module, () => _computeVisible(module));
 
+  /// The bindings [module] owns, with claimed providers bound as claimed.
+  List<BindingModel> bindingsOf(ModuleModel module) =>
+      _claims.bindingsOf(module);
+
   /// The display names of the modules that bind [key].
   List<String> declaring(BindingKey key) => [
     for (final module in _modules)
-      if (module.bindings.any((binding) => binding.key == key))
+      if (bindingsOf(module).any((binding) => binding.key == key))
         module.type.display,
   ];
 
@@ -38,7 +47,7 @@ final class ModuleScope {
     for (final global in _modules.reversed)
       if (global.isGlobal && global != module) ..._exported(global),
     for (final reference in module.imports.reversed) ..._exportedBy(reference),
-    for (final binding in module.bindings.reversed)
+    for (final binding in bindingsOf(module).reversed)
       binding.key: (owner: module, binding: binding),
   };
 
@@ -63,7 +72,7 @@ final class ModuleScope {
   };
 
   Map<BindingKey, ScopedBinding> _own(ModuleModel module, BindingKey key) => {
-    for (final binding in module.bindings.reversed)
+    for (final binding in bindingsOf(module).reversed)
       if (binding.key == key) key: (owner: module, binding: binding),
   };
 }

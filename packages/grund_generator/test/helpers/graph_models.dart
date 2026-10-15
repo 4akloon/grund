@@ -2,6 +2,7 @@ import 'package:grund_generator/src/construct/grund_generator.dart';
 import 'package:grund_generator/src/diagnostic/source_location.dart';
 import 'package:grund_generator/src/model/api_model.dart';
 import 'package:grund_generator/src/model/hook_model.dart';
+import 'package:grund_generator/src/model/http_package_model.dart';
 import 'package:grund_generator/src/model/binding_key.dart';
 import 'package:grund_generator/src/model/constant_value.dart';
 import 'package:grund_generator/src/model/constructor_model.dart';
@@ -116,8 +117,8 @@ abstract final class GraphModels {
     packageName: 'app',
     languageVersion: Version(3, 8, 0),
     modules: modules,
-    apis: apis,
     injectables: injectables,
+    extensions: [HttpPackageModel(apis: apis)],
   );
 
   /// The diagnostic codes of the core constructs over [package], sorted by

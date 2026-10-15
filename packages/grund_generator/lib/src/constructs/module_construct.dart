@@ -1,5 +1,6 @@
 import '../construct/construct.dart';
 import '../construct/generated_unit.dart';
+import '../construct/provider_claims.dart';
 import '../diagnostic/diagnostic.dart';
 import '../diagnostic/diagnostic_code.dart';
 import '../model/package_model.dart';
@@ -9,13 +10,16 @@ import 'module_structure_check.dart';
 import 'unsupported_use_check.dart';
 
 /// Validates the modules of a package and their bindings.
-final class ModuleConstruct implements Construct {
+final class ModuleConstruct extends Construct {
   /// Creates the construct.
   const ModuleConstruct();
 
   @override
-  Iterable<Diagnostic> validate(PackageModel package) {
-    final structure = ModuleStructureCheck.check(package.modules).toList();
+  Iterable<Diagnostic> validate(PackageModel package, ProviderClaims claims) {
+    final structure = ModuleStructureCheck.check(
+      package.modules,
+      claims,
+    ).toList();
     final own = [
       ...structure,
       ...BindingCheck.check(package),
@@ -23,7 +27,7 @@ final class ModuleConstruct implements Construct {
     ];
     return structure.any(_breaksGraphWalk)
         ? own
-        : [...own, ...DependencyCheck.check(package)];
+        : [...own, ...DependencyCheck.check(package, claims)];
   }
 
   // The visibility walk follows imports and re-exports, so it needs an
@@ -33,5 +37,8 @@ final class ModuleConstruct implements Construct {
       diagnostic.code == DiagnosticCode.invalidExport;
 
   @override
-  Iterable<GeneratedUnit> generate(PackageModel package) => const [];
+  Iterable<GeneratedUnit> generate(
+    PackageModel package,
+    ProviderClaims claims,
+  ) => const [];
 }

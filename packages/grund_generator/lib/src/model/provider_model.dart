@@ -1,4 +1,5 @@
 import 'binding_key.dart';
+import 'binding_model.dart';
 import 'injectable_model.dart';
 
 /// One entry of `@Module(providers: ...)`: a class bound as itself, or
@@ -12,4 +13,13 @@ final class ProviderModel {
 
   /// The class that is created.
   final InjectableModel injectable;
+
+  /// The binding of this provider when no construct claims it: [key] made
+  /// by the constructor of [injectable].
+  BindingModel get binding => BindingModel(
+    key: key,
+    lifetime: injectable.lifetime,
+    dependencies: injectable.constructor.dependencies,
+    location: injectable.location,
+  );
 }

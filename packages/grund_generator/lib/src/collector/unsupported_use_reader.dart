@@ -1,26 +1,25 @@
 import 'package:analyzer/dart/element/element.dart';
 
+import '../construct/construct_annotations.dart';
 import '../model/unsupported_use.dart';
 import 'annotations.dart';
-import 'route_reader.dart';
 import 'source_locations.dart';
 
-/// Finds annotations the generator does not read, so that nothing is
-/// dropped silently.
+/// Finds uses of the annotations the generator reads that it cannot
+/// honour, so that nothing is dropped silently.
 final class UnsupportedUseReader {
-  /// Creates the reader.
-  UnsupportedUseReader(this.locations);
+  /// Creates the reader of the uses of [annotations].
+  UnsupportedUseReader(this.locations, this.annotations);
 
   /// Locations of declarations.
   final SourceLocations locations;
 
-  static const _classAnnotations = {'Injectable', 'Module', 'Api'};
+  /// The annotations the generator reads.
+  final ConstructAnnotations annotations;
 
-  static const _memberAnnotations = {'Provides', ...RouteReader.annotations};
-
-  /// The unsupported uses in [library]: annotations on mixins, enums,
-  /// extension types and extensions, and in every class unresolved
-  /// annotations and inherited members of `@Api` and `@Module` classes.
+  /// The unsupported uses in [library]: class annotations on mixins,
+  /// enums, extension types and extensions, and in every class unresolved
+  /// annotations and annotated members it inherits.
   List<UnsupportedUse> read(LibraryElement library) => [
     for (final element in <Element>[
       ...library.mixins,
@@ -37,7 +36,8 @@ final class UnsupportedUseReader {
   ];
 
   Iterable<UnsupportedUse> _misplaced(Element element) sync* {
-    for (final annotation in Annotations.all(element, _classAnnotations)) {
+    final classAnnotations = annotations.classes.keys.toSet();
+    for (final annotation in Annotations.all(element, classAnnotations)) {
       final name = annotation.type?.element?.name;
       yield _use(
         element,
@@ -48,10 +48,7 @@ final class UnsupportedUseReader {
   }
 
   Iterable<UnsupportedUse> _unresolved(Element element) sync* {
-    for (final name in Annotations.unresolved(element, {
-      ..._classAnnotations,
-      ..._memberAnnotations,
-    })) {
+    for (final name in Annotations.unresolved(element, annotations.names)) {
       yield _use(
         element,
         'An argument of @$name on ${element.displayName} is not a constant '
@@ -61,10 +58,12 @@ final class UnsupportedUseReader {
   }
 
   Iterable<UnsupportedUse> _inherited(ClassElement element) sync* {
-    final isApi = Annotations.find(element, 'Api') != null;
-    final isModule = Annotations.find(element, 'Module') != null;
-    if (!isApi && !isModule) return;
-    final names = isApi ? RouteReader.annotations : const {'Provides'};
+    final names = {
+      for (final MapEntry(key: name, value: members)
+          in annotations.classes.entries)
+        if (Annotations.find(element, name) != null) ...members,
+    };
+    if (names.isEmpty) return;
     for (final supertype in element.allSupertypes) {
       for (final method in supertype.element.methods) {
         if (Annotations.all(method, names).isEmpty) continue;

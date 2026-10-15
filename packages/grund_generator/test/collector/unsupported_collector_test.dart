@@ -1,3 +1,4 @@
+import 'package:grund_generator/src/model/http_package_model.dart';
 import 'package:grund_generator/src/model/injectable_model.dart';
 import 'package:grund_generator/src/model/lifetime.dart';
 import 'package:grund_generator/src/model/package_model.dart';
@@ -97,7 +98,9 @@ void main() {
   });
 
   test('a route path that is not a constant string is a problem', () {
-    final route = package.apis
+    final route = package
+        .extensionModel<HttpPackageModel>()!
+        .apis
         .firstWhere((a) => a.type.name == 'PathApi')
         .routes
         .single;

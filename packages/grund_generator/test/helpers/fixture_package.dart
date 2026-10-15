@@ -4,6 +4,7 @@ import 'package:analyzer/dart/analysis/analysis_context_collection.dart';
 import 'package:analyzer/dart/analysis/results.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:grund_generator/src/collector/package_collector.dart';
+import 'package:grund_generator/src/construct/grund_generator.dart';
 import 'package:grund_generator/src/model/package_model.dart';
 import 'package:path/path.dart' as p;
 
@@ -44,9 +45,13 @@ final class FixturePackage {
     return [for (final file in files) await _resolve(file)];
   }
 
-  /// The [PackageModel] of [paths], as [libraries] reads them.
-  Future<PackageModel> collect([List<String>? paths]) async =>
-      PackageCollector(name, root).collect(await libraries(paths));
+  /// The [PackageModel] of [paths], as [libraries] reads them, with the
+  /// annotations of the core constructs.
+  Future<PackageModel> collect([List<String>? paths]) async => PackageCollector(
+    name,
+    root,
+    constructs: const GrundGenerator.core().constructs,
+  ).collect(await libraries(paths));
 
   /// The source of [path] (relative to [root]).
   String read(String path) => File(p.join(root, path)).readAsStringSync();

@@ -17,11 +17,15 @@ void main() {
     final package = PackageModel(
       packageName: 'app',
       languageVersion: Version(3, 8, 0),
-      apis: [
-        ApiModel(
-          type: GraphModels.type('TasksApi'),
-          path: '/tasks',
-          location: const SourceLocation('lib/app.dart', 1, 7),
+      extensions: [
+        HttpPackageModel(
+          apis: [
+            ApiModel(
+              type: GraphModels.type('TasksApi'),
+              path: '/tasks',
+              location: const SourceLocation('lib/app.dart', 1, 7),
+            ),
+          ],
         ),
       ],
     );

@@ -10,23 +10,37 @@
 /// if (!result.isSuccess) result.diagnostics.forEach(print);
 /// ```
 ///
-/// The model and [Construct] are public so later packages (OpenAPI,
-/// GraphQL) can add constructs of their own.
+/// The model, [Construct] with its phases and the collector building
+/// blocks ([Annotations], [TypeReader], [ConstantReader], ...) are public
+/// so other packages can add constructs of their own.
 library;
 
+export 'src/collector/annotations.dart';
+export 'src/collector/collection_context.dart';
+export 'src/collector/constant_reader.dart';
+export 'src/collector/entry_read.dart';
 export 'src/collector/package_collector.dart';
+export 'src/collector/source_locations.dart';
+export 'src/collector/type_reader.dart';
 export 'src/construct/construct.dart';
+export 'src/construct/construct_annotations.dart';
 export 'src/construct/content_type.dart';
-export 'src/construct/grund_generator.dart';
 export 'src/construct/generated_unit.dart';
 export 'src/construct/generation_result.dart';
+export 'src/construct/grund_generator.dart';
+export 'src/construct/provider_claims.dart';
+export 'src/constructs/api_construct.dart';
+export 'src/constructs/module_construct.dart';
 export 'src/diagnostic/diagnostic.dart';
 export 'src/diagnostic/diagnostic_code.dart';
+export 'src/diagnostic/http_diagnostic_codes.dart';
 export 'src/diagnostic/source_location.dart';
 export 'src/diagnostic/syntax_problem.dart';
 export 'src/emit/library_writer.dart';
 export 'src/model/api_model.dart';
+export 'src/model/api_names.dart';
 export 'src/model/binding_key.dart';
+export 'src/model/binding_lookup.dart';
 export 'src/model/binding_model.dart';
 export 'src/model/body_kind.dart';
 export 'src/model/constant_value.dart';
@@ -34,8 +48,10 @@ export 'src/model/constructor_model.dart';
 export 'src/model/dependency_model.dart';
 export 'src/model/dto_field.dart';
 export 'src/model/dto_model.dart';
+export 'src/model/extension_model.dart';
 export 'src/model/generated_names.dart';
 export 'src/model/hook_model.dart';
+export 'src/model/http_package_model.dart';
 export 'src/model/injectable_model.dart';
 export 'src/model/lifetime.dart';
 export 'src/model/module_export.dart';
@@ -51,5 +67,6 @@ export 'src/model/return_kind.dart';
 export 'src/model/route_model.dart';
 export 'src/model/type_kind.dart';
 export 'src/model/type_model.dart';
+export 'src/model/unsupported_use.dart';
 export 'src/model/validator_model.dart';
 export 'src/model/value_kind.dart';

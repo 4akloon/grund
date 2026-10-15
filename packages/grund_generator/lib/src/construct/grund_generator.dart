@@ -9,11 +9,13 @@ import '../model/package_model.dart';
 import 'construct.dart';
 import 'generated_unit.dart';
 import 'generation_result.dart';
+import 'provider_claims.dart';
 
 /// Runs a set of [Construct]s over a [PackageModel].
 ///
-/// Every construct validates first; any diagnostic stops generation, so a
-/// package with an error never gets a half-generated library.
+/// The constructs claim providers first, then every construct validates;
+/// any diagnostic stops generation, so a package with an error never gets
+/// a half-generated library.
 final class GrundGenerator {
   /// Creates the generator; [constructs] run in order.
   const GrundGenerator(this.constructs);
@@ -27,12 +29,16 @@ final class GrundGenerator {
 
   /// Validates and generates [package].
   GenerationResult generate(PackageModel package) {
+    final claims = ProviderClaims.collect(package, constructs);
     final diagnostics = {
-      for (final construct in constructs) ...construct.validate(package),
+      ...claims.conflicts,
+      for (final construct in constructs)
+        ...construct.validate(package, claims),
     }.toList()..sort();
     if (diagnostics.isNotEmpty) return GenerationResult.failed(diagnostics);
     final units = [
-      for (final construct in constructs) ...construct.generate(package),
+      for (final construct in constructs)
+        ...construct.generate(package, claims),
     ];
     final dartUnits = units.whereType<DartUnit>().toList();
     final duplicates = _duplicateNames(dartUnits);

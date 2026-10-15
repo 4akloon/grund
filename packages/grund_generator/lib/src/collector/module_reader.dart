@@ -16,10 +16,11 @@ import 'type_reader.dart';
 /// Reads a `@Module` class into a [ModuleModel]. Entries it cannot read go
 /// to [ModuleModel.invalidEntries]; the module construct reports them.
 final class ModuleReader {
-  /// Creates the reader for package [packageName].
-  ModuleReader(this.packageName, this.locations)
+  /// Creates the reader for package [packageName]; [injectable] are the
+  /// class annotations that make a provider class injectable.
+  ModuleReader(this.packageName, this.locations, Set<String> injectable)
     : _references = ModuleReferenceReader(packageName),
-      _providers = ProviderEntryReader(InjectableReader(locations)),
+      _providers = ProviderEntryReader(InjectableReader(locations, injectable)),
       _provides = ProvidesReader(locations);
 
   /// The package being generated.

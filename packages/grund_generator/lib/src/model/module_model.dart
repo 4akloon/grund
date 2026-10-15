@@ -52,17 +52,18 @@ final class ModuleModel {
   /// The `///` comment of the class, if any.
   final String? documentation;
 
-  /// The bindings the module owns, in the order the mixin writes them:
-  /// providers first, then `@Provides` methods. A `@Provides` method with a
-  /// problem has no key and is left out; the provider construct reports it.
+  /// The bindings the module owns when no construct claims a provider, in
+  /// the order the mixin writes them: providers first, then [provides].
+  /// The checks use `ProviderClaims.bindingsOf`, which honours claims.
   List<BindingModel> get bindings => [
-    for (final provider in providers)
-      BindingModel(
-        key: provider.key,
-        lifetime: provider.injectable.lifetime,
-        dependencies: provider.injectable.constructor.dependencies,
-        location: provider.injectable.location,
-      ),
+    for (final provider in providers) provider.binding,
+    ...providedBindings,
+  ];
+
+  /// The bindings of the `@Provides` methods, in declaration order. A
+  /// method with a problem has no key and is left out; the module construct
+  /// reports it.
+  List<BindingModel> get providedBindings => [
     for (final provided in provides)
       if (provided.key case final key?)
         BindingModel(

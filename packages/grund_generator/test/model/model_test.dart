@@ -40,21 +40,21 @@ void main() {
     Diagnostic at(String path, int line, int column, DiagnosticCode code) =>
         Diagnostic(code, SourceLocation(path, line, column), 'm');
     final sorted = [
-      at('lib/b.dart', 1, 1, DiagnosticCode.duplicateRoute),
-      at('lib/a.dart', 9, 1, DiagnosticCode.duplicateRoute),
+      at('lib/b.dart', 1, 1, DiagnosticCode.duplicateBinding),
+      at('lib/a.dart', 9, 1, DiagnosticCode.duplicateBinding),
       at('lib/a.dart', 2, 5, DiagnosticCode.notInjectable),
       at('lib/a.dart', 2, 5, DiagnosticCode.missingProvider),
-      at('lib/a.dart', 2, 1, DiagnosticCode.duplicateRoute),
+      at('lib/a.dart', 2, 1, DiagnosticCode.duplicateBinding),
     ]..sort();
 
     expect(
       [for (final d in sorted) '${d.location} ${d.code.id}'],
       [
-        'lib/a.dart:2:1 duplicate_route',
+        'lib/a.dart:2:1 duplicate_binding',
         'lib/a.dart:2:5 missing_provider',
         'lib/a.dart:2:5 not_injectable',
-        'lib/a.dart:9:1 duplicate_route',
-        'lib/b.dart:1:1 duplicate_route',
+        'lib/a.dart:9:1 duplicate_binding',
+        'lib/b.dart:1:1 duplicate_binding',
       ],
     );
   });
@@ -92,7 +92,6 @@ void main() {
 
   test('generated names derive from class names', () {
     expect(GeneratedNames.module('UsersModule'), r'$UsersModule');
-    expect(GeneratedNames.routes('TasksApi'), 'TasksApiRoutes');
     expect(GeneratedNames.library('shop'), 'package:shop/shop.grund.dart');
   });
 }

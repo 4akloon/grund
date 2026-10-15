@@ -1,11 +1,9 @@
 import 'package:pub_semver/pub_semver.dart';
 
-import 'api_model.dart';
-import 'dto_model.dart';
+import 'extension_model.dart';
 import 'injectable_model.dart';
 import 'module_model.dart';
 import 'provides_model.dart';
-import 'route_model.dart';
 import 'unsupported_use.dart';
 
 /// Everything the generator collected from one package: the input of every
@@ -17,11 +15,9 @@ final class PackageModel {
     required this.languageVersion,
     this.modules = const [],
     this.injectables = const [],
-    this.apis = const [],
     this.strayProvides = const [],
-    this.strayRoutes = const [],
-    this.dtos = const [],
     this.unsupportedUses = const [],
+    this.extensions = const [],
   });
 
   /// The package name; the output is `lib/<packageName>.grund.dart`.
@@ -34,28 +30,32 @@ final class PackageModel {
   /// order within a library.
   final List<ModuleModel> modules;
 
-  /// Classes annotated with `@Injectable` or `@Api`, each once, in
+  /// Classes annotated with `@Injectable` or with an annotation a construct
+  /// marks injectable (`ConstructAnnotations.injectable`), each once, in
   /// library-URI order, then source order within a library.
   final List<InjectableModel> injectables;
 
-  /// Classes annotated with `@Api`, in the same order.
-  final List<ApiModel> apis;
-
   /// `@Provides` methods of classes that are not annotated with `@Module`.
   final List<ProvidesModel> strayProvides;
-
-  /// Route methods of classes that are not annotated with `@Api`.
-  final List<RouteModel> strayRoutes;
-
-  /// Request bodies and handler results, sorted by library URI, then name.
-  final List<DtoModel> dtos;
 
   /// Annotations the generator cannot honour, in library-URI order, then
   /// source order; the checks report each as `unsupported_use`.
   final List<UnsupportedUse> unsupportedUses;
 
-  /// Whether the package has no modules, injectables or APIs: there is
-  /// nothing to generate, and a driver removes a library it generated
-  /// before.
-  bool get isEmpty => modules.isEmpty && injectables.isEmpty && apis.isEmpty;
+  /// What the constructs collected for themselves (`Construct.collect`), in
+  /// construct order.
+  final List<ExtensionModel> extensions;
+
+  /// The extension model of type [T], or `null` when no construct collected
+  /// one.
+  T? extensionModel<T extends ExtensionModel>() =>
+      extensions.whereType<T>().firstOrNull;
+
+  /// Whether the package has no modules, no injectables and no extension
+  /// with content: there is nothing to generate, and a driver removes a
+  /// library it generated before.
+  bool get isEmpty =>
+      modules.isEmpty &&
+      injectables.isEmpty &&
+      extensions.every((extension) => extension.isEmpty);
 }

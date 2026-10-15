@@ -21,7 +21,7 @@ final class DependencyCycleFinder {
   List<Diagnostic> find() {
     final found = <Diagnostic>[];
     for (final module in _modules) {
-      for (final binding in module.bindings) {
+      for (final binding in _scope.bindingsOf(module)) {
         _visit((owner: module, binding: binding), found);
       }
     }

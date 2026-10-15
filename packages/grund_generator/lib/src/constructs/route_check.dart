@@ -1,5 +1,6 @@
 import '../diagnostic/diagnostic.dart';
 import '../diagnostic/diagnostic_code.dart';
+import '../diagnostic/http_diagnostic_codes.dart';
 import '../diagnostic/source_location.dart';
 import '../model/hook_model.dart';
 import '../model/return_kind.dart';
@@ -14,7 +15,7 @@ abstract final class RouteCheck {
     final where = '${route.handlerName} ($path)';
     if (route.problem case final problem?) {
       yield Diagnostic(
-        DiagnosticCode.invalidRouteHandler,
+        HttpDiagnosticCodes.invalidRouteHandler,
         route.location,
         problem,
       );
@@ -30,7 +31,7 @@ abstract final class RouteCheck {
     final status = route.status;
     if (status == null || (status >= 100 && status <= 599)) return;
     yield Diagnostic(
-      DiagnosticCode.invalidStatus,
+      HttpDiagnosticCodes.invalidStatus,
       route.location,
       'Route $where has status $status, which is not an HTTP status code '
       '(100 to 599).',
@@ -41,14 +42,14 @@ abstract final class RouteCheck {
     switch (route.returnKind) {
       case ReturnKind.unsupported:
         yield Diagnostic(
-          DiagnosticCode.unsupportedReturnType,
+          HttpDiagnosticCodes.unsupportedReturnType,
           route.location,
           'Route $where returns ${route.returnType}, which cannot be sent: '
           'return a value, void, or a Stream<List<int>>.',
         );
       case ReturnKind.stream:
         yield Diagnostic(
-          DiagnosticCode.streamReturnReserved,
+          HttpDiagnosticCodes.streamReturnReserved,
           route.location,
           'Route $where returns ${route.returnType}; streams of events are '
           'reserved for grund_sse. Return a Stream<List<int>> for bytes.',
@@ -61,7 +62,7 @@ abstract final class RouteCheck {
   static Iterable<Diagnostic> _hooks(RouteModel route) sync* {
     for (final problem in route.invalidEntries) {
       yield Diagnostic(
-        DiagnosticCode.invalidHook,
+        HttpDiagnosticCodes.invalidHook,
         route.location,
         'Route ${route.handlerName}: $problem',
       );

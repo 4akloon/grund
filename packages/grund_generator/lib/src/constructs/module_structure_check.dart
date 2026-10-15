@@ -1,6 +1,8 @@
+import '../construct/provider_claims.dart';
 import '../diagnostic/diagnostic.dart';
 import '../diagnostic/diagnostic_code.dart';
 import '../model/binding_key.dart';
+import '../model/binding_model.dart';
 import '../model/module_export.dart';
 import '../model/module_model.dart';
 import 'import_cycle_finder.dart';
@@ -8,14 +10,19 @@ import 'import_cycle_finder.dart';
 /// Checks what a module declares without looking at other modules'
 /// bindings: its class, entries, duplicates, exports and constants.
 abstract final class ModuleStructureCheck {
-  /// The structural problems of [modules].
-  static Iterable<Diagnostic> check(List<ModuleModel> modules) sync* {
+  /// The structural problems of [modules], whose bindings are as [claims]
+  /// say.
+  static Iterable<Diagnostic> check(
+    List<ModuleModel> modules,
+    ProviderClaims claims,
+  ) sync* {
     yield* _importCycles(modules);
     for (final module in modules) {
       yield* _moduleClass(module);
       yield* _entries(module);
-      yield* _duplicateBindings(module);
-      yield* _exports(module);
+      final bindings = claims.bindingsOf(module);
+      yield* _duplicateBindings(module, bindings);
+      yield* _exports(module, bindings);
       yield* _constants(module);
     }
   }
@@ -55,9 +62,12 @@ abstract final class ModuleStructureCheck {
       ),
   ];
 
-  static Iterable<Diagnostic> _duplicateBindings(ModuleModel module) sync* {
+  static Iterable<Diagnostic> _duplicateBindings(
+    ModuleModel module,
+    List<BindingModel> bindings,
+  ) sync* {
     final seen = <BindingKey>{};
-    for (final binding in module.bindings) {
+    for (final binding in bindings) {
       if (seen.add(binding.key)) continue;
       yield Diagnostic(
         DiagnosticCode.duplicateBinding,
@@ -67,8 +77,11 @@ abstract final class ModuleStructureCheck {
     }
   }
 
-  static Iterable<Diagnostic> _exports(ModuleModel module) sync* {
-    final keys = {for (final binding in module.bindings) binding.key};
+  static Iterable<Diagnostic> _exports(
+    ModuleModel module,
+    List<BindingModel> bindings,
+  ) sync* {
+    final keys = {for (final binding in bindings) binding.key};
     final imported = {for (final reference in module.imports) reference.type};
     for (final export in module.exports) {
       final (isValid, what) = switch (export) {

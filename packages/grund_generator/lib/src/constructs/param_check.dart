@@ -1,5 +1,6 @@
 import '../diagnostic/diagnostic.dart';
 import '../diagnostic/diagnostic_code.dart';
+import '../diagnostic/http_diagnostic_codes.dart';
 import '../model/body_kind.dart';
 import '../model/param_location.dart';
 import '../model/invalid_source_reason.dart';
@@ -18,7 +19,7 @@ abstract final class ParamCheck {
     for (final param in route.parameters) {
       if (param.source is BodySource && ++bodies > 1) {
         yield _diagnostic(
-          DiagnosticCode.invalidHandlerParameter,
+          HttpDiagnosticCodes.invalidHandlerParameter,
           param,
           'Parameter ${param.name} is a second @Body; a request has one body.',
         );
@@ -37,14 +38,14 @@ abstract final class ParamCheck {
       case InvalidSource(:final reason, :final problem):
         yield _diagnostic(
           reason == InvalidSourceReason.missing
-              ? DiagnosticCode.parameterWithoutSource
-              : DiagnosticCode.invalidHandlerParameter,
+              ? HttpDiagnosticCodes.parameterWithoutSource
+              : HttpDiagnosticCodes.invalidHandlerParameter,
           param,
           problem,
         );
       case BodySource(kind: BodyKind.unsupported):
         yield _diagnostic(
-          DiagnosticCode.missingFromJson,
+          HttpDiagnosticCodes.missingFromJson,
           param,
           'The @Body parameter ${param.name} has type ${param.type}, which '
           'cannot be read: use a class with a fromJson(Map<String, Object?>) '
@@ -65,7 +66,7 @@ abstract final class ParamCheck {
   ) sync* {
     if (!known.contains(name)) {
       yield _diagnostic(
-        DiagnosticCode.unknownPathParameter,
+        HttpDiagnosticCodes.unknownPathParameter,
         param,
         'The path $path has no parameter :$name for ${param.name}; its '
         'parameters are [${known.join(', ')}].',
@@ -73,7 +74,7 @@ abstract final class ParamCheck {
     }
     if (param.type.isNullable) {
       yield _diagnostic(
-        DiagnosticCode.invalidHandlerParameter,
+        HttpDiagnosticCodes.invalidHandlerParameter,
         param,
         'The path parameter ${param.name} cannot be nullable: a path always '
         'has its parameters.',
