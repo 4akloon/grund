@@ -29,6 +29,9 @@ abstract final class ApiHostReader {
       hasPartDirective: fragment.partIncludes.any(
         (include) => _partPath(include.uri) == expectedPart,
       ),
+      declaresModule: library.classes.any(
+        (element) => Annotations.core.find(element, 'Module') != null,
+      ),
       hasHttpImport: fragment.libraryImports.any(
         (import) =>
             import.prefix?.element.name == HttpReferences.importPrefix &&

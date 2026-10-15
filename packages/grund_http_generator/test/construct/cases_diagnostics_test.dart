@@ -77,4 +77,14 @@ void main() {
       ]);
     },
   );
+
+  test(
+    'a module and an api without the part are only conflicting_outputs',
+    () async {
+      expect(await problems(['lib/apis/module_and_api_no_part.dart']), [
+        'lib/apis/module_and_api_no_part.dart:10:13 conflicting_outputs',
+        'lib/apis/module_and_api_no_part.dart:18:13 conflicting_outputs',
+      ]);
+    },
+  );
 }

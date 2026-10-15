@@ -18,6 +18,7 @@ List<Diagnostic> _check({
         location: _location,
         hasPartDirective: hasPartDirective,
         hasHttpImport: hasHttpImport,
+        declaresModule: false,
       ),
     ],
   ),

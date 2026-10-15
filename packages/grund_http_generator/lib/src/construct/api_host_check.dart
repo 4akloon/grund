@@ -14,7 +14,7 @@ abstract final class ApiHostCheck {
   /// The problems of the hosts of [model].
   static Iterable<Diagnostic> check(HttpPackageModel model) => [
     for (final host in model.hosts) ...[
-      if (!host.hasPartDirective) _missingPart(host),
+      if (!host.hasPartDirective && !host.declaresModule) _missingPart(host),
       if (!host.hasHttpImport) _missingImport(host),
     ],
   ];

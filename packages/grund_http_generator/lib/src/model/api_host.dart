@@ -10,6 +10,7 @@ final class ApiHost {
     required this.location,
     required this.hasPartDirective,
     required this.hasHttpImport,
+    required this.declaresModule,
   });
 
   /// The package-relative path of the library.
@@ -20,6 +21,10 @@ final class ApiHost {
 
   /// Whether the library has `part 'X.g.dart';` for its own part.
   final bool hasPartDirective;
+
+  /// Whether the library also declares a `@Module` class: its one output
+  /// file then conflicts with the part, so a missing part is not reported.
+  final bool declaresModule;
 
   /// Whether the library imports `package:grund_http` with the prefix the
   /// generated code uses.
