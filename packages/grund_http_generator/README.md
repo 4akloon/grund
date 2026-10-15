@@ -19,19 +19,18 @@ import 'package:grund_http_generator/grund_http_generator.dart';
 const constructs = [ModuleConstruct(), ApiConstruct()];
 
 GenerationResult generate(String root, List<LibraryElement> libraries) {
-  final package = PackageCollector(
-    'shop',
-    root,
-    constructs: constructs,
-  ).collect(libraries);
-  return const GrundGenerator(constructs).generate(package);
+  const generator = GrundGenerator(constructs);
+  final package = generator.collector('shop', root).collect(libraries);
+  return generator.generate(package);
 }
 ```
 
 `ApiConstruct` collects an `HttpPackageModel` (`package.extensionModel<
 HttpPackageModel>()`), claims an `@Api` class listed in a module's
-`providers` (its hooks bound by type must be visible in that module), and
-reports these codes:
+`providers` (binding the class and its `XRoutes`; its hooks bound by type
+must be visible in that module), and reports these codes. A package
+collected without `ApiConstruct` is a programming error (`StateError`),
+never an empty set of apis:
 
 `invalid_api`, `duplicate_api`, `invalid_hook`, `invalid_route_handler`,
 `route_outside_api`, `invalid_handler_parameter`,

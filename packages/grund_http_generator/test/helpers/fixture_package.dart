@@ -41,11 +41,9 @@ final class FixturePackage {
     final libraries = [
       for (final path in paths) await _resolve(p.join(root, path)),
     ];
-    return PackageCollector(
-      name,
-      root,
-      constructs: constructs,
-    ).collect(libraries);
+    return const GrundGenerator(
+      constructs,
+    ).collector(name, root).collect(libraries);
   }
 
   Future<LibraryElement> _resolve(String file) async {

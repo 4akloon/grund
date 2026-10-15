@@ -6,25 +6,24 @@ import 'package:analyzer/dart/element/element.dart';
 import 'package:grund_generator/grund_generator.dart';
 import 'package:path/path.dart' as p;
 
-/// Generates the grund library of the package at [root] (a directory
-/// with a `pubspec.yaml` named [name], after `dart pub get`) and returns
-/// its source; throws a [StateError] listing the diagnostics on problems.
+/// Generates the files of the package at [root] (a directory with a
+/// `pubspec.yaml` named [name], after `dart pub get`) and returns them by
+/// path; throws a [StateError] listing the diagnostics on problems.
 ///
 /// This is what `grund_cli gen` does, without the writing, the watching
 /// and the incremental analysis.
-Future<String> generatePackage(String name, String root) async {
+Future<Map<String, String>> generatePackage(String name, String root) async {
   final lib = p.join(p.normalize(p.absolute(root)), 'lib');
   final collection = AnalysisContextCollection(includedPaths: [lib]);
   try {
     final libraries = <LibraryElement>[
       for (final file in _sourceFiles(lib)) await _resolve(collection, file),
     ];
-    final model = PackageCollector(name, p.dirname(lib)).collect(libraries);
-    final result = const GrundGenerator.core().generate(model);
-    return switch (result.library) {
-      final library? => library,
-      null => throw StateError(result.diagnostics.join('\n')),
-    };
+    const generator = GrundGenerator.core();
+    final model = generator.collector(name, p.dirname(lib)).collect(libraries);
+    final result = generator.generate(model);
+    if (!result.isSuccess) throw StateError(result.diagnostics.join('\n'));
+    return result.files;
   } finally {
     await collection.dispose();
   }
@@ -52,7 +51,7 @@ Future<LibraryElement> _resolve(
   };
 }
 
-/// Prints the library generated for `<name> <directory>`, for example
+/// Prints the files generated for `<name> <directory>`, for example
 /// `dart run example/grund_generator_example.dart users_app
 /// test/fixtures/users_app`.
 Future<void> main(List<String> arguments) async {
@@ -61,5 +60,8 @@ Future<void> main(List<String> arguments) async {
     exitCode = 64;
     return;
   }
-  stdout.write(await generatePackage(arguments[0], arguments[1]));
+  final files = await generatePackage(arguments[0], arguments[1]);
+  for (final MapEntry(key: path, value: content) in files.entries) {
+    stdout.write('// $path\n$content');
+  }
 }

@@ -1,14 +1,5 @@
 import 'package:code_builder/code_builder.dart';
-import 'package:grund_generator/src/construct/construct.dart';
-import 'package:grund_generator/src/construct/grund_generator.dart';
-import 'package:grund_generator/src/construct/content_type.dart';
-import 'package:grund_generator/src/construct/generated_unit.dart';
-import 'package:grund_generator/src/construct/provider_claims.dart';
-import 'package:grund_generator/src/emit/library_writer.dart';
-import 'package:grund_generator/src/diagnostic/diagnostic.dart';
-import 'package:grund_generator/src/diagnostic/diagnostic_code.dart';
-import 'package:grund_generator/src/diagnostic/source_location.dart';
-import 'package:grund_generator/src/model/package_model.dart';
+import 'package:grund_generator/grund_generator.dart';
 import 'package:pub_semver/pub_semver.dart';
 import 'package:test/test.dart';
 
@@ -16,6 +7,8 @@ final _package = PackageModel(
   packageName: 'app',
   languageVersion: Version(3, 8, 0),
 );
+
+const _library = 'lib/app.grund.dart';
 
 /// A construct with fixed output.
 final class _FixedConstruct extends Construct {
@@ -26,6 +19,9 @@ final class _FixedConstruct extends Construct {
   final List<GeneratedUnit> units;
 
   int generated = 0;
+
+  @override
+  String get name => 'fixed';
 
   @override
   Iterable<Diagnostic> validate(PackageModel package, ProviderClaims claims) =>
@@ -41,17 +37,29 @@ final class _FixedConstruct extends Construct {
   }
 }
 
-DartUnit _function(String name, int line) => DartUnit(
-  name: name,
-  spec: Method(
-    (b) => b
-      ..name = name
-      ..returns = refer('int')
-      ..lambda = true
-      ..body = literalNum(line).code,
-  ),
-  origin: SourceLocation('lib/app.dart', line, 1),
+/// A unit kind the generator does not write.
+final class _OtherUnit extends GeneratedUnit {
+  const _OtherUnit();
+
+  @override
+  String get path => 'lib/other.txt';
+}
+
+Method _method(String name, int line) => Method(
+  (b) => b
+    ..name = name
+    ..returns = refer('int')
+    ..lambda = true
+    ..body = literalNum(line).code,
 );
+
+LibraryUnit _function(String name, int line, {String path = _library}) =>
+    LibraryUnit(
+      path: path,
+      name: name,
+      spec: _method(name, line),
+      origin: SourceLocation('lib/app.dart', line, 1),
+    );
 
 Diagnostic _error(int line) => Diagnostic(
   DiagnosticCode.missingProvider,
@@ -61,7 +69,8 @@ Diagnostic _error(int line) => Diagnostic(
 
 void main() {
   _edges();
-  test('joins the Dart units of every construct into one library', () {
+  _parts();
+  test('joins the library units of every construct into one library', () {
     final result = GrundGenerator([
       _FixedConstruct(units: [_function('one', 1)]),
       _FixedConstruct(
@@ -77,8 +86,12 @@ void main() {
     ]).generate(_package);
 
     expect(result.isSuccess, isTrue);
-    expect(result.library, contains('int one() => 1;\n\nint two() => 2;\n'));
-    expect([for (final f in result.files) f.path], ['doc/api.json']);
+    expect(
+      result.files[_library],
+      contains('int one() => 1;\n\nint two() => 2;\n'),
+    );
+    expect(result.files.keys, ['doc/api.json', _library]);
+    expect(result.files['doc/api.json'], '{}');
   });
 
   test('any diagnostic stops generation; they come sorted, once', () {
@@ -90,7 +103,7 @@ void main() {
     ]).generate(_package);
 
     expect(result.isSuccess, isFalse);
-    expect(result.library, isNull);
+    expect(result.files, isEmpty);
     expect([for (final d in result.diagnostics) d.location.line], [2, 9]);
     expect(later.generated, 0);
   });
@@ -125,15 +138,15 @@ void _edges() {
     ]).generate(_package);
 
     expect(result.isSuccess, isTrue);
-    expect(result.files.single.contentType, ContentType.text);
-    expect(result.library, startsWith(LibraryWriter.header));
+    expect(result.files['a.txt'], 'a');
+    expect(result.files[_library], startsWith(LibraryWriter.header));
   });
 
   test('no constructs generate an empty library', () {
     final result = const GrundGenerator([]).generate(_package);
 
     expect(result.isSuccess, isTrue);
-    expect(result.files, isEmpty);
+    expect(result.files.keys, [_library]);
     expect(result.diagnostics, isEmpty);
   });
 
@@ -146,6 +159,69 @@ void _edges() {
 
     expect(result.isSuccess, isFalse);
     expect([for (final d in result.diagnostics) d.location.line], [2, 3]);
-    expect(result.library, isNull);
+    expect(result.files, isEmpty);
+  });
+}
+
+void _parts() {
+  test('library units of another path form a library of their own', () {
+    final result = GrundGenerator([
+      _FixedConstruct(
+        units: [
+          _function('a', 1, path: 'lib/x.module.g.dart'),
+          _function('a', 2),
+        ],
+      ),
+    ]).generate(_package);
+
+    expect(result.isSuccess, isTrue);
+    expect(result.files['lib/x.module.g.dart'], contains('int a() => 1;'));
+    expect(result.files[_library], contains('int a() => 2;'));
+  });
+
+  test('part units form a part of their host without imports', () {
+    final result = GrundGenerator([
+      _FixedConstruct(
+        units: [
+          PartUnit(
+            path: 'lib/src/tasks.api.g.dart',
+            hostPath: 'lib/src/tasks.dart',
+            name: 'tasks',
+            spec: Method(
+              (b) => b
+                ..name = 'tasks'
+                ..returns = refer('Task', 'package:app/src/task.dart')
+                ..lambda = true
+                ..body = const Code('throw 0'),
+            ),
+            origin: const SourceLocation('lib/src/tasks.dart', 1, 1),
+          ),
+        ],
+      ),
+    ]).generate(_package);
+    final part = result.files['lib/src/tasks.api.g.dart'];
+
+    expect(part, startsWith(LibraryWriter.header));
+    expect(part, contains("part of 'tasks.dart';"));
+    expect(part, contains('Task tasks() => throw 0;'));
+    expect(part, isNot(contains('import')));
+  });
+
+  test('units of different kinds on one path are a programming error', () {
+    GenerationResult generate(List<GeneratedUnit> units) =>
+        GrundGenerator([_FixedConstruct(units: units)]).generate(_package);
+
+    expect(
+      () => generate([
+        _function('a', 1),
+        const FileUnit(
+          path: _library,
+          contentType: ContentType.text,
+          content: '',
+        ),
+      ]),
+      throwsStateError,
+    );
+    expect(() => generate([const _OtherUnit()]), throwsStateError);
   });
 }

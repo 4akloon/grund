@@ -23,6 +23,15 @@ void main() {
       expect(uses('InheritingApi').single.reason, contains('Base.inherited'));
     });
 
+    test('a class with @Module and @Api records both vocabularies', () {
+      final reasons = [for (final use in uses('ModuleApi')) use.reason];
+
+      expect(
+        reasons,
+        unorderedMatches([contains('Base.inherited'), contains('Base.number')]),
+      );
+    });
+
     test('a mixed-in route is recorded', () {
       expect(uses('MixingApi').single.reason, contains('RouteMixin.mixed'));
     });

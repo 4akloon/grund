@@ -32,6 +32,9 @@ void main() {
       provides: [GraphModels.provides('App', 'Clock')],
     );
 
-    expect([for (final b in module.bindings) '${b.key}'], ['Repo', 'Clock']);
+    expect(
+      [for (final b in ProviderClaims.none().bindingsOf(module)) '${b.key}'],
+      ['Repo', 'Clock'],
+    );
   });
 }

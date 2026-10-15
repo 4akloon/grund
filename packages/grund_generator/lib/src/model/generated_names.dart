@@ -10,4 +10,9 @@ abstract final class GeneratedNames {
   /// The generated library of package [packageName].
   static String library(String packageName) =>
       'package:$packageName/$packageName.grund.dart';
+
+  /// The path of the generated library of package [packageName], relative
+  /// to the package root.
+  static String libraryPath(String packageName) =>
+      'lib/$packageName.grund.dart';
 }

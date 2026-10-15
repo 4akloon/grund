@@ -17,6 +17,10 @@ base class Base {
   /// An inherited route.
   @Get('/inherited')
   String inherited() => '';
+
+  /// An inherited provider method.
+  @Provides()
+  static int number() => 1;
 }
 
 /// Inherits a route.
@@ -34,3 +38,8 @@ final class PathApi {
   @Get(missingPath)
   String route() => '';
 }
+
+/// A module and an api at once, inheriting a route and a provider method.
+@Module()
+@Api('/d')
+final class ModuleApi extends Base {}

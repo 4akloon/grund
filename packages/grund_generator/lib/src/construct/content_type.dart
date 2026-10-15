@@ -1,4 +1,4 @@
-/// The kind of a [FileUnit].
+/// The kind of the content of a `FileUnit`.
 enum ContentType {
   /// JSON.
   json,

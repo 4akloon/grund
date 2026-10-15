@@ -5,11 +5,12 @@ import '../model/module_model.dart';
 import '../model/package_model.dart';
 import '../model/provider_model.dart';
 import 'construct.dart';
+import 'provider_claim.dart';
 
 /// The providers of a package's modules that constructs claimed
 /// (`Construct.claimProvider`), with the bindings they gave.
 final class ProviderClaims {
-  ProviderClaims._(this._bindings, this.conflicts);
+  ProviderClaims._(this._claims, this.conflicts);
 
   /// No provider is claimed.
   ProviderClaims.none() : this._(Map.identity(), const []);
@@ -20,52 +21,53 @@ final class ProviderClaims {
     PackageModel package,
     List<Construct> constructs,
   ) {
-    final bindings = Map<ProviderModel, BindingModel>.identity();
+    final claimed = Map<ProviderModel, ProviderClaim>.identity();
     final conflicts = <Diagnostic>[];
     for (final module in package.modules) {
       for (final provider in module.providers) {
         final claims = [
           for (final construct in constructs)
-            if (construct.claimProvider(provider, package) case final binding?)
-              (construct: construct, binding: binding),
+            if (construct.claimProvider(provider, package) case final claim?)
+              (construct: construct, claim: claim),
         ];
-        if (claims.firstOrNull case final claim?) {
-          bindings[provider] = claim.binding;
+        if (claims.firstOrNull case final first?) {
+          claimed[provider] = first.claim;
         }
         if (claims.length > 1) {
           conflicts.add(_conflict(module, provider, claims));
         }
       }
     }
-    return ProviderClaims._(bindings, conflicts);
+    return ProviderClaims._(claimed, conflicts);
   }
 
-  final Map<ProviderModel, BindingModel> _bindings;
+  final Map<ProviderModel, ProviderClaim> _claims;
 
   /// One diagnostic per provider that more than one construct claimed.
   final List<Diagnostic> conflicts;
 
-  /// The binding a construct gave [provider], or `null` when none claimed
-  /// it.
-  BindingModel? claimed(ProviderModel provider) => _bindings[provider];
+  /// The claim a construct made for [provider], or `null` when none
+  /// claimed it.
+  ProviderClaim? claimed(ProviderModel provider) => _claims[provider];
 
-  /// The bindings [module] owns: those of its providers, as claimed or
-  /// [ProviderModel.binding], then those of its `@Provides` methods.
+  /// The bindings [module] owns: those of its providers (the bindings of
+  /// their claims, or [ProviderModel.binding]), then those of its
+  /// `@Provides` methods.
   List<BindingModel> bindingsOf(ModuleModel module) => [
     for (final provider in module.providers)
-      _bindings[provider] ?? provider.binding,
+      ...(_claims[provider]?.bindings ?? [provider.binding]),
     ...module.providedBindings,
   ];
 
   static Diagnostic _conflict(
     ModuleModel module,
     ProviderModel provider,
-    List<({Construct construct, BindingModel binding})> claims,
+    List<({Construct construct, ProviderClaim claim})> claims,
   ) => Diagnostic(
     DiagnosticCode.conflictingProviderClaim,
     provider.injectable.location,
     '${provider.injectable.type}, a provider of module ${module.type}, is '
-    'claimed by [${claims.map((c) => c.construct.runtimeType).join(', ')}]; '
+    'claimed by [${claims.map((c) => c.construct.name).join(', ')}]; '
     'a class can be only one of these kinds.',
   );
 }

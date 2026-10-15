@@ -80,6 +80,29 @@ final class DiagnosticCode {
     'conflicting_provider_claim',
   );
 
+  /// Every code of this catalog, in declaration order.
+  static const values = <DiagnosticCode>[
+    circularModuleImport,
+    duplicateBinding,
+    invalidExport,
+    invalidModuleEntry,
+    invalidModuleClass,
+    invalidName,
+    missingProvider,
+    circularDependency,
+    captiveDependency,
+    notInjectable,
+    invalidConstructor,
+    invalidDependency,
+    invalidProvides,
+    invalidScope,
+    invalidBind,
+    unsupportedConstant,
+    unsupportedUse,
+    duplicateGeneratedName,
+    conflictingProviderClaim,
+  ];
+
   @override
   bool operator ==(Object other) => other is DiagnosticCode && other.id == id;
 

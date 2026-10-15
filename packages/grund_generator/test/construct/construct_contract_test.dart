@@ -4,17 +4,20 @@ import 'package:test/test.dart';
 import '../helpers/fixture_package.dart';
 import '../helpers/graph_models.dart';
 
-/// Claims the provider of class [type] with [binding].
+/// Claims the provider of class [type] with [bindings].
 final class _Claiming extends Construct {
-  const _Claiming(this.type, this.binding);
+  const _Claiming(this.type, this.bindings);
 
   final String type;
 
-  final BindingModel binding;
+  final List<BindingModel> bindings;
 
   @override
-  BindingModel? claimProvider(ProviderModel provider, PackageModel package) =>
-      provider.injectable.type.name == type ? binding : null;
+  String get name => 'claiming';
+
+  @override
+  ProviderClaim? claimProvider(ProviderModel provider, PackageModel package) =>
+      provider.injectable.type.name == type ? ProviderClaim(bindings) : null;
 
   @override
   Iterable<Diagnostic> validate(PackageModel package, ProviderClaims claims) =>
@@ -30,6 +33,9 @@ final class _Claiming extends Construct {
 /// Collects the URIs of the libraries it is given.
 final class _Collecting extends Construct {
   const _Collecting();
+
+  @override
+  String get name => 'collecting';
 
   @override
   _Uris collect(CollectionContext context) =>
@@ -86,7 +92,9 @@ void main() {
     final diagnostics = _diagnostics(
       [GraphModels.provider('A')],
       [
-        _Claiming('A', _binding('A', needs: ['B'])),
+        _Claiming('A', [
+          _binding('A', needs: ['B']),
+        ]),
       ],
     );
 
@@ -97,13 +105,17 @@ void main() {
     final missing = _diagnostics(
       [GraphModels.provider('A')],
       [
-        _Claiming('A', _binding('A', looksUp: ['B'])),
+        _Claiming('A', [
+          _binding('A', looksUp: ['B']),
+        ]),
       ],
     );
     final bound = _diagnostics(
       [GraphModels.provider('A'), GraphModels.provider('B')],
       [
-        _Claiming('A', _binding('A', looksUp: ['B'])),
+        _Claiming('A', [
+          _binding('A', looksUp: ['B']),
+        ]),
       ],
     );
 
@@ -122,7 +134,9 @@ void main() {
         GraphModels.provider('B', needs: ['A'], lifetime: Lifetime.scoped),
       ],
       [
-        _Claiming('A', _binding('A', looksUp: ['B'])),
+        _Claiming('A', [
+          _binding('A', looksUp: ['B']),
+        ]),
       ],
     );
 
@@ -132,11 +146,14 @@ void main() {
   test('a provider claimed by two constructs is a conflict', () {
     final diagnostics = _diagnostics(
       [GraphModels.provider('A')],
-      [_Claiming('A', _binding('A')), _Claiming('A', _binding('A'))],
+      [
+        _Claiming('A', [_binding('A')]),
+        _Claiming('A', [_binding('A')]),
+      ],
     );
 
     expect(diagnostics.single.code, DiagnosticCode.conflictingProviderClaim);
-    expect(diagnostics.single.message, contains('[_Claiming, _Claiming]'));
+    expect(diagnostics.single.message, contains('[claiming, claiming]'));
   });
 
   test('a construct collects its model into the package', () async {
@@ -145,11 +162,9 @@ void main() {
       'lib/modules/basic.dart',
       'lib/constants.dart',
     ]);
-    final package = PackageCollector(
-      fixture.name,
-      fixture.root,
-      constructs: const [_Collecting()],
-    ).collect(libraries);
+    final package = const GrundGenerator([
+      _Collecting(),
+    ]).collector(fixture.name, fixture.root).collect(libraries);
 
     expect(package.extensionModel<_Uris>()?.uris, [
       'package:cases_app/constants.dart',
@@ -193,4 +208,56 @@ void main() {
     expect(both.injectable, {'Job'});
     expect(both.names, {'Job', 'Every', 'Once', 'Channel'});
   });
+
+  test('every binding of a claim is a binding of the module', () {
+    final claim = _Claiming('A', [
+      _binding('A'),
+      _binding('ARoutes', needs: ['A']),
+    ]);
+    final needsRoutes = GraphModels.provider('B', needs: ['ARoutes']);
+    final providers = [GraphModels.provider('A'), needsRoutes];
+
+    expect(_diagnostics(providers, [claim]), isEmpty);
+    expect(_codes(_diagnostics(providers, [])), ['missing_provider']);
+    expect(
+      _codes(
+        _diagnostics([...providers, GraphModels.provider('ARoutes')], [claim]),
+      ),
+      ['duplicate_binding'],
+    );
+  });
+
+  test('a binding of a claim can be exported to an importing module', () {
+    List<String> codes(List<Construct> constructs) => _codes(
+      GrundGenerator([const ModuleConstruct(), ...constructs])
+          .generate(
+            GraphModels.package([
+              GraphModels.module(
+                'Lib',
+                providers: [GraphModels.provider('A')],
+                exports: [GraphModels.export('ARoutes')],
+              ),
+              GraphModels.module(
+                'App',
+                imports: [GraphModels.reference('Lib')],
+                providers: [
+                  GraphModels.provider('B', needs: ['ARoutes']),
+                ],
+              ),
+            ]),
+          )
+          .diagnostics,
+    );
+    final claim = _Claiming('A', [
+      _binding('A'),
+      _binding('ARoutes', needs: ['A']),
+    ]);
+
+    expect(codes([claim]), isEmpty);
+    expect(codes([]), ['invalid_export']);
+  });
 }
+
+List<String> _codes(List<Diagnostic> diagnostics) => [
+  for (final d in diagnostics) d.code.id,
+];

@@ -52,15 +52,9 @@ final class ModuleModel {
   /// The `///` comment of the class, if any.
   final String? documentation;
 
-  /// The bindings the module owns when no construct claims a provider, in
-  /// the order the mixin writes them: providers first, then [provides].
-  /// The checks use `ProviderClaims.bindingsOf`, which honours claims.
-  List<BindingModel> get bindings => [
-    for (final provider in providers) provider.binding,
-    ...providedBindings,
-  ];
-
-  /// The bindings of the `@Provides` methods, in declaration order. A
+  /// The bindings of the `@Provides` methods, in declaration order; the
+  /// bindings of the providers come from `ProviderClaims.bindingsOf`,
+  /// which honours the providers constructs claim. A
   /// method with a problem has no key and is left out; the module construct
   /// reports it.
   List<BindingModel> get providedBindings => [

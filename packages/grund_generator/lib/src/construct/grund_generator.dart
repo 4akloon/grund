@@ -1,20 +1,18 @@
-import 'package:code_builder/code_builder.dart';
-
+import '../collector/package_collector.dart';
 import '../constructs/module_construct.dart';
-import '../diagnostic/diagnostic.dart';
-import '../diagnostic/diagnostic_code.dart';
-import '../emit/library_writer.dart';
 import '../model/package_model.dart';
 import 'construct.dart';
-import 'generated_unit.dart';
 import 'generation_result.dart';
+import 'output_assembler.dart';
 import 'provider_claims.dart';
 
 /// Runs a set of [Construct]s over a [PackageModel].
 ///
-/// The constructs claim providers first, then every construct validates;
-/// any diagnostic stops generation, so a package with an error never gets
-/// a half-generated library.
+/// The constructs claim providers first (two claims of one provider are a
+/// `conflicting_provider_claim`), then every construct validates; any
+/// diagnostic stops generation, so a package with an error never gets a
+/// half-generated file. Declarations of one file that share a name are a
+/// `duplicate_generated_name`.
 final class GrundGenerator {
   /// Creates the generator; [constructs] run in order.
   const GrundGenerator(this.constructs);
@@ -27,6 +25,12 @@ final class GrundGenerator {
   /// The constructs.
   final List<Construct> constructs;
 
+  /// The collector of package [packageName] rooted at [packageRoot] that
+  /// lets these [constructs] collect, so the model [generate] gets has what
+  /// each of them needs.
+  PackageCollector collector(String packageName, String packageRoot) =>
+      PackageCollector(packageName, packageRoot, constructs: constructs);
+
   /// Validates and generates [package].
   GenerationResult generate(PackageModel package) {
     final claims = ProviderClaims.collect(package, constructs);
@@ -36,35 +40,12 @@ final class GrundGenerator {
         ...construct.validate(package, claims),
     }.toList()..sort();
     if (diagnostics.isNotEmpty) return GenerationResult.failed(diagnostics);
-    final units = [
+    final output = OutputAssembler(package).assemble([
       for (final construct in constructs)
         ...construct.generate(package, claims),
-    ];
-    final dartUnits = units.whereType<DartUnit>().toList();
-    final duplicates = _duplicateNames(dartUnits);
-    if (duplicates.isNotEmpty) return GenerationResult.failed(duplicates);
-    return GenerationResult.generated(
-      library: LibraryWriter.write(
-        packageName: package.packageName,
-        languageVersion: package.languageVersion,
-        declarations: <Spec>[for (final unit in dartUnits) unit.spec],
-      ),
-      files: units.whereType<FileUnit>().toList(),
-    );
-  }
-
-  static List<Diagnostic> _duplicateNames(List<DartUnit> units) {
-    final first = <String, DartUnit>{};
-    return [
-      for (final unit in units)
-        if (first.putIfAbsent(unit.name, () => unit) case final other
-            when other != unit)
-          Diagnostic(
-            DiagnosticCode.duplicateGeneratedName,
-            unit.origin,
-            'Generated name ${unit.name} is used twice: for the declaration '
-            'at ${other.origin} and for this one. Rename one of them.',
-          ),
-    ]..sort();
+    ]);
+    return output.duplicates.isEmpty
+        ? GenerationResult.generated(output.files)
+        : GenerationResult.failed(output.duplicates);
   }
 }

@@ -26,9 +26,20 @@ void main() {
     final claims = ProviderClaims.collect(package, FixturePackage.constructs);
 
     expect(claims.claimed(provider('ApiKeyHook')), isNull);
+    final bindings = claims.claimed(provider('TasksApi'))?.bindings ?? [];
     expect([
-      for (final lookup in claims.claimed(provider('TasksApi'))!.lookups)
-        '${lookup.key}',
+      for (final lookup in bindings.first.lookups) '${lookup.key}',
     ], contains('ApiKeyHook'));
+  });
+
+  test('a claimed @Api provider also binds its routes to the class', () {
+    final claims = ProviderClaims.collect(package, FixturePackage.constructs);
+    final bindings = claims.bindingsOf(package.modules.single);
+    final routes = bindings.singleWhere((b) => '${b.key}' == 'TasksApiRoutes');
+
+    expect(
+      [for (final dependency in routes.dependencies) '${dependency.key}'],
+      ['TasksApi'],
+    );
   });
 }

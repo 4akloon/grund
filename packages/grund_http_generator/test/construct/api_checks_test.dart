@@ -28,6 +28,18 @@ void main() {
     expect(GraphModels.codes(package), ['invalid_api']);
   });
 
+  test('a package collected without the api construct is an error', () {
+    final package = PackageModel(
+      packageName: 'app',
+      languageVersion: GraphModels.package([]).languageVersion,
+      modules: [
+        GraphModels.module('App', providers: [GraphModels.provider('Api')]),
+      ],
+    );
+
+    expect(() => GraphModels.codes(package), throwsStateError);
+  });
+
   test('an api provided by two modules is duplicate_api', () {
     final package = GraphModels.package(
       [

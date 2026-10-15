@@ -1,29 +1,27 @@
+import 'dart:collection';
+
 import '../diagnostic/diagnostic.dart';
-import 'generated_unit.dart';
 
 /// The outcome of one generation: either diagnostics, or the generated
-/// library source and the other files.
+/// files.
 final class GenerationResult {
-  /// A failed generation.
-  const GenerationResult.failed(this.diagnostics)
-    : library = null,
-      files = const [];
+  /// A failed generation; [diagnostics] is not empty.
+  GenerationResult.failed(this.diagnostics)
+    : assert(diagnostics.isNotEmpty),
+      files = const {};
 
-  /// A successful generation.
-  const GenerationResult.generated({
-    required String this.library,
-    this.files = const [],
-  }) : diagnostics = const [];
+  /// A successful generation of [files] (path → content).
+  GenerationResult.generated(Map<String, String> files)
+    : files = UnmodifiableMapView(SplayTreeMap.of(files)),
+      diagnostics = const [];
 
   /// The problems, sorted by location; empty on success.
   final List<Diagnostic> diagnostics;
 
-  /// The source of `lib/<package>.grund.dart`, or `null` on failure.
-  final String? library;
-
-  /// The other files, in construct order.
-  final List<FileUnit> files;
+  /// The content of every generated file by its path relative to the
+  /// package root, iterated in path order; empty on failure.
+  final Map<String, String> files;
 
   /// Whether generation succeeded.
-  bool get isSuccess => library != null;
+  bool get isSuccess => diagnostics.isEmpty;
 }

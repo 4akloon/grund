@@ -15,6 +15,9 @@ final class ModuleConstruct extends Construct {
   const ModuleConstruct();
 
   @override
+  String get name => 'module';
+
+  @override
   Iterable<Diagnostic> validate(PackageModel package, ProviderClaims claims) {
     final structure = ModuleStructureCheck.check(
       package.modules,

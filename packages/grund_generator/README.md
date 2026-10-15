@@ -11,10 +11,11 @@ import 'package:grund_generator/grund_generator.dart';
 
 void generate(String packageRoot, List<LibraryElement> libraries) {
   // libraries: the resolved libraries of the package's lib/.
-  final package = PackageCollector('shop', packageRoot).collect(libraries);
-  final result = const GrundGenerator.core().generate(package);
+  const generator = GrundGenerator.core();
+  final package = generator.collector('shop', packageRoot).collect(libraries);
+  final result = generator.generate(package);
   if (result.isSuccess) {
-    // Write result.library to lib/shop.grund.dart.
+    // Write each entry of result.files (path -> content) under packageRoot.
   } else {
     result.diagnostics.forEach(print);
     // lib/users.dart:12:3: error: No provider for Clock in module "users"
@@ -56,7 +57,7 @@ Diagnostics stop generation; each has a stable code:
 | `ModuleConstruct` | `duplicate_module_id`, `circular_module_import`, `duplicate_provider`, `invalid_export`, `invalid_module_entry`, `unsupported_constant`, `missing_provider`, `circular_dependency` |
 | `ProviderConstruct` | `not_injectable`, `invalid_constructor`, `invalid_dependency`, `unsupported_constant` |
 | `ControllerConstruct` | `invalid_constructor`, `invalid_dependency`, `invalid_component`, `invalid_route_handler`, `invalid_handler_parameter`, `missing_from_json`, `unknown_path_parameter`, `unsupported_constant`, `duplicate_route` (also a controller listed by more than one module) |
-| `GrundGenerator` | `duplicate_generated_name` |
+| `GrundGenerator` | `duplicate_generated_name`, `conflicting_provider_claim` |
 
 `unsupported_constant` is reported wherever a constant must be written into
 generated code: a `@Module` entry such as `Value(...)` or a token

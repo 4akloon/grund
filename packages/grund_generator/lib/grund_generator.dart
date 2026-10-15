@@ -5,10 +5,15 @@
 /// builds its model with [PackageCollector] and runs a [GrundGenerator]:
 ///
 /// ```dart
-/// final package = PackageCollector('shop', root).collect(libraries);
-/// final result = const GrundGenerator.core().generate(package);
+/// const generator = GrundGenerator.core();
+/// final package = generator.collector('shop', root).collect(libraries);
+/// final result = generator.generate(package);
 /// if (!result.isSuccess) result.diagnostics.forEach(print);
 /// ```
+///
+/// Besides the codes of its constructs, [GrundGenerator] reports
+/// `duplicate_generated_name` and `conflicting_provider_claim` (two
+/// constructs claim one provider).
 ///
 /// The model, [Construct] with its phases and the collector building
 /// blocks ([Annotations], [TypeReader], [ConstantReader], ...) are public
@@ -25,9 +30,13 @@ export 'src/collector/type_reader.dart';
 export 'src/construct/construct.dart';
 export 'src/construct/construct_annotations.dart';
 export 'src/construct/content_type.dart';
+export 'src/construct/file_unit.dart';
 export 'src/construct/generated_unit.dart';
 export 'src/construct/generation_result.dart';
 export 'src/construct/grund_generator.dart';
+export 'src/construct/library_unit.dart';
+export 'src/construct/part_unit.dart';
+export 'src/construct/provider_claim.dart';
 export 'src/construct/provider_claims.dart';
 export 'src/constructs/module_construct.dart';
 export 'src/diagnostic/diagnostic.dart';

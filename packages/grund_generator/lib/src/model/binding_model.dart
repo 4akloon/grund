@@ -1,3 +1,5 @@
+import 'package:code_builder/code_builder.dart';
+
 import '../diagnostic/source_location.dart';
 import 'binding_key.dart';
 import 'binding_lookup.dart';
@@ -15,6 +17,7 @@ final class BindingModel {
     required this.dependencies,
     required this.location,
     this.lookups = const [],
+    this.emission,
   });
 
   /// What the binding is looked up by.
@@ -32,4 +35,12 @@ final class BindingModel {
   /// What the instance looks up while it is used, in addition to
   /// [dependencies]; a construct that claims a provider sets it.
   final List<BindingLookup> lookups;
+
+  /// How the module's generated code registers this binding, for a binding
+  /// a construct gave through a claim; `null` for the bindings the module
+  /// construct writes itself (provider classes and `@Provides` methods).
+  ///
+  /// It names declarations with `refer(name, url)`, so the import
+  /// allocator of the file it is written into imports them.
+  final Expression? emission;
 }

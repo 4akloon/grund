@@ -55,4 +55,22 @@ abstract final class HttpDiagnosticCodes {
 
   /// Two routes have the same method and path.
   static const duplicateRoute = DiagnosticCode('duplicate_route');
+
+  /// Every code of this catalog, in declaration order.
+  static const values = [
+    invalidApi,
+    duplicateApi,
+    invalidHook,
+    invalidRouteHandler,
+    routeOutsideApi,
+    invalidHandlerParameter,
+    parameterWithoutSource,
+    missingFromJson,
+    unknownPathParameter,
+    invalidValidator,
+    invalidStatus,
+    unsupportedReturnType,
+    streamReturnReserved,
+    duplicateRoute,
+  ];
 }

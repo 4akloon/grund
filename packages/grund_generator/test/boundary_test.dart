@@ -37,6 +37,12 @@ void main() {
     expect(sources.keys, contains(p.join('lib', 'grund_generator.dart')));
   });
 
+  test('the core does not depend on an HTTP package', () {
+    final pubspec = File('pubspec.yaml').readAsStringSync();
+
+    expect(pubspec, isNot(matches(RegExp(r'^\s*grund_http', multiLine: true))));
+  });
+
   test('no core source mentions the HTTP part of the generator', () {
     final annotation = RegExp(
       '@(${_annotations.join('|')})\\b|'
