@@ -137,4 +137,33 @@ final class OuterModule extends grund.Module with \$OuterModule {
   const OuterModule();
 }
 ''';
+
+  /// `lib/src/second.dart`: a second module with nothing in it.
+  static const second = '''
+import 'package:grund/annotations.dart';
+import 'package:grund/grund.dart' as grund;
+
+import 'second_module.g.dart';
+
+@Module()
+final class SecondModule extends grund.Module with \$SecondModule {
+  const SecondModule();
+}
+''';
+
+  /// `lib/src/both_modules.dart`: a module importing [onlyModule] and
+  /// [second], so it reaches two modules.
+  static const bothModules = '''
+import 'package:grund/annotations.dart';
+import 'package:grund/grund.dart' as grund;
+
+import 'both_modules_module.g.dart';
+import 'only_module.dart';
+import 'second.dart';
+
+@Module(imports: [OnlyModule(), SecondModule()])
+final class BothModules extends grund.Module with \$BothModules {
+  const BothModules();
+}
+''';
 }

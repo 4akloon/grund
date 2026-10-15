@@ -28,7 +28,9 @@ import 'syntax_check.dart';
 /// input library and its part files: a problem in another library is
 /// reported by the step of that library, so it is not reported once per
 /// importer. A problem anywhere in the reached libraries, the input's own
-/// or not, fails the step as far as writing goes: nothing is written then.
+/// or not, withholds the step's files; a step whose own library has no
+/// problem then says which libraries do, so a missing file always has a
+/// message.
 final class GrundBuilder implements Builder {
   /// Creates the builder, generating with [generator].
   const GrundBuilder({this.generator = StandardGenerator.instance});
@@ -53,15 +55,65 @@ final class GrundBuilder implements Builder {
     if (ownSyntax.isNotEmpty) return _fail(ownSyntax);
     final library = await resolver.libraryFor(input);
     final reached = LibraryReach.within(input.package, library);
-    if (await _othersHaveSyntaxProblems(syntax, reached, input)) return;
+    final broken = await _othersWithSyntaxProblems(syntax, reached, input);
+    if (broken.isNotEmpty) return _withheld(input, broken);
     final result = generator.generate(
       generator.collector(input.package, '/${input.package}').collect(reached),
     );
-    if (!result.isSuccess) {
-      return _fail(_ownDiagnostics(result, library, input.package));
-    }
+    if (!result.isSuccess) return _failed(result, library, input);
+    final unwritable = _unwritable(result.files, reached);
+    if (unwritable.isNotEmpty) return _fail(unwritable);
     await _write(buildStep, result.files);
   }
+
+  /// Reports a failed generation: the problems of the input's own library,
+  /// or, when they are all elsewhere, which libraries have them.
+  static void _failed(
+    GenerationResult result,
+    LibraryElement library,
+    AssetId input,
+  ) {
+    final own = _ownDiagnostics(result, library, input.package);
+    if (own.isNotEmpty) return _fail(own);
+    _withheld(input, {
+      for (final diagnostic in result.diagnostics) diagnostic.location.path,
+    });
+  }
+
+  /// Fails the step that writes nothing for [input] because of problems in
+  /// [paths] only, so a missing output never goes without a message even
+  /// when the library with the problem is no input of this build.
+  static void _withheld(AssetId input, Iterable<String> paths) {
+    final sorted = paths.toSet().toList()..sort();
+    final names = sorted.join(', ');
+    final verb = sorted.length == 1 ? 'has' : 'have';
+    log.severe('${input.path} was not generated: $names $verb problems');
+  }
+
+  /// The generated files that no reached library owns: a builder writes
+  /// only `X_module.g.dart` and `X_api.g.dart`.
+  static List<String> _unwritable(
+    Map<String, String> files,
+    List<LibraryElement> reached,
+  ) {
+    final owned = {
+      for (final library in reached) ...[
+        GeneratedNames.moduleLibraryPath(_pathOf(library)),
+        ApiNames.partPath(_pathOf(library)),
+      ],
+    };
+    return [
+      for (final path in files.keys)
+        if (!owned.contains(path))
+          'grund_build cannot write $path: a construct generated it, and a '
+              'build_runner builder writes only X_module.g.dart and '
+              'X_api.g.dart next to a library. Generate this package with '
+              'grund_cli gen.',
+    ];
+  }
+
+  static String _pathOf(LibraryElement library) =>
+      'lib/${library.uri.pathSegments.skip(1).join('/')}';
 
   /// Whether [input] is a library of `lib/` that is not itself generated.
   ///
@@ -83,17 +135,18 @@ final class GrundBuilder implements Builder {
 
   // Their errors are reported by their own steps; this step only refuses
   // to write while any source in its graph does not parse.
-  static Future<bool> _othersHaveSyntaxProblems(
+  static Future<Set<String>> _othersWithSyntaxProblems(
     SyntaxCheck syntax,
     List<LibraryElement> reached,
     AssetId input,
   ) async {
+    final broken = <String>{};
     for (final library in reached) {
       final asset = AssetId.resolve(library.uri);
       if (asset == input || GeneratedOutputs.isOutput(library)) continue;
-      if ((await syntax.of(asset)).isNotEmpty) return true;
+      if ((await syntax.of(asset)).isNotEmpty) broken.add(_pathOf(library));
     }
-    return false;
+    return broken;
   }
 
   static List<Diagnostic> _ownDiagnostics(

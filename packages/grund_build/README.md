@@ -44,8 +44,10 @@ ones its library needs (build_runner accepts an output that is not written).
   the step of that library, so it appears once, not once per importer.
   Syntax errors have the code `syntax_error`; the generator's codes are
   listed in the `grund_generator` and `grund_http_generator` READMEs. While a
-  library it reaches has a problem, a step writes nothing, and the step with
-  the problem fails the build.
+  library it reaches has a problem, a step writes nothing; if its own library
+  is fine it logs `<path> was not generated: <libraries> have problems`, so a
+  missing file always has a message, even when that library is not a build
+  input.
 - Generated files (name `*_module.g.dart` or `*_api.g.dart` and the
   generator's header) and part files are not inputs.
 - A part another builder has not written yet (`user.g.dart` of
@@ -132,7 +134,9 @@ targets:
 ```
 
 The builder writes only a module library and an API part per library; a file
-of another kind that a construct generates (a `FileUnit`) is not written.
+of another kind that a construct generates (a `FileUnit`) fails the build:
+`grund_build cannot write <path>` (every step that reaches it says so).
+Generate such a package with `grund_cli gen`.
 
 ## Versions
 
