@@ -93,16 +93,15 @@ generation, a `relic` adapter, and code scaffolding beyond `grund init` (no
 
 These are known and deliberate trade-offs or open problems of 0.1.0.
 
-**An unresolved annotation import deletes the generated files.**
-`grund gen` keeps the previous files while the sources have problems it can
-report: syntax errors and its own diagnostics. An analyzer error that hides
-the annotations is not such a problem. If the import of
-`package:grund/annotations.dart` is broken in every annotated file (a typo, a
-missing dependency), the generator sees no annotations and deletes the
-generated `*.g.dart` files in that run, exiting with 0. Fix the import and run
-`gen` again; the files come back unchanged. Under `dev` the reload that
-follows fails to compile and the application keeps running the previous code;
-the next save after the fix regenerates and reloads.
+**A broken import of a generated file hides nothing, but a broken annotation
+import is a problem.** An `import`, `export` or `part` of a source library
+that does not resolve (a typo in `package:grund/annotations.dart`, a missing
+dependency) is reported by `grund gen` and by the build_runner step as
+`unresolved_uri`, at the directive, and no generated file is written or
+deleted until you fix it. The one exception is a file with a double
+extension such as `x.g.dart`: a library that imports or includes its own
+not yet generated output must keep working on a fresh checkout. Under `dev`,
+problems keep the application running the previous code.
 
 **A type imported with a prefix is not resolved in an `@Api` part.** The
 generated `x.g.dart` is a `part` of the host library and shares its imports,

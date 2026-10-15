@@ -11,6 +11,7 @@ import 'binding_check.dart';
 import 'dependency_check.dart';
 import 'module_structure_check.dart';
 import 'private_declaration_check.dart';
+import 'unresolved_uri_check.dart';
 import 'unsupported_use_check.dart';
 
 /// Validates the modules of a package and their bindings, and writes the
@@ -33,6 +34,7 @@ final class ModuleConstruct extends Construct {
       ...BindingCheck.check(package),
       ...PrivateDeclarationCheck.check(package),
       ...UnsupportedUseCheck.check(package),
+      ...UnresolvedUriCheck.check(package),
     ];
     return structure.any(_breaksGraphWalk)
         ? own

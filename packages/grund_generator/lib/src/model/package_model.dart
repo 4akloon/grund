@@ -4,6 +4,7 @@ import 'extension_model.dart';
 import 'injectable_model.dart';
 import 'module_model.dart';
 import 'provides_model.dart';
+import 'unresolved_uri.dart';
 import 'unsupported_use.dart';
 
 /// Everything the generator collected from one package: the input of every
@@ -17,6 +18,7 @@ final class PackageModel {
     this.injectables = const [],
     this.strayProvides = const [],
     this.unsupportedUses = const [],
+    this.unresolvedUris = const [],
     this.extensions = const [],
     this.libraryPaths = const [],
   });
@@ -43,6 +45,10 @@ final class PackageModel {
   /// Annotations the generator cannot honour, in library-URI order, then
   /// source order; the checks report each as `unsupported_use`.
   final List<UnsupportedUse> unsupportedUses;
+
+  /// Directives of the source libraries whose URI does not resolve, in
+  /// library-URI order; the checks report each as `unresolved_uri`.
+  final List<UnresolvedUri> unresolvedUris;
 
   /// What the constructs collected for themselves (`Construct.collect`), in
   /// construct order.

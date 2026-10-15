@@ -88,6 +88,11 @@ final class DiagnosticCode {
   /// library cannot reach it.
   static const privateDeclaration = DiagnosticCode('private_declaration');
 
+  /// An `import`, `export` or `part` of a source library does not resolve:
+  /// the library's annotations cannot be read, so its outputs would be
+  /// dropped.
+  static const unresolvedUri = DiagnosticCode('unresolved_uri');
+
   /// Every code of this catalog, in declaration order.
   static const values = <DiagnosticCode>[
     circularModuleImport,
@@ -111,6 +116,7 @@ final class DiagnosticCode {
     conflictingOutputs,
     conflictingProviderClaim,
     privateDeclaration,
+    unresolvedUri,
   ];
 
   @override

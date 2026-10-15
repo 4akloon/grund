@@ -70,7 +70,7 @@ Diagnostics stop generation; each has a stable code (the catalog is
 
 | Construct | Codes |
 | --- | --- |
-| `ModuleConstruct` | `circular_module_import`, `duplicate_binding`, `invalid_export`, `invalid_module_entry`, `invalid_module_class`, `invalid_name`, `missing_provider`, `circular_dependency`, `captive_dependency`, `not_injectable`, `invalid_constructor`, `invalid_dependency`, `invalid_provides`, `invalid_scope`, `invalid_bind`, `unsupported_constant`, `unsupported_use`, `private_declaration` |
+| `ModuleConstruct` | `circular_module_import`, `duplicate_binding`, `invalid_export`, `invalid_module_entry`, `invalid_module_class`, `invalid_name`, `missing_provider`, `circular_dependency`, `captive_dependency`, `not_injectable`, `invalid_constructor`, `invalid_dependency`, `invalid_provides`, `invalid_scope`, `invalid_bind`, `unsupported_constant`, `unsupported_use`, `private_declaration`, `unresolved_uri` |
 | `GrundGenerator` | `duplicate_generated_name`, `conflicting_outputs`, `conflicting_provider_claim` |
 
 The codes of `@Api` are in the `grund_http_generator` README. A syntax
@@ -81,7 +81,13 @@ generated code: a `@Module` entry such as an instance of a module, a key or
 an annotation argument. `private_declaration` is a module that names a
 private class, which the file generated into another library cannot reach;
 `invalid_module_entry` is an entry of `@Module` the generator cannot read
-(the message names the field and the entry).
+(the message names the field and the entry). `unresolved_uri` is an
+`import`, `export` or `part` of a source library that does not resolve; the
+annotations it would bring cannot be read, so the library's outputs would be
+dropped silently. It is reported at the directive and blocks writing and
+deleting like any problem. A URI with a double extension (`x.g.dart`) is
+exempt: a host library importing or including its own output has none on a
+fresh checkout.
 
 `missing_provider` and `circular_dependency` need the whole graph: when a
 module is built by a function or comes from another package, the generator

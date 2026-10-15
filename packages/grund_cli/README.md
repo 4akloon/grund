@@ -41,7 +41,11 @@ command the tool prints its usage and exits with 0.
   no generated file is written or deleted.
 - Only syntax errors stop the analysis early. Other analyzer errors do not:
   on the first run the generated files do not exist yet, so code
-  importing them does not compile.
+  importing them does not compile. An `import`, `export` or `part` of a
+  source library that does not resolve (a typo, a missing dependency) is the
+  generator's `unresolved_uri` problem, so it keeps the files like any
+  other; a file with a double extension (`x.g.dart`) is exempt, because
+  its absence is what a fresh checkout looks like.
 - Only the files whose content changed are written, each through
   `<file>.tmp` and a rename, so a running analyzer or `dev` never reads
   half a file. A file at a generated path that does not start with
@@ -70,10 +74,8 @@ command the tool prints its usage and exits with 0.
 - Problems are printed and watching goes on; so does a failure to write the
   output (a `CliFailure`). Any other exception of a run ends the process,
   and so does an error of the file watcher's stream.
-- Known limitation: a non-syntax error that leaves the model empty while you
-  edit (for example a broken `package:grund/annotations.dart` import, so no
-  annotation is recognised) makes the run see "no annotations" and delete the
-  generated files. The next successful run writes them again.
+- A broken `package:grund/annotations.dart` import is an `unresolved_uri`
+  problem: the run keeps the generated files and reports it.
 - Files named like the generator's output (`*.g.dart`) do not start a run,
   whoever wrote them (also json_serializable's).
 - The generation benchmark is not part of `dart test`:

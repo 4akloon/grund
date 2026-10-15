@@ -17,3 +17,7 @@ Initial release.
   constructs of other packages; a `PartUnit` must belong to a source
   library of the package (`PackageModel.libraryPaths`) or to another
   generated file.
+- A directive of a source library whose URI does not resolve (an `import`,
+  `export` or `part`, except a not yet generated `x.g.dart`) is the
+  diagnostic `unresolved_uri`, so a typo in an annotation import no longer
+  drops the library's outputs silently.

@@ -9,3 +9,5 @@ Initial release.
   and exports and reports only the problems of its own library. No
   `build.yaml` options: the builder applies to every package that depends
   on `grund_build`.
+- A library with an unresolved `import`, `export` or `part` fails its own
+  step with `unresolved_uri`, as `grund_cli gen` reports it.

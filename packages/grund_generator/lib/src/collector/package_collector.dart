@@ -10,6 +10,7 @@ import '../model/injectable_model.dart';
 import '../model/module_model.dart';
 import '../model/package_model.dart';
 import '../model/provides_model.dart';
+import '../model/unresolved_uri.dart';
 import '../model/unsupported_use.dart';
 import 'annotations.dart';
 import 'collection_context.dart';
@@ -17,6 +18,7 @@ import 'injectable_reader.dart';
 import 'module_reader.dart';
 import 'provides_reader.dart';
 import 'source_locations.dart';
+import 'unresolved_uri_reader.dart';
 import 'unsupported_use_reader.dart';
 
 /// Builds the [PackageModel] of one package from its resolved libraries.
@@ -79,6 +81,7 @@ final class PackageCollector {
     final read = _Readers(packageName, _locations, annotations);
     for (final library in sorted) {
       parts.unsupported.addAll(read.unsupported.read(library));
+      parts.unresolved.addAll(read.unresolved.read(library));
       for (final element in library.classes) {
         _collectClass(element, read, parts);
       }
@@ -90,6 +93,7 @@ final class PackageCollector {
       injectables: parts.injectables,
       strayProvides: parts.strayProvides,
       unsupportedUses: parts.unsupported,
+      unresolvedUris: parts.unresolved,
       extensions: _extensions(sorted),
       libraryPaths: [for (final library in sorted) _locations.pathOf(library)],
     );
@@ -141,7 +145,8 @@ final class _Readers {
       injectables = InjectableReader(locations, annotations),
       modules = ModuleReader(packageName, locations, annotations),
       provides = ProvidesReader(locations),
-      unsupported = UnsupportedUseReader(locations, annotations);
+      unsupported = UnsupportedUseReader(locations, annotations),
+      unresolved = UnresolvedUriReader(locations);
 
   final Set<String> injectable;
   final Annotations source;
@@ -149,6 +154,7 @@ final class _Readers {
   final ModuleReader modules;
   final ProvidesReader provides;
   final UnsupportedUseReader unsupported;
+  final UnresolvedUriReader unresolved;
 }
 
 /// What [PackageCollector] accumulates while it walks the classes.
@@ -157,4 +163,5 @@ final class _Parts {
   final injectables = <InjectableModel>[];
   final strayProvides = <ProvidesModel>[];
   final unsupported = <UnsupportedUse>[];
+  final unresolved = <UnresolvedUri>[];
 }

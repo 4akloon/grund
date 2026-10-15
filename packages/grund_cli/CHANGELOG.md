@@ -14,3 +14,6 @@ Initial release.
 - `grund init`: scaffolds a new application (`App`, `@Module`, `@Api`,
   `HttpModule`, `IoAdapterModule`).
 - `GrundCli` and `GenerationSession` for tools with constructs of their own.
+- A source library with an unresolved `import`, `export` or `part` is a
+  problem (`unresolved_uri`): `gen` writes and deletes nothing, exits with 1,
+  instead of deleting the generated files.

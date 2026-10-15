@@ -32,6 +32,16 @@ final class SourceLocations {
     );
   }
 
+  /// The position of [offset] in the file of [fragment].
+  SourceLocation at(LibraryFragment fragment, int offset) {
+    final position = fragment.lineInfo.getLocation(offset);
+    return SourceLocation(
+      _display(fragment.source.fullName, fragment.element.uri),
+      position.lineNumber,
+      position.columnNumber,
+    );
+  }
+
   /// The package-relative path of the file of [library] (the library URI
   /// outside [packageRoot]).
   String pathOf(LibraryElement library) =>
