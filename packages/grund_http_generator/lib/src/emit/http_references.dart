@@ -38,8 +38,8 @@ abstract final class HttpReferences {
       constructorName: value.constructorName,
       positional: [for (final v in value.positional) prefixed(v)],
       named: {
-        for (final MapEntry(:key, :value) in value.named.entries)
-          key: prefixed(value),
+        for (final MapEntry(key: name, value: argument) in value.named.entries)
+          name: prefixed(argument),
       },
     ),
     ReferenceConstant(:final libraryUri) when _isHttp(libraryUri) => _reference(
@@ -58,7 +58,9 @@ abstract final class HttpReferences {
     _ => value,
   };
 
-  // The library is any other one: a part writes a reference by its bare name.
+  // The prefix is part of the name and the library is a core one, so no
+  // later step adds an import or another prefix: a part has no imports and
+  // writes the reference exactly as given.
   static ReferenceConstant _reference(ReferenceConstant value) =>
       switch (value.enclosingName) {
         final enclosing? => ReferenceConstant(

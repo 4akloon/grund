@@ -37,11 +37,12 @@ final class OutputAssembler {
     for (final unit in units) {
       byPath.putIfAbsent(unit.path, () => []).add(unit);
     }
+    final targets = byPath.keys.toSet();
     final files = <String, String>{};
     final duplicates = <Diagnostic>[];
     for (final MapEntry(key: path, value: group) in byPath.entries) {
       duplicates.addAll(_duplicateNames(group));
-      files[path] = _write(path, group, byPath.keys.toSet());
+      files[path] = _write(path, group, targets);
     }
     return (files: files, duplicates: duplicates..sort());
   }

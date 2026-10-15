@@ -1,4 +1,5 @@
 import 'package:grund_generator/grund_generator.dart';
+import 'package:grund_http_generator/grund_http_generator.dart';
 import 'package:grund_http_generator/src/construct/route_paths.dart';
 import 'package:test/test.dart';
 
@@ -38,5 +39,21 @@ void main() {
     expect(RoutePaths.join('/tasks/', '/:id/'), '/tasks/:id');
     expect(RoutePaths.parameters('/:org/users/:id/*'), ['org', 'id', '*']);
     expect(RoutePaths.shape('/a/:x/b'), RoutePaths.shape('/a/:y/b'));
+  });
+
+  test('a list query parameter with a default is reported', () async {
+    final package = await FixturePackage.open(
+      'http_cases_app',
+    ).collect(['lib/apis/list_default.dart']);
+    final result = const GrundGenerator(
+      FixturePackage.constructs,
+    ).generate(package).diagnostics;
+
+    expect(
+      [for (final d in result) d.code],
+      [HttpDiagnosticCodes.invalidHandlerParameter],
+    );
+    expect(result.single.message, contains('tag'));
+    expect(result.single.message, contains('cannot have a default'));
   });
 }

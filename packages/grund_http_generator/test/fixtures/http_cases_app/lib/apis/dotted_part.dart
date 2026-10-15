@@ -1,0 +1,13 @@
+// A library whose part directive is written with a redundant `./`.
+import 'package:grund_annotations/grund_annotations.dart';
+import 'package:grund_http/grund_http.dart' as http;
+
+part './dotted_part.api.g.dart';
+
+/// Answers pings.
+@Api('/dotted')
+final class DottedPartApi {
+  /// Pong.
+  @Get('/')
+  String ping(http.HttpCtx c) => 'pong';
+}

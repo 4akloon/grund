@@ -88,4 +88,31 @@ void main() {
       [HttpDiagnosticCodes.missingPartDirective],
     );
   });
+
+  test('a part directive of another directory does not count', () async {
+    final result = await diagnostics('lib/apis/wrong_part.dart');
+
+    expect(
+      [for (final d in result) d.code],
+      [HttpDiagnosticCodes.missingPartDirective],
+    );
+  });
+
+  test('a part directive written with ./ still counts', () async {
+    expect(await diagnostics('lib/apis/dotted_part.dart'), isEmpty);
+  });
+
+  test('an api declared in a part file is generated for its host', () async {
+    final package = await fixture.collect(['lib/apis/in_part.dart']);
+    final result = const GrundGenerator(
+      FixturePackage.constructs,
+    ).generate(package);
+
+    expect(result.diagnostics, isEmpty);
+    expect(result.files.keys, ['lib/apis/in_part.api.g.dart']);
+    expect(
+      package.extensionModel<HttpPackageModel>()?.hosts.single.path,
+      'lib/apis/in_part.dart',
+    );
+  });
 }

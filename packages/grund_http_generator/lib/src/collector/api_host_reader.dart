@@ -17,12 +17,17 @@ abstract final class ApiHostReader {
     SourceLocation firstApi,
   ) {
     final fragment = library.firstFragment;
-    final partName = p.posix.basename(ApiNames.partPath(path));
+    final expectedPart = p.normalize(
+      p.join(
+        p.dirname(fragment.source.fullName),
+        p.posix.basename(ApiNames.partPath(path)),
+      ),
+    );
     return ApiHost(
       path: path,
       location: firstApi,
       hasPartDirective: fragment.partIncludes.any(
-        (include) => _uri(include.uri) == partName,
+        (include) => _partPath(include.uri) == expectedPart,
       ),
       hasHttpImport: fragment.libraryImports.any(
         (import) =>
@@ -31,6 +36,11 @@ abstract final class ApiHostReader {
       ),
     );
   }
+
+  static String? _partPath(DirectiveUri uri) => switch (uri) {
+    DirectiveUriWithSource(:final source) => p.normalize(source.fullName),
+    _ => null,
+  };
 
   static String? _uri(DirectiveUri uri) =>
       uri is DirectiveUriWithRelativeUriString ? uri.relativeUriString : null;

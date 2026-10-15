@@ -7,6 +7,7 @@ import '../model/invalid_source_reason.dart';
 import '../model/param_model.dart';
 import '../model/param_source.dart';
 import '../model/route_model.dart';
+import '../model/value_kind.dart';
 import 'route_paths.dart';
 import 'validator_check.dart';
 
@@ -24,8 +25,23 @@ abstract final class ParamCheck {
           'Parameter ${param.name} is a second @Body; a request has one body.',
         );
       }
+      yield* _listDefault(param);
       yield* _source(param, known, path);
       yield* ValidatorCheck.check(param);
+    }
+  }
+
+  static Iterable<Diagnostic> _listDefault(ParamModel param) sync* {
+    final source = param.source;
+    if (source is ValueSource &&
+        source.kind == ValueKind.stringList &&
+        param.defaultValue != null) {
+      yield _diagnostic(
+        HttpDiagnosticCodes.invalidHandlerParameter,
+        param,
+        'The list parameter ${param.name} cannot have a default: a request '
+        'without values gives an empty list.',
+      );
     }
   }
 
