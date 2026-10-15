@@ -2,45 +2,63 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:grund/grund.dart';
+import 'package:grund_http/grund_http.dart';
 import 'package:grund_io/grund_io.dart';
 
 /// Answers `GET /ping` with text and `GET /count` with a streamed body.
-final class PingController {
-  /// Returns `pong`, sent as `text/plain`.
-  String ping() => 'pong';
+final class PingApi extends HttpApi {
+  /// Creates the API.
+  PingApi(super.injector);
 
-  /// Streams `1\n2\n3\n`, one chunk per line, without buffering.
-  Stream<List<int>> count() =>
-      Stream.fromIterable([1, 2, 3]).map((n) => utf8.encode('$n\n'));
+  @override
+  List<Route> get routes => [
+    Route.get('/ping', (_) => 'pong'),
+    Route.get(
+      '/count',
+      // One chunk per line, sent without buffering.
+      (_) => Stream.fromIterable([1, 2, 3]).map((n) => utf8.encode('$n\n')),
+    ),
+  ];
 }
 
-/// The root module: one controller, no providers.
-Module appModule() => Module(
-  id: 'app',
-  controllers: [
-    Controller<PingController>(
-      path: '/',
-      create: (i) => PingController(),
-      routes: [
-        Route.get('/ping', (c, ctx) async => c.ping()),
-        Route.get('/count', (c, ctx) async => c.count()),
-      ],
-    ),
-  ],
-);
+/// The root module: the HTTP server on [port], the `dart:io` adapter and
+/// [PingApi].
+final class AppModule extends Module {
+  /// Creates the module; port 0 picks a free port.
+  const AppModule({this.port = 8080});
 
-/// Serves [appModule] on an ephemeral loopback port, calls it once over
+  /// The port the server listens on.
+  final int port;
+
+  @override
+  List<Module> get imports => [
+    HttpModule(
+      config: HttpConfig(address: InternetAddress.loopbackIPv4, port: port),
+    ),
+    const IoAdapterModule(),
+  ];
+
+  @override
+  List<Binding<Object>> get bindings => [
+    Singleton<PingApi>(PingApi.new, dependsOn: const []),
+  ];
+}
+
+/// Serves [AppModule] on an ephemeral loopback port, calls it once over
 /// HTTP and closes it; returns the response body.
 ///
-/// A real server calls `app.listen(port: 8080)` and closes the application
-/// on a signal instead.
+/// A real server is `App(root: AppModule()).run()`: it stops on SIGINT and
+/// SIGTERM.
 Future<String> run() async {
-  final adapter = IoAdapter();
-  final app = await Application.create(appModule, adapter: adapter);
-  await app.listen(port: 0, address: InternetAddress.loopbackIPv4);
+  final app = App(root: const AppModule(port: 0));
+  await app.start();
   final client = HttpClient();
   try {
-    final uri = Uri.http('127.0.0.1:${adapter.port}', '/count');
+    final port = switch (app.container.root<HttpAdapter>()) {
+      IoAdapter(:final port) => port,
+      final other => throw StateError('Unexpected adapter $other.'),
+    };
+    final uri = Uri.http('127.0.0.1:$port', '/count');
     final response = await (await client.getUrl(uri)).close();
     return await utf8.decodeStream(response);
   } finally {

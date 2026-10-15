@@ -2,3 +2,4 @@
 library;
 
 export 'src/io_adapter.dart';
+export 'src/io_adapter_module.dart';

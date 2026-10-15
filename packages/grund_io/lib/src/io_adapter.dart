@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:io' as io;
 
-import 'package:grund/adapter.dart';
-import 'package:grund/grund.dart';
+import 'package:grund_http/adapter.dart';
+import 'package:grund_http/grund_http.dart';
 
 import 'io_request_mapper.dart';
 import 'io_response_writer.dart';

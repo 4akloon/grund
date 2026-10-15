@@ -1,6 +1,6 @@
 import 'dart:io' as io;
 
-import 'package:grund/grund.dart';
+import 'package:grund_http/grund_http.dart';
 
 /// Builds the grund [HttpRequest] for a `dart:io` request.
 abstract final class IoRequestMapper {

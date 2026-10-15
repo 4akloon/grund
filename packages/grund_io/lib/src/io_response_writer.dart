@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io' as io;
 
-import 'package:grund/grund.dart';
+import 'package:grund_http/grund_http.dart';
 
 /// Writes a grund [HttpResponse] to a `dart:io` response.
 abstract final class IoResponseWriter {
