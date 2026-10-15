@@ -17,16 +17,17 @@ Eight packages are published, always together and with the same version
 | 2 | `grund_http` | `grund` |
 | 3 | `grund_io` | `grund`, `grund_http` |
 | 4 | `grund_shelf` | `grund`, `grund_http` |
-| 5 | `grund_generator` | none (dev: `grund`) |
-| 6 | `grund_http_generator` | `grund_generator` |
-| 7 | `grund_cli` | `grund_generator` |
-| 8 | `grund_build` | `grund_generator` |
+| 5 | `grund_generator` | none (dev: `grund`, fixture `cases_app`) |
+| 6 | `grund_http_generator` | `grund_generator` (dev: `grund`, `grund_http`, fixtures `http_cases_app`, `users_app`) |
+| 7 | `grund_cli` | `grund_generator`, `grund_http_generator` |
+| 8 | `grund_build` | `grund_generator`, `grund_http_generator` (dev: `grund_cli`) |
 
 pub.dev rejects an upload whose `dependencies` are not on pub.dev yet, so
 publish in this order. It does not check `dev_dependencies`.
 
 Not published (`publish_to: none`): `grund_conformance` (the adapters'
-test suite), the generator's fixture packages `cases_app` and `users_app`,
+test suite), the generators' fixture packages `cases_app`, `http_cases_app` and
+`users_app`,
 and the example `tasks_api`. Published packages may list them as dev
 dependencies: pub.dev does not require them to exist (checked in the
 pub.dev source, `PackageBackend`, on 2026-10-14), pana's checks drop them,
@@ -53,9 +54,10 @@ and pub ignores the dev dependencies of a dependency.
 
 ## Known risks / check before first publish
 
-- **Dev dependencies on unpublished packages.** `grund_generator` has dev
-  dependencies on `cases_app`/`users_app` (test fixtures) and `grund_io`
-  and `grund_shelf` on `grund_conformance`; none of them is published.
+- **Dev dependencies on unpublished packages.** `grund_generator` and
+  `grund_http_generator` have dev dependencies on their fixture packages
+  (`cases_app`; `http_cases_app`, `users_app`) and `grund_io` and
+  `grund_shelf` on `grund_conformance`; none of them is published.
   `dart pub publish --dry-run` accepts this, but pub.dev scoring may fail to
   resolve them. After the first upload check the package's scoring page; if
   it reports a resolution failure, drop those dev dependencies from the

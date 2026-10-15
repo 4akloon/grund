@@ -1,22 +1,32 @@
 ## 0.1.0
 
-- Initial release.
-- The `use:` of `@Api` and of the route annotations takes a hook class
-  (`ApiKeyHook`), a const hook instance (`RolesHook(Role.editor)`) or a
-  `HookRef` constant; the `HookRef` explicit API is unchanged.
-- `HttpException.cause` and `causeStackTrace` (forwarded by every built-in
-  subclass) keep the error a hook or handler replaced. The responder logs
-  such an exception on `grund.http` (`SEVERE` from status 500, else `FINE`)
-  and never sends the cause to the client; the hook chain logs an `onError`
-  that replaces an error as `FINE`.
-- Logging: an unhandled error is logged as `SEVERE` on `grund.http` (error and
-  stack trace); subscribe to `Logger.root.onRecord` to forward it. The
-  response is still produced when a listener throws, but the listener's
-  failure is reported to its own zone: without `runZonedGuarded` it is an
-  uncaught asynchronous error that ends the isolate, so listeners must not
-  throw. Routes, the listener and shutdown are logged, and
-  `HttpConfig.accessLog` (default `true`) logs each request on
-  `grund.access`.
+Initial release.
+
+- `HttpModule` binds the `HttpServer` (a `Runner` named `http`) and the
+  `HttpConfig` (`address`, `port`, `maxBodyBytes`, `debug`, `accessLog`);
+  it takes global hooks, middleware and response codecs. The server needs
+  an `HttpAdapter` from `grund_io` or `grund_shelf`.
+- `HttpApi` and `Route`: routes with typed readers for path, query, header,
+  cookie and body (`c.path.integer('id')`, `await c.body(T.fromJson)`),
+  matched with percent-decoded segments (a malformed percent-encoding is a
+  400). `HttpHook` (`before`, `after`, `onError`), named by `HookRef` or,
+  in annotations, written as a hook class or a const hook instance
+  (`use: [ApiKeyHook, RolesHook(Role.editor)]`), and `Middleware`.
+- Errors are `application/problem+json` (RFC 9457) with a stable `code`.
+  `HttpException` and its subclasses carry `cause` and `causeStackTrace`
+  (forwarded by every built-in subclass), which keep the error a hook or
+  handler replaced; the responder logs such an exception on `grund.http`
+  (`SEVERE` from status 500, else `FINE`) and never sends the cause to the
+  client; the hook chain logs an `onError` that replaces an error as `FINE`.
+- Logging on `package:logging`: an unhandled error is `SEVERE` on
+  `grund.http` (error and stack trace); routes, the listener and shutdown
+  are logged, and `HttpConfig.accessLog` (default `true`) logs each
+  request on `grund.access`. The response is still produced when a
+  listener throws, but the listener's failure is reported to its own zone:
+  without `runZonedGuarded` it is an uncaught asynchronous error that ends
+  the isolate, so listeners must not throw.
 - The HTTP annotations (`@Api`, `Get`, `Post`, `Put`, `Patch`, `Delete`,
   `Path`, `Query`, `Header`, `Cookie`, `Body`, `Range`, `Length`, `Pattern`,
   `OneOf`) in `package:grund_http/annotations.dart`.
+- `TestClient` in `package:grund_http/testing.dart`; the building blocks for
+  adapters in `package:grund_http/adapter.dart`.
