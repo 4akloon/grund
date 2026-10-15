@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:grund_generator/src/construct/grund_generator.dart';
 import 'package:grund_generator/src/diagnostic/diagnostic_code.dart';
 import 'package:grund_generator/src/model/package_model.dart';
+import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
 import '../helpers/fixture_package.dart';
@@ -51,9 +54,20 @@ void main() {
   });
 
   test('a generated-looking file of an unknown package is a problem', () async {
-    final package = await collect(
-      'lib/uris/unknown_package_generated_name.dart',
-    );
+    // Written at run time: a committed file importing an undeclared package
+    // would make `dart pub publish --dry-run` warn about the fixture.
+    final temp = Directory.systemTemp.createTempSync('grund_unknown_uri');
+    addTearDown(() => temp.deleteSync(recursive: true));
+    File(p.join(temp.path, 'lib', 'unknown_package_generated_name.dart'))
+      ..createSync(recursive: true)
+      ..writeAsStringSync(
+        '// ignore_for_file: uri_does_not_exist, unused_import\n'
+        "import 'package:nope/x.g.dart';\n",
+      );
+    final package = await FixturePackage.at(
+      'temp_app',
+      temp.path,
+    ).collect(['lib/unknown_package_generated_name.dart']);
 
     expect(package.unresolvedUris.single.uri, 'package:nope/x.g.dart');
   });

@@ -27,6 +27,13 @@ final class FixturePackage {
     );
   }
 
+  /// Opens a package at [root], for example a temporary one a test writes.
+  factory FixturePackage.at(String name, String root) => FixturePackage._(
+    name,
+    root,
+    AnalysisContextCollection(includedPaths: [root]),
+  );
+
   /// The package name (also the directory name).
   final String name;
 
