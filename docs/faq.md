@@ -5,15 +5,52 @@
 **Do I have to use annotations?**
 No. The explicit API is the framework; annotations are a shorter way to
 write it. Applications, tests and libraries work without any code
-generation, and the two styles can be mixed in one graph.
+generation, and the two styles mix in one graph: a generated module can
+import a hand-written one and the other way round.
 
-**Why one generated file per package instead of `part` files?**
-Your files stay untouched, the output is one reviewable diff, and the
-generator can validate the whole module graph at once.
+**Where is the controller, the guard, the pipe, the interceptor, the filter?**
+An `HttpApi` (`@Api`) is the controller. One type, `HttpHook`, replaces the
+rest: `before` is a guard (throw to refuse), `before` and `after` together are
+an interceptor, `onError` is an exception filter. Pipes are the `Params`
+readers (`c.query.integer('limit', min: 1)`) or `@Range`, `@Length`,
+`@Pattern` and `@OneOf`. See [http-and-hooks.md](http-and-hooks.md).
 
-**Should I commit the generated library?**
-Yes. It is ordinary Dart that changes only when the annotations do, and
-committing it means `dart run` works right after `dart pub get`. Check it
+**Why `as grund` and `as http`?**
+The annotation `Module` and the base class `Module` have the same name, and
+`Pattern` and `Cookie` clash with `dart:core` and `dart:io`, so the
+annotations are libraries of their own (`package:grund/annotations.dart`,
+`package:grund_http/annotations.dart`) imported unprefixed, and the explicit
+API is imported with a prefix: `grund.Module` is what you extend, `http.HttpApi`
+is what the generated routes extend. See
+[annotations-and-codegen.md](annotations-and-codegen.md#the-annotations).
+
+**Why is there no `<package>.grund.dart`?**
+There used to be one library per package. The generator now writes one file
+per source library, next to it: `x.g.dart` for `x.dart` (the `$Module` mixins,
+or the `part` with the routes of its `@Api` classes). Delete a leftover
+`lib/<package>.grund.dart`; `grund gen` removes only generated files it
+recognises (a `.g.dart` name and the generator header), so it is yours to
+delete.
+
+**Can I use json_serializable or freezed?**
+Yes, for the DTOs. They write `x.g.dart` too, and one `x.g.dart` has one
+owner: keep those classes in libraries without `@Module` or `@Api`, or
+restrict `grund_build` with `generate_for`. `grund gen` never overwrites a
+file it did not write; build_runner reports an output conflict. See
+[build-runner.md](build-runner.md#json_serializable-and-freezed).
+
+**My log listener throws. What happens?**
+The response of the request is still produced, but the failure is not
+contained: `package:logging` delivers records through a stream, so the error
+goes to the zone the listener was registered in. In a plain `main` without
+`runZonedGuarded` it is an uncaught asynchronous error that ends the
+isolate, and with it the server. Keep listeners from throwing (wrap the
+code of an error tracker in `try/catch`) or run the application inside
+`runZonedGuarded`. See [logging.md](logging.md#errors).
+
+**Should I commit the generated files?**
+Yes. They are ordinary Dart that changes only when the annotations do, and
+committing them means `dart run` works right after `dart pub get`. Check them
 in CI with `grund gen && git diff --exit-code`.
 
 **Does it work with AOT (`dart compile exe`)?**
@@ -21,101 +58,105 @@ Yes. Nothing uses `dart:mirrors`. The hot reload hooks are registered only
 outside product mode, so an AOT binary contains none of them.
 
 **Can I use Flutter's `dart:ui` or run in the browser?**
-`package:grund` itself does not import `dart:io`, but both adapters do,
-and the framework is built and tested as a server framework only.
+`package:grund` and `grund_http` do not import `dart:io`, but both adapters
+do, and the framework is built and tested as a server framework only.
 
 **How do I override a provider in a test?**
-There is no `overrideProvider`; build a test module with the providers you
-want. See [testing.md](testing.md#a-test-module).
+`TestApp.start(root: ..., overrides: [...])` replaces bindings by key, or build
+a test module with the providers you want. See [testing.md](testing.md).
 
-**Where are lifecycle hooks (`OnModuleInit`, `OnApplicationShutdown`)?**
-Not in 0.1.0. An async provider's factory is the place for startup work;
-for shutdown, close your resources after `await app.close()`.
+**Where are lifecycle hooks?**
+`Module.onInit(injector)` runs once the graph exists, `onShutdown(injector)`
+at close; a singleton that implements `Disposable` is disposed when the
+application closes. An async binding's factory is the place for startup work.
 
 **Is there OpenAPI support?**
 Not yet. The generator already collects what an OpenAPI document needs
-(types, doc comments, DTOs); a `grund_openapi` package is the next
-planned milestone.
+(types, doc comments, DTOs); a `grund_openapi` package is the next planned
+milestone.
 
 **Which Dart versions are supported?**
 The packages declare `sdk: ^3.8.0` and use no language feature newer than
-Dart 3.8. Development and the tests ran on Dart 3.13. The CI workflow is
-set up to test 3.8.0 and stable, but it has never run, so the 3.8 floor is
+Dart 3.8. Development and the tests ran on Dart 3.13. The CI workflow is set
+up to test 3.8.0 and stable, but it has never run, so the 3.8 floor is
 unverified.
 
 ## Not in 0.1.0
 
-Request-scoped providers, lifecycle hooks, WebSockets and server-sent
-events, GraphQL, microservice transports, OpenAPI generation, a `relic`
-adapter, and code scaffolding beyond `grund init` (no `nest g`).
+WebSockets and server-sent events, GraphQL, microservice transports, OpenAPI
+generation, a `relic` adapter, and code scaffolding beyond `grund init` (no
+`nest g`). Request-scoped values exist as call scopes (`Scoped` bindings,
+`c.set`), not as NestJS's request-scoped providers.
 
 ## Known limitations
 
 These are known and deliberate trade-offs or open problems of 0.1.0.
 
-**An unresolved annotation import deletes the generated library.**
-`grund gen` keeps the previous library while the sources have problems
-it can report: syntax errors and its own diagnostics. An analyzer error
-that hides the annotations is not such a problem. If the import of
-`package:grund_annotations` is broken in every annotated file (a typo,
-a missing dependency), the generator sees no annotations and deletes
-`lib/<package>.grund.dart` in that run, exiting with 0
-(`No annotations in lib/; deleted lib/my_app.grund.dart.`). Fix the
-import and run `gen` again; the file comes back unchanged. Under `dev` the
-reload that follows fails to compile and the application keeps running the
-previous code; the next save after the fix regenerates and reloads.
+**An unresolved annotation import deletes the generated files.**
+`grund gen` keeps the previous files while the sources have problems it can
+report: syntax errors and its own diagnostics. An analyzer error that hides
+the annotations is not such a problem. If the import of
+`package:grund/annotations.dart` is broken in every annotated file (a typo, a
+missing dependency), the generator sees no annotations and deletes the
+generated `*.g.dart` files in that run, exiting with 0. Fix the import and run
+`gen` again; the files come back unchanged. Under `dev` the reload that
+follows fails to compile and the application keeps running the previous code;
+the next save after the fix regenerates and reloads.
 
-**`dev` may restart when a reload would have been enough.** The check
-that decides between a reload and a restart compares fields,
-constructors, top-level and static variables and enum values as text,
-without resolving types. Any change there restarts the process, also when
-a reload could have handled it (a new field with an initializer, a
-reformatted constructor). The reverse does not happen for files `dev`
-watches; for files it does not watch (path dependencies, `tool/`), press
-`R` after changing a field.
+**A type imported with a prefix is not resolved in an `@Api` part.** The
+generated `x.g.dart` is a `part` of the host library and shares its imports,
+so a type the host imports as `import 'x.dart' as x;` cannot be named in the
+routes. Import the type without a prefix in the library that declares the
+`@Api` class (the `as http` import is the one prefix the generator needs).
 
-**The generator cannot see into a module from another package.** A
-`@Module` class from another package, and a module returned by a
-function, are opaque to the generator. For the whole package that
-references one, `missing_provider` and `circular_dependency` are not
-reported by `grund gen`; `Application.create` still reports them at
-startup, with the resolution chain.
+**The generator cannot see into a module from another package.** A `@Module`
+class from another package, `HttpModule` and the adapter modules included, and
+a module that a function returns are opaque to the generator. For the whole
+package that references one, `missing_provider` and `circular_dependency` are
+not reported by `grund gen`; the application still reports them at start,
+before it serves, with the resolution chain.
 
-**`HeaderMap` does not validate header values.** The core accepts CR and
-LF in a header value. With both bundled adapters such a value never
-reaches the wire: `dart:io` refuses it when the response is written, the
-client's connection is closed without a response, and the error goes to
-the adapter's `onError`. A custom adapter must validate values itself.
-Do not copy unchecked user input into response headers.
+**`dev` may restart when a reload would have been enough.** The check that
+decides between a reload and a restart compares fields, constructors,
+top-level and static variables and enum values as text, without resolving
+types. Any change there restarts the process, also when a reload could have
+handled it (a new field with an initializer, a reformatted constructor). The
+reverse does not happen for files `dev` watches; for files it does not watch
+(path dependencies, `tool/`), press `R` after changing a field.
 
-**build_runner deletes the library on problems.** With `grund_build`,
-a failed build step deletes the previous `lib/<package>.grund.dart`, so
-code that imports it stops compiling until the problems are fixed.
-`grund gen` keeps the previous file instead. See
-[build-runner.md](build-runner.md).
+**`HeaderMap` does not validate header values.** The core accepts CR and LF in
+a header value. With both bundled adapters such a value never reaches the
+wire: `dart:io` refuses it when the response is written, the client's
+connection is closed without a response, and the error goes to the adapter's
+`onError`. A custom adapter must validate values itself. Do not copy
+unchecked user input into response headers.
+
+**build_runner deletes the files on problems.** With `grund_build`, a failed
+build step deletes the previous output of its library, so code that imports
+it stops compiling until the problems are fixed. `grund gen` keeps the
+previous files instead. See [build-runner.md](build-runner.md).
 
 **A hot reload does not run `main` again.** Changes to the server setup in
-`main` need a restart (`R`). A `Provider.value` keeps its old value across
+`main` need a restart (`R`). A kept singleton keeps its old state across
 reloads.
 
-**Killing `dev` with `SIGKILL` leaves the application running.** Dart has
-no parent-death signal. Stop the orphan process yourself; its pid is in
-the `Started` line.
+**Killing `dev` with `SIGKILL` leaves the application running.** Dart has no
+parent-death signal. Stop the orphan process yourself; its pid is in the
+`Started` line.
 
-**A Dart default value of a `@Query` parameter is ignored.** A
-non-nullable `@Query('limit') int limit = 20` is still required (a
-request without it gets a 400). Declare `int? limit` and write
-`limit ?? 20` in the method.
+**Request bodies are limited, not streamed through the readers.**
+`HttpConfig.maxBodyBytes` (1 MiB by default) bounds `c.body`, `c.bodyList`
+and `c.bytes`; a larger body is a 413. A handler that reads
+`c.request.body` as a stream decides for itself how much to accept.
 
-**No request body size limit.** Handlers read the body as a stream and
-decide how much to accept; `bodyAs` reads all of it. Put a limit in a
-proxy or a middleware if clients are untrusted.
+**A log listener that throws can end the process.** See the FAQ above and
+[logging.md](logging.md#errors).
 
-**Platforms.** Development and every test run on Linux. macOS is expected
-to work like Linux but is not tested. Windows is not verified: path
-handling in the CLI is written for it, but `dev` (signals, the terminal
-keys, process restarts) has never run there.
+**Platforms.** Development and every test run on Linux. macOS is expected to
+work like Linux but is not tested. Windows is not verified: path handling in
+the CLI is written for it, but `dev` (signals, the terminal keys, process
+restarts) has never run there.
 
-**The SDK floor is declared, not yet tested.** The packages declare Dart
-3.8; the local runs used Dart 3.13. The CI workflow tests 3.8.0, but it
-has not run yet.
+**The SDK floor is declared, not yet tested.** The packages declare Dart 3.8;
+the local runs used Dart 3.13. The CI workflow tests 3.8.0, but it has not run
+yet.
