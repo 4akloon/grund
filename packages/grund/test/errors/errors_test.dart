@@ -21,6 +21,32 @@ void main() {
   });
 
   group('graph errors', () {
+    test('a circular import prints the cycle path', () {
+      const error = CircularModuleImportError(['A', 'B', 'A']);
+
+      expect(error.message, contains('A -> B -> A'));
+    });
+
+    test('a duplicate binding names the module and the key', () {
+      const error = DuplicateBindingError(
+        key: Key<_Repo>(),
+        module: 'AppModule',
+      );
+
+      expect(error.message, contains('AppModule'));
+      expect(error.message, contains('_Repo'));
+    });
+
+    test('an invalid export names the module and the export', () {
+      const error = InvalidExportError(
+        export: Key<_Repo>(),
+        module: 'AppModule',
+      );
+
+      expect(error.message, contains('AppModule'));
+      expect(error.message, contains('_Repo'));
+    });
+
     test('a missing provider names the key, the module and the requirer', () {
       const error = MissingProviderError(
         key: Key<_Repo>(),
