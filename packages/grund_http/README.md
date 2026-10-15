@@ -61,7 +61,8 @@ Future<void> main() => App(root: const AppModule()).run();
   `package:grund_http/annotations.dart` (`@Api`, `@Get`, `@Post`, `@Path`,
   `@Query`, `@Header`, `@Cookie`, `@Body`, `@Range`, `@Length`, `@Pattern`,
   `@OneOf`), a library of its own because `Pattern` and `Cookie` clash with
-  `dart:core` and `dart:io`.
+  `dart:core` and `dart:io`; in a file that uses them, hide the clashing name
+  (`import 'dart:io' hide Cookie;`) or import `dart:io` with a prefix.
 - `package:grund_http/testing.dart` has `TestClient`, which sends requests
   straight to the server without a socket; `package:grund_http/adapter.dart`
   has the building blocks for adapter authors.

@@ -27,8 +27,7 @@ publish in this order. It does not check `dev_dependencies`.
 
 Not published (`publish_to: none`): `grund_conformance` (the adapters'
 test suite), the generators' fixture packages `cases_app`, `http_cases_app` and
-`users_app`,
-and the example `tasks_api`. Published packages may list them as dev
+`users_app`, and the example `tasks_api`. Published packages may list them as dev
 dependencies: pub.dev does not require them to exist (checked in the
 pub.dev source, `PackageBackend`, on 2026-10-14), pana's checks drop them,
 and pub ignores the dev dependencies of a dependency.

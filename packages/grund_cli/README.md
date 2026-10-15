@@ -25,7 +25,8 @@ command the tool prints its usage and exits with 0.
 
 - Reads every Dart file of `lib/` except the files the generator wrote
   (`*.g.dart` files that start with the generator's header) and runs the
-  constructs of `grund_generator` (`ModuleConstruct`) and `grund_http_generator` (`ApiConstruct`). The result is a set of
+  constructs of `grund_generator` (`ModuleConstruct`) and
+  `grund_http_generator` (`ApiConstruct`). The result is a set of
   files, one `X.g.dart` per source library `X.dart`: a library with the
   mixins of its `@Module` classes, or a part with the routes of its `@Api`
   classes. A library that declares both is a `conflicting_outputs` problem:

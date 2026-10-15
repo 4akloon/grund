@@ -86,7 +86,9 @@ The annotations are in `package:grund/annotations.dart` and
 `package:grund_http/annotations.dart`, libraries of their own because
 `Module`, `Pattern` and `Cookie` would clash with the explicit API and with
 `dart:core`; the explicit API is imported with a prefix (`as grund`,
-`as http`). For every library with annotations the generator writes one
+`as http`); in a file that uses `@Pattern` or `@Cookie`, a `dart:io` or
+`dart:core` name that clashes is hidden or imported with a prefix
+(`import 'dart:io' hide Cookie;`). For every library with annotations the generator writes one
 file next to it, `X.g.dart`: the `$AppModule` mixin for a `@Module`, the
 `part` with `HelloRoutes extends http.HttpApi` for an `@Api`. A library
 declares one of the two. Hooks go in `use:`, by type or by instance:

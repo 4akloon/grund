@@ -14,7 +14,8 @@ pluggable HTTP adapters. It is a Dart pub workspace of pure-Dart packages.
 - Specs (binding, the code is the truth where a document lags):
   `docs/superpowers/specs/2026-10-15-grund-core-design.md` (G1: core, HTTP,
   generator), `2026-10-15-grund-generated-output-layout-design.md` (the
-  flat `X.g.dart` output) and the platform frame `2026-10-15-grund-platform-design.md`.
+  flat `X.g.dart` output) and the platform frame
+  `2026-10-15-grund-platform-design.md`.
   `2026-10-13-dartnest-design.md` is the history of the first version.
 - Roadmap: `docs/superpowers/ROADMAP.md`. One plan per roadmap stage in
   `docs/superpowers/plans/`; the next plan is written after the previous
@@ -34,11 +35,12 @@ pluggable HTTP adapters. It is a Dart pub workspace of pure-Dart packages.
 
 Minimum SDK: Dart 3.8 (`^3.8.0`), also for generated code.
 
-The `users_app` fixture (`packages/grund_http_generator/test/fixtures/`) has the dev dependency `build_runner: '>=2.10.5 <3.0.0'`
-for the `grund_build` integration test: pub picks 2.16 on Dart 3.11 or newer
-and (expected, not verified here) 2.10 on Dart 3.8, so the workspace is
-expected to resolve on the `^3.8.0` floor. The integration test skips itself below build_runner
-2.16 (`--only-check` is missing there).
+The `users_app` fixture (`packages/grund_http_generator/test/fixtures/`) has
+the dev dependency `build_runner: '>=2.10.5 <3.0.0'` for the `grund_build`
+integration test: pub picks 2.16 on Dart 3.11 or newer and (expected, not
+verified here) 2.10 on Dart 3.8, so the workspace is expected to resolve on
+the `^3.8.0` floor. The integration test skips itself below build_runner 2.16
+(`--only-check` is missing there).
 
 ## Commands
 
@@ -257,12 +259,14 @@ producing a response):
   `RunnerError` (a `GrundError` passes through), rolls back what had been
   started and keeps the previous set serving when a reassemble fails; `App`
   rolls back on a failed start, logs and rethrows a failed reassemble, and
-  waits for a pending reassemble on `close`; `HttpServer.start` marks itself
+  on `close` waits for a pending reassemble and ignores its failure (that
+  goes to the caller of `reassemble`); `HttpServer.start` marks itself
   not listening when the adapter fails and rethrows;
 - request boundaries (`grund_http`): `RouteExecutor` (hooks, the handler and
   the serializer run inside it) and `HttpServer` (middleware) turn any
   failure into a problem response through `ProblemResponder`, which logs it
-  on `grund.http` and keeps the headers set so far; `HookChain` offers a
+  on `grund.http` and builds the response (`RouteExecutor` then merges the
+  headers set so far into it); `HookChain` offers a
   failure to the `onError` hooks in reverse order and rethrows it when none
   answers, and a throwing `onError` replaces the failure the remaining
   hooks see (logged at `FINE`); disposing the call's `Scoped` instances
@@ -278,6 +282,12 @@ producing a response):
   `fromJson` into a 400 (any other failure is a bug and propagates);
   `RequestDispatcher` answers 400 for a malformed percent-encoding of the
   path (`FormatException` of `Uri.pathSegments`);
+- the `dev` command boundary (`grund_cli`): `DevCommand` catches `on
+  Exception` (not `on Object`: an `Error` is a bug and stays loud) around
+  the user's application process, a run and the key actions, and turns the
+  failure into a `CliFailure` with the software exit code and a
+  `dev stopped:` message, after stopping the process and closing the
+  session;
 - adapter boundaries: `IoAdapter` reports a failure of the request handler
   (unexpected: the server answers every error itself) to its `onError` and
   answers 500 without a body, and reports a failure while writing the

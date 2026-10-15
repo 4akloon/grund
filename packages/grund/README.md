@@ -27,7 +27,7 @@ Future<void> main(List<String> args) =>
 
 A complete runnable version is `example/grund_example.dart`; tests use
 `TestApp` from `package:grund/testing.dart`. The dependency-injection
-annotations (`@Module`, `@Injectable`, `@Provides`, `Bind`, `@Named`) are in
+annotations (`@Module`, `@Injectable`, `@Provides`, `Bind`, `@Named`, `Scope`) are in
 `package:grund/annotations.dart`, a library of its own because `Module`
 shares its name with the base class; `grund_generator` turns them into the
 classes above. Logging goes through `package:logging` on `grund.<area>`

@@ -22,8 +22,9 @@ final class RequestDispatcher {
 
   /// Answers [request] with [table]: 400 for a malformed percent-encoding in
   /// the path, 404 for an unknown path, 405 with `allow` for a known path
-  /// with another method, otherwise the route's response. Path segments are percent-decoded and empty segments are
-  /// ignored, so `/users/` and `/users//1` match `/users` and `/users/1`.
+  /// with another method, otherwise the route's response. Path segments are
+  /// percent-decoded and empty segments are ignored, so `/users/` and
+  /// `/users//1` match `/users` and `/users/1`.
   Future<HttpResponse> dispatch(
     HttpRequest request,
     RouteTable table,
