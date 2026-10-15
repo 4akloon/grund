@@ -40,7 +40,11 @@ abstract final class RouteEmitter {
           },
         );
     final awaitsBody = parameters.any(ParamEmitter.awaits);
-    final returnsFuture = route.returnType.name == 'Future';
+    // `FutureOr` is awaited too: the declared type does not say which it is.
+    final returnsFuture = const {
+      'Future',
+      'FutureOr',
+    }.contains(route.returnType.name);
     return switch (route.returnKind) {
       ReturnKind.value || ReturnKind.byteStream => _closure(
         call.code,
