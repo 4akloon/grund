@@ -24,7 +24,8 @@ NestJS: модулі, DI, контролери, GraphQL-резолвери (v2),
   користувачів. Changelog Revali показує типовий біль самостійного
   використання analyzer (пінінг версій, «corrupt SDK»).
 - GraphQL: `leto` завмер, `graphql_server2` живий, але резолвери лише ручні.
-  Рішення: власний GraphQL у v2.
+  Рішення (переглянуто 2026-10-15): GraphQL у v2 — адаптер `dartnest_graphql` над окремим
+  проєктом `typed_graphql`, а не власний виконавець у цьому репозиторії.
 - HTTP: shelf — де-факто стандарт (не оновлювався з 2024), `relic` — новий
   від Serverpod.
 
@@ -71,7 +72,7 @@ Request-scoped провайдери, lifecycle-хуки, GraphQL (v2), WebSocket
 | `dartnest_cli` | `dart run dartnest_cli gen [--watch]`, `dev`, `init` | `dartnest_generator`, `watcher`, `vm_service` |
 | `dartnest_build` | Builder для build_runner (агрегуючий, вхід `lib/$lib$`) | `dartnest_generator`, `build` |
 | `dartnest_openapi` (v1.1) | `OpenApiConstruct` (статичний `openapi.json` + код документа), модуль `openApiModule` з `/openapi.json` і UI (Scalar/Swagger) | `dartnest`, `dartnest_generator` |
-| `dartnest_graphql` (v2) | Виконавець схеми, `Resolver`, `Construct` для резолверів | `dartnest` |
+| `dartnest_graphql` (v2) | Адаптер над `typed_graphql_server`: маршрут, контекст, помилки (виконавця схеми не містить) | `dartnest`, `typed_graphql_server` |
 
 Правила шарування:
 

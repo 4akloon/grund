@@ -46,9 +46,9 @@
 
 | # | Етап | Пакети | Готово, коли |
 |---|---|---|---|
-| 10 | **Виконавець GraphQL** | `dartnest_graphql` | Парсер, валідація, виконання, інтроспекція за спеціфікацією GraphQL; власна реалізація без `graphql_server2`/`leto` |
-| 11 | **Резолвери** | `dartnest_graphql` | `Resolver<T>`/`Field` на `HandlerSpec`, спільний конвеєр з HTTP, `GraphQLTransport` у `ExecutionContext`, `ResolverConstruct` для анотацій `@Resolver`/`@Query`/`@Mutation` |
-| 12 | **Subscriptions** | `dartnest_graphql` + адаптери | WebSocket-транспорт в адаптерах (`graphql-transport-ws`) |
+| 10 | **Адаптер над typed_graphql** | `dartnest_graphql` | Виконавець GraphQL не пишемо: беремо окремий проєкт `typed_graphql` (`typed_graphql_server`). Пакет `dartnest_graphql` — тонкий адаптер: HTTP-маршрут у звичайному контролері перетворює `HttpRequest` на `HttpRequestData`, викликає обробник `typed_graphql_server` і повертає `HttpResponse`; guards/interceptors/filters працюють як для будь-якого маршруту. Обмеження читання тіла (`bodyAs` без ліміту). SDK-поріг пакета `^3.13.0` (поріг `typed_graphql`) — перевірити змішані пороги в workspace |
+| 11 | **Контекст і помилки** | `dartnest_graphql` | Guard кладе користувача в `ExecutionContext.items`, фабрика GraphQL-контексту копіює його; сервіси DI доступні резолверам через контекст (резолвери — замикання, бібліотека не інстанціює їх); хук `onError` до маскування помилок; `CancelSignal` з закриття застосунку/таймауту; відповідь на збіг імен `Token`/`@Query` (`as`/`hide`, документація) |
+| 12 | **Subscriptions** | `dartnest_graphql` + `typed_graphql_shelf` | WebSocket (`graphql-ws`) монтується з `typed_graphql_shelf` поруч із `shelfHandler(app)` в одному shelf-роутері (в `HttpAdapter` немає апґрейду); автентифікація в `connection_init`; `Transport` розширюємо лише якщо знадобиться конвеєр на рівні полів |
 
 ## Пізніше (без терміну)
 
