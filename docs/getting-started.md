@@ -134,6 +134,6 @@ application on the explicit API, and
 ## Next
 
 - [Modules and dependency injection](modules-and-di.md)
-- [Controllers and the request pipeline](controllers-and-pipeline.md)
+- [HTTP APIs, hooks and errors](http-and-hooks.md)
 - [The example application](../example/README.md): guards, pipes,
   interceptors, filters and middleware in a real API.
