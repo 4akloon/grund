@@ -121,5 +121,23 @@ void main() {
         expect(log, ['dispose db']);
       },
     );
+
+    test(
+      'abandon is idempotent and a close after it disposes nothing again',
+      () async {
+        final log = <String>[];
+        final old = await Container.create(graphOf([tracked('db', log)]));
+        final next = await old.reassemble(
+          graphOf([tracked('db', log), tracked('cache', log)]),
+        );
+        log.clear();
+
+        await next.abandon();
+        await next.abandon();
+        await next.close();
+
+        expect(log, ['dispose cache']);
+      },
+    );
   });
 }

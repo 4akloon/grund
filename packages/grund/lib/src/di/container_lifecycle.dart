@@ -65,6 +65,8 @@ final class ContainerLifecycle {
     return steps;
   }
 
-  /// The identities of the modules whose `onInit` this container ran.
-  Set<ModuleIdentity> get initialised => _initialised;
+  /// The identities of the modules that count as initialised: the ones whose
+  /// `onInit` this container ran and the ones carried over from the previous
+  /// container.
+  Set<ModuleIdentity> get initialised => Set.unmodifiable(_initialised);
 }

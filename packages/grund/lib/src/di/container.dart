@@ -52,13 +52,20 @@ final class Container {
   /// Builds the container of [newGraph], keeping the singletons that stayed
   /// the same. This container is left untouched; if creating the new one
   /// fails, the error is thrown and this one keeps working.
+  ///
+  /// After a successful reassemble the old container must not be closed: it
+  /// would dispose the adopted singletons the new container uses. [abandon]
+  /// is for the failure path, where the new container is the one to drop.
   Future<Container> reassemble(ModuleGraph newGraph) =>
       Container.create(newGraph, previous: this);
 
   /// Undoes what this container created itself, keeping what it took over
   /// from the container it replaced. For a reassemble that failed after
-  /// [create].
-  Future<void> abandon() async {
+  /// [create]. Idempotent, and shares its guard with [close]: whichever runs
+  /// first decides what is disposed, and the other does nothing.
+  Future<void> abandon() => _closing ??= _abandon();
+
+  Future<void> _abandon() async {
     (await _lifecycle.shutdown(freshOnly: true)).throwIfFailed();
   }
 
