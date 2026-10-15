@@ -79,6 +79,21 @@ void main() {
       expect(body, isNot(contains('details')));
     });
 
+    test('problem errors in a List<Object> become errors too', () async {
+      final response = responder.respond(
+        UnprocessableContentException(
+          details: <Object>[
+            const ProblemError(detail: 'required', pointer: '/body/title'),
+          ],
+        ),
+        StackTrace.current,
+      );
+
+      final body = await jsonOf(response) as Map<String, Object?>;
+      expect(body['errors'], hasLength(1));
+      expect(body, isNot(contains('details')));
+    });
+
     test('details without a JSON form are sent as text', () async {
       final response = responder.respond(
         BadRequestException(details: Unprintable()),
