@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:io' as io;
 
-import 'package:grund/adapter.dart';
-import 'package:grund/grund.dart';
+import 'package:grund_http/adapter.dart';
+import 'package:grund_http/grund_http.dart';
 import 'package:shelf/shelf.dart' as shelf;
 import 'package:shelf/shelf_io.dart' as shelf_io;
 

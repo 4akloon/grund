@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:grund/grund.dart';
+import 'package:grund_http/grund_http.dart';
 import 'package:grund_shelf/src/shelf_response_mapper.dart';
 import 'package:test/test.dart';
 

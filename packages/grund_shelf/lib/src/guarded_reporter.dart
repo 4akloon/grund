@@ -1,6 +1,6 @@
 import 'dart:io' as io;
 
-import 'package:grund/grund.dart';
+import 'package:grund_http/grund_http.dart';
 
 /// Hands failures to a user-supplied [ErrorLogger] without letting the
 /// logger's own failure escape. Not exported: `ShelfAdapter` and

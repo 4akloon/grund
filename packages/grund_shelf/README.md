@@ -7,13 +7,17 @@ Let grund run shelf on the wire:
 
 ```dart
 import 'package:grund/grund.dart';
+import 'package:grund_http/grund_http.dart';
 import 'package:grund_shelf/grund_shelf.dart';
 
-Future<void> main() async {
-  // appModule: your root module, `Module appModule() => Module(...)`.
-  final app = await Application.create(appModule, adapter: ShelfAdapter());
-  await app.listen(port: 8080);
+final class AppModule extends Module {
+  const AppModule();
+
+  @override
+  List<Module> get imports => const [HttpModule(), ShelfAdapterModule()];
 }
+
+Future<void> main() => App(root: const AppModule()).run();
 ```
 
 Or keep your own server and middleware:
@@ -25,8 +29,10 @@ import 'package:shelf/shelf.dart' as shelf;
 import 'package:shelf/shelf_io.dart' as shelf_io;
 
 Future<void> main() async {
-  // appModule: your root module, `Module appModule() => Module(...)`.
-  final app = await Application.create(appModule);
+  // The root module imports HttpModule and ShelfAdapterModule; start with
+  // `only: const {}` so the application opens no port of its own.
+  final app = App(root: const AppModule());
+  await app.start(only: const {});
   final handler = const shelf.Pipeline()
       .addMiddleware(shelf.logRequests())
       .addHandler(shelfHandler(app));

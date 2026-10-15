@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io' as io;
 
 import 'package:grund/grund.dart';
+import 'package:grund_http/grund_http.dart';
 import 'package:grund_conformance/grund_conformance.dart';
 import 'package:grund_shelf/grund_shelf.dart';
 import 'package:shelf/shelf.dart' as shelf;
@@ -33,14 +34,23 @@ shelf.Handler userPipeline(shelf.Handler api) => const shelf.Pipeline()
 
 void main() {
   group('shelfHandler', () {
-    late Application app; // Set in setUp before every test.
+    late App app; // Set in setUp before every test.
 
-    setUp(() async {
-      app = await Application.create(
-        () => conformanceModule(ConformanceProbe()),
+    // The application only prepares its routes: no port is opened.
+    Future<App> startApp({List<Binding<Object>> overrides = const []}) async {
+      final app = App(
+        root: ConformanceRoot(
+          ConformanceProbe(),
+          adapter: const ShelfAdapterModule(),
+        ),
+        overrides: overrides,
       );
-    });
-    tearDown(() => app.close());
+      await app.start(only: const {});
+      addTearDown(app.close);
+      return app;
+    }
+
+    setUp(() async => app = await startApp());
 
     test('answers inside a user pipeline, mounted under a prefix', () async {
       final server = await shelf_io.serve(
@@ -84,24 +94,35 @@ void main() {
       expect(response.statusCode, 503);
     });
 
-    Future<Application> failingLoggerApp() async {
-      final failing = await Application.create(
-        () => conformanceModule(ConformanceProbe()),
-        onError: (error, _) => throw StateError('logger failed'),
+    test('refuses an application that is not started', () {
+      final idle = App(
+        root: ConformanceRoot(
+          ConformanceProbe(),
+          adapter: const ShelfAdapterModule(),
+        ),
       );
-      addTearDown(failing.close);
-      return failing;
-    }
+
+      expect(() => shelfHandler(idle), throwsA(isA<ApplicationStateError>()));
+    });
+
+    Future<App> failingLogApp() => startApp(
+      overrides: [
+        Singleton<ErrorLog>(
+          (_) => const _ThrowingErrorLog(),
+          dependsOn: const [],
+        ),
+      ],
+    );
 
     // A function: a request body can be read only once.
     shelf.Request failRequest() =>
         shelf.Request('GET', Uri.parse('http://localhost/probe/fail'));
 
-    test('answers 500 without a body when the app logger throws', () async {
+    test('answers 500 without a body when the ErrorLog throws', () async {
       final errors = <Object>[];
 
       final response = await shelfHandler(
-        await failingLoggerApp(),
+        await failingLogApp(),
         onError: (error, _) => errors.add(error),
       )(failRequest());
 
@@ -112,7 +133,7 @@ void main() {
 
     test('answers 500 even when its own onError throws', () async {
       final response = await shelfHandler(
-        await failingLoggerApp(),
+        await failingLogApp(),
         onError: (error, _) => throw StateError('reporter failed'),
       )(failRequest());
 
@@ -132,4 +153,13 @@ void main() {
       expect(await response.readAsString(), isEmpty);
     });
   });
+}
+
+/// An error log that fails, to prove the handler survives it.
+final class _ThrowingErrorLog implements ErrorLog {
+  const _ThrowingErrorLog();
+
+  @override
+  void report(Object error, StackTrace stackTrace) =>
+      throw StateError('log failed');
 }

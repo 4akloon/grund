@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:grund/grund.dart';
+import 'package:grund_http/grund_http.dart';
 import 'package:grund_shelf/src/shelf_bridge.dart';
 import 'package:shelf/shelf.dart' as shelf;
 import 'package:test/test.dart';

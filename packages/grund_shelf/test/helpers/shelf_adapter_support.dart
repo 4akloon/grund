@@ -1,6 +1,6 @@
 import 'dart:io' as io;
 
-import 'package:grund/grund.dart';
+import 'package:grund_http/grund_http.dart';
 
 /// Answers every request with `ok`.
 Future<HttpResponse> answerOk(HttpRequest request) async =>

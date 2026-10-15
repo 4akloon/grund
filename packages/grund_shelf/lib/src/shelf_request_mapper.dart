@@ -1,6 +1,6 @@
 import 'dart:io' as io;
 
-import 'package:grund/grund.dart';
+import 'package:grund_http/grund_http.dart';
 import 'package:shelf/shelf.dart' as shelf;
 
 /// Builds the grund [HttpRequest] for a shelf request.

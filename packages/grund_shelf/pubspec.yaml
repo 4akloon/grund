@@ -9,6 +9,7 @@ environment:
 resolution: workspace
 dependencies:
   grund: ^0.1.0
+  grund_http: ^0.1.0
   shelf: ^1.4.2
 dev_dependencies:
   grund_conformance: ^0.1.0
