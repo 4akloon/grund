@@ -52,4 +52,36 @@ void main() {
       expect(package.dir.exists('lib/src/app_module.g.dart'), isTrue);
     },
   );
+
+  test('a module in a part file is a problem and writes no file', () async {
+    final package = await TempPackage.create('shop', {
+      'lib/host.dart': """
+import 'package:grund/annotations.dart';
+import 'package:grund/grund.dart' as grund;
+
+part 'host_part.dart';
+
+@Module()
+final class HostModule extends grund.Module {
+  const HostModule();
+}
+""",
+      'lib/host_part.dart': """
+part of 'host.dart';
+
+@Module()
+final class PartModule extends grund.Module {
+  const PartModule();
+}
+""",
+    });
+
+    final run = await _gen(package);
+
+    expect(run.exitCode, CliExitCode.problems.code);
+    expect(run.err, startsWith('lib/host_part.dart:4:'));
+    expect(run.err, contains('[module_in_part]'));
+    expect(package.dir.exists('lib/host_part.g.dart'), isFalse);
+    expect(package.dir.exists('lib/host.g.dart'), isFalse);
+  });
 }

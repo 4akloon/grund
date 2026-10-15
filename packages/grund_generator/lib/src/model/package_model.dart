@@ -2,6 +2,7 @@ import 'package:pub_semver/pub_semver.dart';
 
 import 'extension_model.dart';
 import 'injectable_model.dart';
+import 'module_in_part.dart';
 import 'module_model.dart';
 import 'provides_model.dart';
 import 'unresolved_uri.dart';
@@ -15,6 +16,7 @@ final class PackageModel {
     required this.packageName,
     required this.languageVersion,
     this.modules = const [],
+    this.modulesInParts = const [],
     this.injectables = const [],
     this.strayProvides = const [],
     this.unsupportedUses = const [],
@@ -33,6 +35,11 @@ final class PackageModel {
   /// Classes annotated with `@Module`, in library-URI order, then source
   /// order within a library.
   final List<ModuleModel> modules;
+
+  /// Classes annotated with `@Module` that are declared in part files; the
+  /// checks report each as `module_in_part`, and nothing is generated for
+  /// them.
+  final List<ModuleInPart> modulesInParts;
 
   /// Classes annotated with `@Injectable` or with an annotation a construct
   /// marks injectable (`ConstructAnnotations.injectable`), each once, in

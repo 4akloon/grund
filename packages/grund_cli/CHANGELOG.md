@@ -19,3 +19,5 @@ Initial release.
   instead of deleting the generated files.
 - `gen` rewrites the generated files once after a change of the resolved
   `dart_style` release; the content is the same.
+- A `@Module` in a part file is a `module_in_part` problem instead of an
+  unreachable output file.

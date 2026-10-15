@@ -72,5 +72,6 @@ export 'src/model/provider_model.dart';
 export 'src/model/provides_model.dart';
 export 'src/model/type_kind.dart';
 export 'src/model/type_model.dart';
+export 'src/model/module_in_part.dart';
 export 'src/model/unresolved_uri.dart';
 export 'src/model/unsupported_use.dart';

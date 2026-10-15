@@ -23,3 +23,6 @@ Initial release.
   drops the library's outputs silently.
 - The output bytes depend on the resolved `dart_style` release: the same
   sources and the same `dart_style` give identical files.
+- A `@Module` class declared in a `part of` file is the diagnostic
+  `module_in_part`; nothing is generated for it (the CLI used to write an
+  unreachable `x_part.g.dart`, the builder failed).

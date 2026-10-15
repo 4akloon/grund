@@ -11,3 +11,5 @@ Initial release.
   on `grund_build`.
 - A library with an unresolved `import`, `export` or `part` fails its own
   step with `unresolved_uri`, as `grund_cli gen` reports it.
+- A `@Module` in a part file fails the step of its library with
+  `module_in_part`, as the CLI reports it.

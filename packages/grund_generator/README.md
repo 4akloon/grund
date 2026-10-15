@@ -73,7 +73,7 @@ Diagnostics stop generation; each has a stable code (the catalog is
 
 | Construct | Codes |
 | --- | --- |
-| `ModuleConstruct` | `circular_module_import`, `duplicate_binding`, `invalid_export`, `invalid_module_entry`, `invalid_module_class`, `invalid_name`, `missing_provider`, `circular_dependency`, `captive_dependency`, `not_injectable`, `invalid_constructor`, `invalid_dependency`, `invalid_provides`, `invalid_scope`, `invalid_bind`, `unsupported_constant`, `unsupported_use`, `private_declaration`, `unresolved_uri` |
+| `ModuleConstruct` | `circular_module_import`, `duplicate_binding`, `invalid_export`, `invalid_module_entry`, `invalid_module_class`, `invalid_name`, `missing_provider`, `circular_dependency`, `captive_dependency`, `not_injectable`, `invalid_constructor`, `invalid_dependency`, `invalid_provides`, `invalid_scope`, `invalid_bind`, `unsupported_constant`, `unsupported_use`, `private_declaration`, `unresolved_uri`, `module_in_part` |
 | `GrundGenerator` | `duplicate_generated_name`, `conflicting_outputs`, `conflicting_provider_claim` |
 
 The codes of `@Api` are in the `grund_http_generator` README. A syntax

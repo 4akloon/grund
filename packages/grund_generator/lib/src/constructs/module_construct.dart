@@ -9,6 +9,7 @@ import '../model/generated_names.dart';
 import '../model/package_model.dart';
 import 'binding_check.dart';
 import 'dependency_check.dart';
+import 'module_in_part_check.dart';
 import 'module_structure_check.dart';
 import 'private_declaration_check.dart';
 import 'unresolved_uri_check.dart';
@@ -35,6 +36,7 @@ final class ModuleConstruct extends Construct {
       ...PrivateDeclarationCheck.check(package),
       ...UnsupportedUseCheck.check(package),
       ...UnresolvedUriCheck.check(package),
+      ...ModuleInPartCheck.check(package),
     ];
     return structure.any(_breaksGraphWalk)
         ? own

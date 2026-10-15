@@ -7,6 +7,7 @@ import '../emit/library_writer.dart';
 import '../model/extension_model.dart';
 import '../model/generated_names.dart';
 import '../model/injectable_model.dart';
+import '../model/module_in_part.dart';
 import '../model/module_model.dart';
 import '../model/package_model.dart';
 import '../model/provides_model.dart';
@@ -83,13 +84,14 @@ final class PackageCollector {
       parts.unsupported.addAll(read.unsupported.read(library));
       parts.unresolved.addAll(read.unresolved.read(library));
       for (final element in library.classes) {
-        _collectClass(element, read, parts);
+        _collectClass(library, element, read, parts);
       }
     }
     return PackageModel(
       packageName: packageName,
       languageVersion: _languageVersion(sorted),
       modules: parts.modules,
+      modulesInParts: parts.modulesInParts,
       injectables: parts.injectables,
       strayProvides: parts.strayProvides,
       unsupportedUses: parts.unsupported,
@@ -112,11 +114,21 @@ final class PackageCollector {
   }
 
   static void _collectClass(
+    LibraryElement library,
     ClassElement element,
     _Readers readers,
     _Parts parts,
   ) {
     if (readers.source.find(element, 'Module') case final module?) {
+      if (_isInPart(library, element)) {
+        parts.modulesInParts.add(
+          ModuleInPart(
+            element: element.displayName,
+            location: readers.locations.of(element),
+          ),
+        );
+        return;
+      }
       parts.modules.add(readers.modules.read(element, module));
     } else {
       parts.strayProvides.addAll(readers.provides.read(element));
@@ -125,6 +137,9 @@ final class PackageCollector {
       parts.injectables.add(readers.injectables.read(element));
     }
   }
+
+  static bool _isInPart(LibraryElement library, ClassElement element) =>
+      element.firstFragment.libraryFragment != library.firstFragment;
 
   static Version _languageVersion(List<LibraryElement> libraries) {
     final version = libraries.firstOrNull?.languageVersion.package;
@@ -141,6 +156,7 @@ final class _Readers {
     SourceLocations locations,
     ConstructAnnotations annotations,
   ) : injectable = annotations.injectable,
+      locations = locations,
       source = Annotations(annotations.libraries),
       injectables = InjectableReader(locations, annotations),
       modules = ModuleReader(packageName, locations, annotations),
@@ -148,6 +164,7 @@ final class _Readers {
       unsupported = UnsupportedUseReader(locations, annotations),
       unresolved = UnresolvedUriReader(locations);
 
+  final SourceLocations locations;
   final Set<String> injectable;
   final Annotations source;
   final InjectableReader injectables;
@@ -160,6 +177,7 @@ final class _Readers {
 /// What [PackageCollector] accumulates while it walks the classes.
 final class _Parts {
   final modules = <ModuleModel>[];
+  final modulesInParts = <ModuleInPart>[];
   final injectables = <InjectableModel>[];
   final strayProvides = <ProvidesModel>[];
   final unsupported = <UnsupportedUse>[];

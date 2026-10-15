@@ -48,4 +48,39 @@ void main() {
     expect(unresolved, hasLength(1));
     expect(build.errors, containsAll(unresolved));
   });
+
+  test('a module in a part file fails the step of its library', () async {
+    final files = {
+      'lib/host.dart': """
+import 'package:grund/annotations.dart';
+import 'package:grund/grund.dart' as grund;
+
+part 'host_part.dart';
+
+@Module()
+final class HostModule extends grund.Module {
+  const HostModule();
+}
+""",
+      'lib/host_part.dart': """
+part of 'host.dart';
+
+@Module()
+final class PartModule extends grund.Module {
+  const PartModule();
+}
+""",
+    };
+
+    final build = await BuildRun.run(
+      GrundBuilder(),
+      ShopSources.package,
+      files,
+    );
+    final cli = await CliGeneration.run(ShopSources.package, files);
+
+    expect(build.succeeded, isFalse);
+    expect(build.outputs, isEmpty);
+    expect(build.errors, cli.report.problemLines);
+  });
 }

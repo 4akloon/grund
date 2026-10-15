@@ -93,6 +93,10 @@ final class DiagnosticCode {
   /// dropped.
   static const unresolvedUri = DiagnosticCode('unresolved_uri');
 
+  /// A `@Module` class is declared in a `part of` file, whose output no
+  /// library could import.
+  static const moduleInPart = DiagnosticCode('module_in_part');
+
   /// Every code of this catalog, in declaration order.
   static const values = <DiagnosticCode>[
     circularModuleImport,
@@ -117,6 +121,7 @@ final class DiagnosticCode {
     conflictingProviderClaim,
     privateDeclaration,
     unresolvedUri,
+    moduleInPart,
   ];
 
   @override
