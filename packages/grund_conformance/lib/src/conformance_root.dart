@@ -5,8 +5,8 @@ import 'conformance_module.dart';
 import 'conformance_probe.dart';
 
 /// The root module of the conformance application: `HttpModule` on a
-/// loopback ([port], by default an ephemeral one), the [adapter] under test and the
-/// [ConformanceModule].
+/// loopback [port] (by default an ephemeral one), the [adapter] under test
+/// and the [ConformanceModule].
 final class ConformanceRoot extends Module {
   /// Creates the root around [probe]; [adapter] is the module of the
   /// adapter under test (`HttpModule` needs one, even when the application

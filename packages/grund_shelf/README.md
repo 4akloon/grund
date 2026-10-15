@@ -50,7 +50,7 @@ Future<void> main() async {
   headers; `ShelfAdapter` is independent of them.
 - Does not close the application with your server; after `app.close()` the
   handler answers 503.
-- Reports a failure of `app.handle` (only possible when the application's
+- Reports a failure of the `HttpServer` request handler (only possible when the application's
   own error logger throws) to its optional `onError` and answers 500
   without a body. If `onError` itself throws, that failure goes to stderr.
 
@@ -77,10 +77,9 @@ Future<void> main() async {
   application, for at most `ShelfAdapter(closeTimeout: ...)`, 30 seconds by
   default; after that the remaining connections are dropped and
   `app.close()` still completes normally. `closeTimeout: null` waits
-  without a limit. `app.close(force: true)` drops the connections at once;
-  when a graceful `app.close()` is already waiting, a later
-  `app.close(force: true)` does not end it (the application returns the
-  first close), only `adapter.close(force: true)` does.
+  without a limit. `app.close()` has no `force` option; only
+  `adapter.close(force: true)` drops the connections at once, with the
+  adapter from `app.container.root<HttpAdapter>()`.
 - `shelf_io` itself prints a stack trace to stderr for every malformed
   request (for example `%FF` in the path, answered with 400); that output
   bypasses `onError`.

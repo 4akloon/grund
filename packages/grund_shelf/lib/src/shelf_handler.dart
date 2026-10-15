@@ -11,11 +11,11 @@ import 'shelf_bridge.dart';
 ///
 /// Start [app] with `only: const {}`: the graph is built and the routes are
 /// prepared, but the application opens no port of its own; the user's shelf
-/// server does. The root module of [app] must import `HttpModule` and
-/// an adapter module (`ShelfAdapterModule`), because the server depends on
-/// `HttpAdapter`. Asking for the handler of an application
-/// that is not started throws `ApplicationStateError`; a request after
-/// `app.close()` is answered with 503.
+/// server does. The root module of [app] must import `HttpModule` and an
+/// adapter module (`ShelfAdapterModule`), because the server depends on
+/// `HttpAdapter`. Asking for the handler of an application that is not
+/// started throws `ApplicationStateError`; a request after `app.close()` is
+/// answered with 503.
 ///
 /// The pipeline stays the user's: the handler changes nothing around it.
 /// The application sees paths relative to the shelf `handlerPath`, so it

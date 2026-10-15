@@ -10,9 +10,10 @@ import 'io_response_writer.dart';
 /// Serves a grund application on a `dart:io` [io.HttpServer].
 ///
 /// ```dart
-/// final adapter = IoAdapter();
-/// final app = await Application.create(appModule, adapter: adapter);
-/// await app.listen(port: 3000);
+/// // The root module imports HttpModule and IoAdapterModule.
+/// final app = App(root: const AppModule());
+/// await app.start();
+/// final adapter = app.container.root<HttpAdapter>() as IoAdapter;
 /// print('listening on ${adapter.port}');
 /// ```
 ///
@@ -127,8 +128,8 @@ final class IoAdapter implements HttpAdapter {
     io.HttpRequest native,
     RequestHandler handler,
   ) async {
-    // Request boundary: Application.handle only fails when the
-    // application's own error logger throws; answer 500 without a body
+    // Request boundary: the HttpServer request handler only fails
+    // when the application's own error logger throws; answer 500 without a body
     // and keep serving.
     try {
       return await handler(IoRequestMapper.map(native));

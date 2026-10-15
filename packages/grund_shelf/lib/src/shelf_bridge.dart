@@ -10,7 +10,7 @@ final class ShelfBridge {
   /// discarding a `HEAD` body and must not throw.
   ShelfBridge(this.handler, {required this.onError});
 
-  /// Answers the mapped requests (usually `Application.handle`).
+  /// Answers the mapped requests (usually the `HttpServer` request handler).
   final RequestHandler handler;
 
   /// Where a failure of [handler] is reported.
@@ -25,8 +25,8 @@ final class ShelfBridge {
   }
 
   Future<HttpResponse> _answer(shelf.Request request) async {
-    // Request boundary: Application.handle only fails when the
-    // application's own error logger throws; answer 500 without a body.
+    // Request boundary: the HttpServer request handler only fails
+    // when the application's own error logger throws; answer 500 without a body.
     try {
       return await handler(ShelfRequestMapper.map(request));
     } on Object catch (error, stackTrace) {

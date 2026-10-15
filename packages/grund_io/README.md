@@ -49,10 +49,9 @@ Rules:
   seconds by default: when it expires, the remaining connections are
   dropped as with `force: true` and `app.close()` still completes
   normally. `closeTimeout: null` waits without a limit (an endless stream
-  then keeps `close` waiting). `app.close(force: true)` drops the
-  connections at once; when a graceful `app.close()` is already waiting, a
-  later `app.close(force: true)` does not end it (the application returns
-  the first close), only `adapter.close(force: true)` does.
+  then keeps `close` waiting). `app.close()` has no `force` option; only
+  `adapter.close(force: true)` drops the connections at once, with the
+  adapter from `app.container.root<HttpAdapter>()`.
 - Failures that can no longer become a response (a body stream that fails
   mid-response, a broken connection, a response head that cannot be
   written) go to `IoAdapterModule(onError: ...)`. It is

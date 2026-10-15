@@ -13,9 +13,11 @@ import 'target_request.dart';
 /// Serves a grund application through shelf on a `dart:io` server.
 ///
 /// ```dart
-/// final adapter = ShelfAdapter();
-/// final app = await Application.create(appModule, adapter: adapter);
-/// await app.listen(port: 3000);
+/// // The root module imports HttpModule and ShelfAdapterModule.
+/// final app = App(root: const AppModule());
+/// await app.start();
+/// final adapter = app.container.root<HttpAdapter>() as ShelfAdapter;
+/// print('listening on ${adapter.port}');
 /// ```
 ///
 /// Use it to run shelf on the wire; to put an application into a shelf
