@@ -17,3 +17,6 @@ Initial release.
   `grund_cli dev` uses for hot reload.
 - `TestApp` in `package:grund/testing.dart`.
 - HTTP lives in `grund_http`.
+- The dependency-injection annotations (`@Module`, `@Injectable`, `@Provides`,
+  `Bind`, `@Named`, `Scope`) in `package:grund/annotations.dart`, a library of
+  their own because `Module` shares its name with the base class.
