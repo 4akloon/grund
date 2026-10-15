@@ -1,7 +1,7 @@
 /// Dependency-injection annotations for grund applications.
 ///
 /// `grund_generator` reads them and writes ordinary code on the explicit
-/// `package:grund` API into `X_module.g.dart`. The annotations have no
+/// `package:grund` API into `X.g.dart`. The annotations have no
 /// runtime behavior.
 ///
 /// A separate library because `Module` shares its name with the base class

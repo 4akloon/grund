@@ -1,9 +1,11 @@
 # grund_build
 
 The build_runner builder of grund. For every Dart library of `lib/` it
-writes the files `grund_cli gen` writes for it: `x_module.g.dart` next to
-`x.dart` when `x.dart` declares `@Module`, and `x_api.g.dart` (the part of
-`x.dart`) when it declares `@Api`. The same constructs run and the same
+writes the file `grund_cli gen` writes for it: `x.g.dart` next to `x.dart`,
+a library with the mixins of its modules when `x.dart` declares `@Module`,
+or the part of `x.dart` with the routes when it declares `@Api`. A library
+may not declare both (`conflicting_outputs`): put modules and APIs in
+separate libraries. The same constructs run and the same
 bytes and header are written as by `grund_cli gen`.
 Use it when a package already generates code with build_runner (for example
 `json_serializable`); otherwise `grund_cli gen --watch` and `dev` are
@@ -28,8 +30,9 @@ dart run build_runner build --only-check    # build_runner 2.16+: fail if a gene
 ## What it does
 
 One build step runs per library of `lib/`; the outputs are declared as
-`.dart` to `_module.g.dart` and `_api.g.dart`, and a step writes only the
-ones its library needs (build_runner accepts an output that is not written).
+`.dart` to `.g.dart` (one output per input, as build_runner needs it), and a
+step writes it only when its library needs it (build_runner accepts an
+output that is not written).
 
 - **What a step reads.** The module graph and dependency checks need the
   modules a library reaches, so the step resolves its library and every
@@ -48,17 +51,26 @@ ones its library needs (build_runner accepts an output that is not written).
   is fine it logs `<path> was not generated: <libraries> have problems`, so a
   missing file always has a message, even when that library is not a build
   input.
-- Generated files (name `*_module.g.dart` or `*_api.g.dart` and the
-  generator's header) and part files are not inputs.
+- Generated files (name `*.g.dart` and the generator's header) and part files are not inputs.
+- **`X.g.dart` has one owner.** build_runner checks declared outputs, not
+  written ones: `source_gen`'s combining builder (the `.g.dart` of
+  `json_serializable`) declares `x.g.dart` for every input, so in a package
+  that uses it too, build_runner stops with `Builders ... outputs collide`
+  for each library both builders are applied to. Restrict one of them with
+  `generate_for` in your `build.yaml` (for example grund_build to the
+  libraries with `@Module` or `@Api`, and these libraries then hold no
+  `json_serializable` classes), or generate with `grund_cli gen`, which
+  never overwrites a file it did not write.
 - A part another builder has not written yet (`user.g.dart` of
-  `json_serializable`) does not change the output: the generator reads
+  `json_serializable`, in a library grund_build is not applied to)
+  does not change the output: the generator reads
   annotations and declarations, not generated members. `build.yaml` of
   `grund_build` has `required_inputs: [".dart"]`, so build_runner runs it
   after the builders that write `.dart` files and types declared in
   generated parts resolve. This is a declaration in `build.yaml`, pinned by
   a test; the order itself is build_runner's.
 - The files of one build step are invisible to the analyzer of that step:
-  `x.dart` imports `x_module.g.dart`, which the step is about to write. The
+  `x.dart` imports `x.g.dart`, which the step is about to write. The
   generator does not need its content.
 
 ## Differences from grund_cli gen
@@ -122,7 +134,7 @@ builders:
   grund:
     import: tool/builder.dart
     builder_factories: [shopBuilder]
-    build_extensions: {".dart": ["_module.g.dart", "_api.g.dart"]}
+    build_extensions: {".dart": [".g.dart"]}
     required_inputs: [".dart"] # run after freezed, json_serializable, ...
     build_to: source
     auto_apply: root_package
@@ -164,4 +176,4 @@ skips itself, because `--only-check` is missing there.
 
 It runs `dart run build_runner build --only-check` in the golden fixture
 `users_app` of `grund_http_generator` and passes when its committed
-`*_module.g.dart` and `*_api.g.dart` files are what the builder writes.
+`*.g.dart` files are what the builder writes.

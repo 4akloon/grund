@@ -1,9 +1,9 @@
 import 'package:grund/grund.dart' as grund;
 import 'package:grund/annotations.dart';
 
-import 'app_module_module.g.dart';
+import 'app_module.g.dart';
 import 'auth.dart';
-import 'users.dart';
+import 'users_module.dart';
 
 /// The root of the users application.
 @Module(imports: [AuthModule(), UsersModule()])

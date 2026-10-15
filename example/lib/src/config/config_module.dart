@@ -2,7 +2,7 @@ import 'package:grund/annotations.dart';
 import 'package:grund/grund.dart' as grund;
 
 import 'app_config.dart';
-import 'config_module_module.g.dart';
+import 'config_module.g.dart';
 
 /// The configuration every module sees: [global] makes its export visible
 /// without an import.

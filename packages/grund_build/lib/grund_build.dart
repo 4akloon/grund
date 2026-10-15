@@ -1,5 +1,5 @@
-/// The build_runner builder of grund: writes `X_module.g.dart` and
-/// `X_api.g.dart` next to every library that declares `@Module` or `@Api`,
+/// The build_runner builder of grund: writes `X.g.dart` next to
+/// every library that declares `@Module` or `@Api`,
 /// byte for byte what `grund_cli gen` writes for the same sources.
 ///
 /// `build.yaml` of this package applies [grundBuilder] to every package

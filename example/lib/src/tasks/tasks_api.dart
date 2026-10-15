@@ -12,7 +12,7 @@ import 'task_not_found_hook.dart';
 import 'tasks_service.dart';
 import 'update_task.dart';
 
-part 'tasks_api_api.g.dart';
+part 'tasks_api.g.dart';
 
 /// `/tasks`: every route needs an API key; changes need the editor role.
 @Api(

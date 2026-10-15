@@ -2,5 +2,5 @@
 import 'package:grund_http/annotations.dart';
 import 'package:grund_http/grund_http.dart' as http;
 
-part 'in_part_api.g.dart';
+part 'in_part.g.dart';
 part 'in_part_api.dart';

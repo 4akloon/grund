@@ -48,7 +48,7 @@ import 'package:grund_http/grund_http.dart' as http;
 
 import 'greeter.dart';
 
-part 'hello_api_api.g.dart';
+part 'hello_api.g.dart';
 
 @Api('/hello')
 final class HelloApi {
@@ -68,7 +68,7 @@ import 'package:grund/grund.dart' as grund;
 import 'package:grund_http/grund_http.dart';
 import 'package:grund_io/grund_io.dart';
 
-import 'app_module_module.g.dart';
+import 'app_module.g.dart';
 import 'greeter.dart';
 import 'hello_api.dart';
 

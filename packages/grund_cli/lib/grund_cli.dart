@@ -1,5 +1,5 @@
 /// The command line tool of grund: `gen` and `gen --watch` write the
-/// generated files (`*_module.g.dart`, `*_api.g.dart`) from the annotations
+/// generated files (`*.g.dart`) from the annotations
 /// of a package, `init` scaffolds a new application.
 ///
 /// [GrundCli] is the command line itself; [GenerationSession] is the

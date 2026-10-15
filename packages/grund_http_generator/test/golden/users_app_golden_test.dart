@@ -48,14 +48,14 @@ void main() {
     expect(again.files, result.files);
   });
 
-  test('an @Api and a @Module in one library get a part and a module file', () {
+  test('a module and an api in separate libraries each get their file', () {
     expect(
       result.files.keys,
       containsAll(['lib/src/users_api.g.dart', 'lib/src/users_module.g.dart']),
     );
     expect(
       result.files['lib/src/users_module.g.dart'],
-      contains('grund.Singleton<i2.UsersApiRoutes>('),
+      matches(RegExp(r'grund.Singleton<i\d.UsersApiRoutes>\(')),
     );
   });
 }

@@ -2,10 +2,10 @@
 /// that uses it and the root module.
 abstract final class ShopSources {
   /// The generated module library of `lib/src/app_module.dart`.
-  static const moduleOutput = 'lib/src/app_module_module.g.dart';
+  static const moduleOutput = 'lib/src/app_module.g.dart';
 
   /// The generated part of `lib/src/time_api.dart`.
-  static const apiOutput = 'lib/src/time_api_api.g.dart';
+  static const apiOutput = 'lib/src/time_api.g.dart';
 
   /// Every file the valid package generates.
   static const outputs = [moduleOutput, apiOutput];
@@ -27,7 +27,7 @@ import 'package:grund_http/grund_http.dart' as http;
 
 import 'clock.dart';
 
-part 'time_api_api.g.dart';
+part 'time_api.g.dart';
 
 @Api('/time')
 final class TimeApi {
@@ -45,7 +45,7 @@ final class TimeApi {
 import 'package:grund/annotations.dart';
 import 'package:grund/grund.dart' as grund;
 
-import 'app_module_module.g.dart';
+import 'app_module.g.dart';
 import 'clock.dart';
 import 'time_api.dart';
 
@@ -60,7 +60,7 @@ final class AppModule extends grund.Module with \$AppModule {
 import 'package:grund/annotations.dart';
 import 'package:grund/grund.dart' as grund;
 
-import 'app_module_module.g.dart';
+import 'app_module.g.dart';
 import 'time_api.dart';
 
 @Module(providers: [TimeApi])

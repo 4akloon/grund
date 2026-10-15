@@ -47,7 +47,7 @@ import 'package:grund/annotations.dart';
 import 'package:grund/grund.dart' as grund;
 
 import 'api.dart';
-import 'module_module.g.dart';
+import 'module.g.dart';
 import 'repository.dart';
 import 'service.dart';
 
@@ -65,7 +65,7 @@ import 'package:grund_http/grund_http.dart' as http;
 
 import 'service.dart';
 
-part 'api_api.g.dart';
+part 'api.g.dart';
 
 @Api('/f$i')
 final class Feature${i}Api {

@@ -1,8 +1,7 @@
 name: grund_build
 description: >-
-  The build_runner builder of grund: writes X_module.g.dart and
-  X_api.g.dart next to every library with @Module or @Api, byte for byte
-  what grund_cli gen writes.
+  The build_runner builder of grund: writes X.g.dart next to every library
+  with @Module or @Api, byte for byte what grund_cli gen writes.
 version: 0.1.0
 repository: https://github.com/4akLoon/grund/tree/master/packages/grund_build
 issue_tracker: https://github.com/4akLoon/grund/issues

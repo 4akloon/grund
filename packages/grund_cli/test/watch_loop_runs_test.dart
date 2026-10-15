@@ -18,7 +18,7 @@ const _gap = Duration(milliseconds: 60);
 final _report = GenerationReport(
   outcome: WriteOutcome.written,
   elapsed: Duration.zero,
-  synced: SyncedFiles(written: ['lib/x_module.g.dart'], deleted: [], total: 1),
+  synced: SyncedFiles(written: ['lib/x.g.dart'], deleted: [], total: 1),
 );
 
 /// A loop whose runs the test releases one by one.

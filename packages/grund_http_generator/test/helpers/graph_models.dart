@@ -50,7 +50,7 @@ abstract final class GraphModels {
     modules: modules,
     injectables: injectables,
     extensions: [HttpPackageModel(apis: apis)],
-    libraryPaths: const ['lib/app.dart'],
+    libraryPaths: const ['lib/app.dart', 'lib/app_api.dart'],
   );
 
   /// The diagnostic codes of the module and api constructs over
@@ -68,7 +68,7 @@ abstract final class GraphModels {
         type: type(name),
         path: '/',
         location: const SourceLocation('lib/app.dart', 9, 1),
-        libraryPath: 'lib/app.dart',
+        libraryPath: 'lib/app_api.dart',
         use: use,
       );
 }

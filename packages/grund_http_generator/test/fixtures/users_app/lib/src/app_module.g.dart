@@ -5,7 +5,7 @@ library;
 
 import 'package:grund/grund.dart' as grund;
 import 'package:users_app/src/auth.dart' as i1;
-import 'package:users_app/src/users.dart' as i2;
+import 'package:users_app/src/users_module.dart' as i2;
 
 /// The generated declarations of `AppModule`.
 mixin $AppModule on grund.Module {

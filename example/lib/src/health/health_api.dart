@@ -3,7 +3,7 @@ import 'package:grund_http/grund_http.dart' as http;
 
 import '../config/app_config.dart';
 
-part 'health_api_api.g.dart';
+part 'health_api.g.dart';
 
 /// `GET /health`, public: whether the application answers.
 @Api('/health')

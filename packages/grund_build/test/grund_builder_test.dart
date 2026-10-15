@@ -16,7 +16,7 @@ void main() {
     });
 
     expect(build.succeeded, isTrue);
-    expect(build.outputs.keys, ['lib/src/only_module_module.g.dart']);
+    expect(build.outputs.keys, ['lib/src/only_module.g.dart']);
   });
 
   test('an API library gets its part and no module file', () async {
@@ -29,13 +29,20 @@ void main() {
     expect(build.outputs.keys, [ShopSources.apiOutput]);
   });
 
-  test('a library with a module and an API gets both files', () async {
+  test('a library with a module and an API is a problem and no file', () async {
     final build = await _build({'lib/src/both.dart': ShopSources.both});
 
-    expect(build.succeeded, isTrue);
-    expect(build.outputs.keys, [
-      'lib/src/both_api.g.dart',
-      'lib/src/both_module.g.dart',
+    expect(build.succeeded, isFalse);
+    expect(build.outputs, isEmpty);
+    expect(build.errors, [
+      allOf(
+        startsWith('lib/src/both.dart:'),
+        endsWith('[conflicting_outputs]'),
+      ),
+      allOf(
+        startsWith('lib/src/both.dart:'),
+        endsWith('[conflicting_outputs]'),
+      ),
     ]);
   });
 
@@ -64,7 +71,7 @@ void main() {
       ...ShopSources.files,
       ...first.outputs,
       // A stale output that no longer parses must not fail the build.
-      'lib/src/old_api.g.dart': '${LibraryWriter.header}\nthis is not Dart\n',
+      'lib/src/old.g.dart': '${LibraryWriter.header}\nthis is not Dart\n',
     });
 
     expect(again.succeeded, isTrue);

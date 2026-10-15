@@ -5,10 +5,8 @@ import 'package:path/path.dart' as p;
 
 /// The `lib/` of this example package, read from the checkout.
 abstract final class ExampleSources {
-  /// Whether [path] names a file the generator writes (`X_module.g.dart`,
-  /// `X_api.g.dart`).
-  static bool isGenerated(String path) =>
-      path.endsWith('_module.g.dart') || path.endsWith('_api.g.dart');
+  /// Whether [path] names a file the generator writes (`X.g.dart`).
+  static bool isGenerated(String path) => path.endsWith('.g.dart');
 
   /// Every hand-written file of `lib/`, by path relative to the package
   /// root with `/` separators (`lib/src/tasks/task.dart`).

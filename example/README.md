@@ -9,8 +9,8 @@ global), a middleware, both adapters and hot reload.
 The same application is wired twice:
 
 - with **annotations** (`lib/src/**`), turned by `grund_cli gen` into the
-  committed `*_module.g.dart` files (the `$Module` mixins) and `*_api.g.dart`
-  parts (the `HttpApi` classes); the root is `AppModule`;
+  committed `*.g.dart` files: the `$Module` mixins and the parts with the
+  `HttpApi` classes; the root is `AppModule`;
 - with the **explicit API** by hand in `lib/explicit.dart`; the root is
   `ExplicitAppModule`, and it reuses the same services, hooks and handler
   classes. It uses no generated file.
@@ -69,16 +69,18 @@ stable `code` and, for a bad body, `errors` with a JSON `pointer`.
 | Hook that turns a domain error into a problem | `lib/src/tasks/task_not_found_hook.dart` |
 | Global hook and middleware | `lib/src/common/timing_hook.dart`, `request_id_middleware.dart`, `lib/src/server/serving_module.dart` |
 | Adapter choice | `lib/src/server/serving_module.dart`, `bin/main.dart` |
-| The generated glue | `lib/src/**/*_module.g.dart`, `lib/src/**/*_api.g.dart` |
+| The generated glue | `lib/src/**/*.g.dart` |
 | The explicit-API twin | `lib/explicit.dart` |
 
 ## Generated files
 
-A library with a `@Module` gets `<name>_module.g.dart` (the `$Module`
-mixin, imported by the library and applied with `with $Module`); a library
-with an `@Api` gets `<name>_api.g.dart`, a `part` of it (the library says
-`part '<name>_api.g.dart';` and imports `package:grund_http/grund_http.dart
-as http`). After editing an annotated class, regenerate and commit:
+Every library with annotations gets one file, `<name>.g.dart`. For a
+library with a `@Module` it is the `$Module` mixin (imported by the library
+and applied with `with $Module`); for a library with an `@Api` it is a
+`part` of it (the library says `part '<name>.g.dart';` and imports
+`package:grund_http/grund_http.dart as http`). A library may not declare
+both, which is why `health_module.dart` and `health_api.dart` are two
+libraries. After editing an annotated class, regenerate and commit:
 
 ```sh
 dart run grund_cli gen

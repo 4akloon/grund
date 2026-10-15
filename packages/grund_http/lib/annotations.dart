@@ -1,7 +1,7 @@
 /// HTTP annotations for grund applications.
 ///
 /// `grund_http_generator` reads them and writes ordinary code on the
-/// explicit `package:grund_http` API into `X_api.g.dart`. The annotations
+/// explicit `package:grund_http` API into `X.g.dart`. The annotations
 /// have no runtime behavior.
 ///
 /// A separate library because `Pattern` and `Cookie` share their names with

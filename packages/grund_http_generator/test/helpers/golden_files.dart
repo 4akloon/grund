@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 
 /// The committed generated files of a fixture package: every
-/// `*_module.g.dart` and `*_api.g.dart` under its `lib/`.
+/// `*.g.dart` under its `lib/`.
 final class GoldenFiles {
   /// The golden files of the package rooted at [root].
   const GoldenFiles(this.root);
@@ -39,9 +39,6 @@ final class GoldenFiles {
     for (final entity in Directory(
       p.join(root, 'lib'),
     ).listSync(recursive: true))
-      if (entity is File &&
-          (entity.path.endsWith('_module.g.dart') ||
-              entity.path.endsWith('_api.g.dart')))
-        entity,
+      if (entity is File && entity.path.endsWith('.g.dart')) entity,
   ];
 }

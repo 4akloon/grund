@@ -6,6 +6,8 @@ library;
 import 'package:grund/grund.dart' as grund;
 import 'package:users_app/src/auth.dart' as i1;
 import 'package:users_app/src/users.dart' as i2;
+import 'package:users_app/src/users_api.dart' as i3;
+import 'package:users_app/src/users_module.dart' as i4;
 
 /// The generated declarations of `UsersModule`.
 mixin $UsersModule on grund.Module {
@@ -26,29 +28,29 @@ mixin $UsersModule on grund.Module {
         grund.Key<i2.UsersConfig>(),
       ],
     ),
-    grund.Singleton<i2.UsersApi>(
-      (i) => i2.UsersApi(i<i2.UsersService>()),
+    grund.Singleton<i3.UsersApi>(
+      (i) => i3.UsersApi(i<i2.UsersService>()),
       dependsOn: const [grund.Key<i2.UsersService>()],
     ),
-    grund.Singleton<i2.UsersApiRoutes>(
-      (i) => i2.UsersApiRoutes(i, i<i2.UsersApi>()),
-      dependsOn: const [grund.Key<i2.UsersApi>()],
+    grund.Singleton<i3.UsersApiRoutes>(
+      (i) => i3.UsersApiRoutes(i, i<i3.UsersApi>()),
+      dependsOn: const [grund.Key<i3.UsersApi>()],
     ),
     grund.Singleton<i2.UserStore>(
       (i) => i2.InMemoryUserStore(),
       dependsOn: const [],
     ),
     grund.Singleton<i2.UsersConfig>(
-      (i) => i2.UsersModule.config(),
+      (i) => i4.UsersModule.config(),
       dependsOn: const [],
     ),
     grund.Singleton<StringBuffer>(
-      (i) => i2.UsersModule.audit(),
+      (i) => i4.UsersModule.audit(),
       name: 'audit',
       dependsOn: const [],
     ),
     grund.Scoped<i2.RequestInfo>(
-      (i) => i2.UsersModule.requestInfo(),
+      (i) => i4.UsersModule.requestInfo(),
       dependsOn: const [],
     ),
   ];

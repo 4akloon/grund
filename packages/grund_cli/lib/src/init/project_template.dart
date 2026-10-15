@@ -41,13 +41,13 @@ dev_dependencies:
 ''';
 
   // The `part` and the prefixed import are what a host of `@Api` needs; the
-  // routes are generated into `hello_api.g.dart`.
+  // routes are generated into `hello.g.dart`.
   static const _hello = '''
 import 'package:grund/annotations.dart';
 import 'package:grund_http/annotations.dart';
 import 'package:grund_http/grund_http.dart' as http;
 
-part 'hello_api.g.dart';
+part 'hello.g.dart';
 
 /// Builds greetings.
 @Injectable()
@@ -78,7 +78,7 @@ import 'package:grund/grund.dart' as grund;
 import 'package:grund_http/grund_http.dart';
 import 'package:grund_io/grund_io.dart';
 
-import 'app_module_module.g.dart';
+import 'app_module.g.dart';
 import 'hello.dart';
 
 /// The root module: the HTTP server over dart:io and the hello API.

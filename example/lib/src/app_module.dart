@@ -1,7 +1,7 @@
 import 'package:grund/annotations.dart';
 import 'package:grund/grund.dart' as grund;
 
-import 'app_module_module.g.dart';
+import 'app_module.g.dart';
 import 'config/config_module.dart';
 import 'health/health_module.dart';
 import 'tasks/tasks_module.dart';

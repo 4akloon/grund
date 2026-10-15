@@ -87,10 +87,7 @@ void main() {
     test('writes no file of the importing library', () async {
       final build = await _build(files);
 
-      expect(
-        build.outputs.keys,
-        isNot(contains('lib/src/outer_module.g.dart')),
-      );
+      expect(build.outputs.keys, isNot(contains('lib/src/outer.g.dart')));
     });
 
     test('fixed, writes the same files as the CLI', () async {

@@ -103,6 +103,19 @@ void main() {
     expect(dir.exists('lib/other_api.g.dart'), isTrue);
   });
 
+  test('a stale file with the header is deleted whatever its .g.dart name', () {
+    final (dir, writer) = _package();
+    dir.write('lib/src/old_module_module.g.dart', _source);
+    dir.write('lib/src/tasks.g.dart', _source);
+
+    final synced = writer.sync({_output: _source});
+
+    expect(synced.deleted, [
+      'lib/src/old_module_module.g.dart',
+      'lib/src/tasks.g.dart',
+    ]);
+  });
+
   test('an empty set deletes every stale file and then does nothing', () {
     final (dir, writer) = _package();
     writer.sync({_output: _source});

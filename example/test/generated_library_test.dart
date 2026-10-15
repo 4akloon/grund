@@ -1,4 +1,4 @@
-// The committed *_module.g.dart and *_api.g.dart files are what the CLI
+// The committed *.g.dart files are what the CLI
 // writes for the current sources. After changing an annotated class,
 // regenerate:
 //   dart run grund_cli gen

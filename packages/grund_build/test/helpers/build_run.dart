@@ -46,8 +46,7 @@ final class BuildRun {
     return BuildRun._(package, result);
   }
 
-  static bool _isOutputName(String path) =>
-      path.endsWith('_module.g.dart') || path.endsWith('_api.g.dart');
+  static bool _isOutputName(String path) => path.endsWith('.g.dart');
 
   final String _package;
   final TestBuilderResult _result;

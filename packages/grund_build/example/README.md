@@ -24,7 +24,7 @@ import 'package:grund/annotations.dart';
 import 'package:grund_http/annotations.dart';
 import 'package:grund_http/grund_http.dart' as http;
 
-part 'catalog_api.g.dart';
+part 'catalog.g.dart';
 
 /// The products on sale.
 @Injectable()
@@ -54,7 +54,7 @@ import 'package:grund/annotations.dart';
 import 'package:grund/grund.dart' as grund;
 
 import 'catalog.dart';
-import 'shop_module_module.g.dart';
+import 'shop_module.g.dart';
 
 /// The root module.
 @Module(providers: [Catalog, ProductsApi])
@@ -66,8 +66,8 @@ final class ShopModule extends grund.Module with $ShopModule {
 
 ```sh
 dart run build_runner build
-# writes lib/src/catalog_api.g.dart (the part of catalog.dart) and
-# lib/src/shop_module_module.g.dart (the mixin $ShopModule)
+# writes lib/src/catalog.g.dart (the part of catalog.dart) and
+# lib/src/shop_module.g.dart (the mixin $ShopModule)
 ```
 
 The output is byte-identical to `dart run grund_cli gen`, so a package can

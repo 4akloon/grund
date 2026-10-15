@@ -2,7 +2,7 @@
 import 'package:grund_http/annotations.dart';
 import 'package:grund_http/grund_http.dart' as http;
 
-part './dotted_part_api.g.dart';
+part './dotted_part.g.dart';
 
 /// Answers pings.
 @Api('/dotted')

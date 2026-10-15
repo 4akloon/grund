@@ -2,7 +2,7 @@
 import 'package:grund_http/annotations.dart';
 import 'package:grund_http/grund_http.dart' as http;
 
-part 'list_default_api.g.dart';
+part 'list_default.g.dart';
 
 /// Filters by tags.
 @Api('/tags')

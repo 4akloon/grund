@@ -51,8 +51,8 @@ void main() {
     expect(dir.read('my_app/pubspec.yaml'), contains('name: my_app\n'));
     expect(gen.exitCode, 0, reason: gen.err);
     expect(gen.out, startsWith('Generated 2 files in '));
-    expect(dir.exists('my_app/lib/src/app_module_module.g.dart'), isTrue);
-    expect(dir.exists('my_app/lib/src/hello_api.g.dart'), isTrue);
+    expect(dir.exists('my_app/lib/src/app_module.g.dart'), isTrue);
+    expect(dir.exists('my_app/lib/src/hello.g.dart'), isTrue);
     expect(await _analyze(target), isEmpty);
     final again = await CliRun.run(['gen', '-C', target]);
     expect(again.out, startsWith('Generated files are up to date (2 files'));

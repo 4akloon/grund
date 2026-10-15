@@ -6,7 +6,7 @@ import 'in_memory_task_store.dart';
 import 'task_not_found_hook.dart';
 import 'task_store.dart';
 import 'tasks_api.dart';
-import 'tasks_module_module.g.dart';
+import 'tasks_module.g.dart';
 import 'tasks_service.dart';
 
 /// Tasks: the store, the service, the API and its error hook.

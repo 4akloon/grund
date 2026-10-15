@@ -18,7 +18,7 @@ final class ApiHost {
   /// The first `@Api` class of the library: where its diagnostics point.
   final SourceLocation location;
 
-  /// Whether the library has `part 'X_api.g.dart';` for its own part.
+  /// Whether the library has `part 'X.g.dart';` for its own part.
   final bool hasPartDirective;
 
   /// Whether the library imports `package:grund_http` with the prefix the

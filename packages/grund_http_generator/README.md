@@ -37,3 +37,9 @@ never an empty set of apis:
 `parameter_without_source`, `missing_from_json`, `unknown_path_parameter`,
 `invalid_validator`, `invalid_status`, `unsupported_return_type`,
 `stream_return_reserved`, `duplicate_route`.
+
+The routes are written into the part `X.g.dart` of the library `X.dart`
+(`part 'X.g.dart';`), the same name `grund_generator` uses for the module
+library of `X.dart`. A library cannot declare both `@Module` and `@Api`: the
+core reports `conflicting_outputs` at both declarations, so declare modules
+and APIs in separate libraries.

@@ -26,8 +26,17 @@ void generate(String packageRoot, List<LibraryElement> libraries) {
 
 Output, one file per source library (`result.files`, path to content):
 
-- A library `lib/users.dart` with `@Module` classes gets
-  `lib/users_module.g.dart` next to it: for each module `UsersModule` a
+- The output of a source library `lib/users.dart` is always
+  `lib/users.g.dart`, one fixed suffix (`GeneratedNames.outputPath`):
+  build_runner declares its outputs per input, so the name cannot depend on
+  what the library declares. What the file is follows from its content, and
+  one library cannot need two kinds: units of a library and of a part for
+  one path are a `conflicting_outputs` diagnostic at both declarations
+  (declare modules and APIs in separate libraries). A name owned by another
+  tool (`json_serializable`, `freezed`) is not guessed around: the CLI
+  refuses to write over a file without the generator header, build_runner
+  reports its own conflict.
+- A library with `@Module` classes gets that file as a library: for each module `UsersModule` a
   `mixin $UsersModule on grund.Module` with the `imports`, `bindings`,
   `exports` and `global` overrides. The module class applies it with
   `with $UsersModule`. A library without a module gets no file.
@@ -58,7 +67,7 @@ Diagnostics stop generation; each has a stable code:
 | Construct | Codes |
 | --- | --- |
 | `ModuleConstruct` | `circular_module_import`, `duplicate_binding`, `invalid_export`, `invalid_module_entry`, `invalid_module_class`, `invalid_name`, `missing_provider`, `circular_dependency`, `captive_dependency`, `not_injectable`, `invalid_constructor`, `invalid_dependency`, `invalid_provides`, `invalid_scope`, `invalid_bind`, `unsupported_constant`, `unsupported_use`, `private_declaration` |
-| `GrundGenerator` | `duplicate_generated_name`, `conflicting_provider_claim` |
+| `GrundGenerator` | `duplicate_generated_name`, `conflicting_outputs`, `conflicting_provider_claim` |
 
 `unsupported_constant` is reported wherever a constant must be written into
 generated code: a `@Module` entry such as `Value(...)` or a token

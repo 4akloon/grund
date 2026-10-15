@@ -19,11 +19,11 @@ void main() {
 
     expect(result.diagnostics, isEmpty);
     expect(result.files.keys, [
-      'lib/emit/modules_module.g.dart',
-      'lib/emit/second_module.g.dart',
+      'lib/emit/modules.g.dart',
+      'lib/emit/second.g.dart',
     ]);
     expect(
-      result.files['lib/emit/second_module.g.dart'],
+      result.files['lib/emit/second.g.dart'],
       allOf(
         contains(r'mixin $EmitMailModule'),
         isNot(contains('EmitDbModule')),
@@ -43,7 +43,7 @@ void main() {
       'lib/emit/modules.dart',
       'lib/emit/second.dart',
     ]);
-    final second = result.files['lib/emit/second_module.g.dart']!;
+    final second = result.files['lib/emit/second.g.dart']!;
 
     expect(
       second,
@@ -64,7 +64,7 @@ void main() {
       allOf(
         contains('_Hidden'),
         contains('_Secret'),
-        contains('lib/emit/private_types_module.g.dart'),
+        contains('lib/emit/private_types.g.dart'),
       ),
     );
     expect(result.files, isEmpty);
@@ -83,7 +83,7 @@ void main() {
   test('output of an earlier run is not collected', () async {
     final package = await fixture.collect([
       'lib/emit/second.dart',
-      'lib/emit/stale_module.g.dart',
+      'lib/emit/stale.g.dart',
     ]);
 
     expect([for (final m in package.modules) m.type.name], ['EmitMailModule']);
@@ -92,7 +92,7 @@ void main() {
   test('a hand-written file named like an output is still collected', () async {
     final package = await fixture.collect([
       'lib/emit/second.dart',
-      'lib/emit/handwritten_module.g.dart',
+      'lib/emit/handwritten.g.dart',
     ]);
 
     expect(

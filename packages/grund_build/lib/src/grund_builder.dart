@@ -11,8 +11,8 @@ import 'library_reach.dart';
 import 'syntax_check.dart';
 
 /// Writes the generated files of one library of `lib/`, as `grund_cli gen`
-/// writes them: `X_module.g.dart` when `x.dart` declares `@Module`,
-/// `X_api.g.dart` when it declares `@Api`.
+/// writes them: `X.g.dart` for `x.dart`, a library of mixins when it
+/// declares `@Module`, a part with routes when it declares `@Api`.
 ///
 /// One build step per input library. The step needs more than its input:
 /// the module graph and dependency checks run over the modules the input
@@ -38,11 +38,13 @@ final class GrundBuilder implements Builder {
   /// The constructs that run.
   final GrundGenerator generator;
 
-  /// Every Dart file may declare modules and APIs; an output that is not
-  /// needed is not written, which build_runner accepts.
+  /// One output per input, as build_runner needs it (it declares outputs
+  /// per input, so two outputs of one library could not differ by their
+  /// kind); a library with nothing to generate writes none, which
+  /// build_runner accepts.
   @override
   Map<String, List<String>> get buildExtensions => const {
-    '.dart': ['_module.g.dart', '_api.g.dart'],
+    '.dart': [GeneratedOutputs.suffix],
   };
 
   @override
@@ -91,24 +93,21 @@ final class GrundBuilder implements Builder {
   }
 
   /// The generated files that no reached library owns: a builder writes
-  /// only `X_module.g.dart` and `X_api.g.dart`.
+  /// only `X.g.dart`.
   static List<String> _unwritable(
     Map<String, String> files,
     List<LibraryElement> reached,
   ) {
     final owned = {
-      for (final library in reached) ...[
-        GeneratedNames.moduleLibraryPath(_pathOf(library)),
-        ApiNames.partPath(_pathOf(library)),
-      ],
+      for (final library in reached)
+        GeneratedNames.outputPath(_pathOf(library)),
     };
     return [
       for (final path in files.keys)
         if (!owned.contains(path))
           'grund_build cannot write $path: a construct generated it, and a '
-              'build_runner builder writes only X_module.g.dart and '
-              'X_api.g.dart next to a library. Generate this package with '
-              'grund_cli gen.',
+              'build_runner builder writes only X.g.dart next to a library. '
+              'Generate this package with grund_cli gen.',
     ];
   }
 
@@ -165,14 +164,9 @@ final class GrundBuilder implements Builder {
   }
 
   static Future<void> _write(BuildStep step, Map<String, String> files) async {
-    final path = step.inputId.path;
-    for (final name in [
-      GeneratedNames.moduleLibraryPath(path),
-      ApiNames.partPath(path),
-    ]) {
-      if (files[name] case final content?) {
-        await step.writeAsString(AssetId(step.inputId.package, name), content);
-      }
+    final name = GeneratedNames.outputPath(step.inputId.path);
+    if (files[name] case final content?) {
+      await step.writeAsString(AssetId(step.inputId.package, name), content);
     }
   }
 

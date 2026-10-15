@@ -16,7 +16,7 @@ import '../generate/generation_session.dart';
 /// file, a branch switch) gives one run with every changed path. Runs never
 /// overlap; paths that change during a run are collected into exactly one
 /// follow-up run. Non-Dart files and files named like the session's own
-/// output (`*_module.g.dart`, `*_api.g.dart`) are ignored. The name alone
+/// output (`*.g.dart`) are ignored. The name alone
 /// decides, not the header: the watcher gets events synchronously and must
 /// not read a file that is being replaced, and the session's own writes
 /// would otherwise start a run after every run. The price is that editing

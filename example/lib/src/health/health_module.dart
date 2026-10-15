@@ -2,7 +2,7 @@ import 'package:grund/annotations.dart';
 import 'package:grund/grund.dart' as grund;
 
 import 'health_api.dart';
-import 'health_module_module.g.dart';
+import 'health_module.g.dart';
 
 /// The health check; its `AppConfig` comes from the global `ConfigModule`.
 @Module(providers: [HealthApi])

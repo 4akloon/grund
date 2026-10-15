@@ -2,7 +2,7 @@ builders:
   grund_build:
     import: package:grund_build/grund_build.dart
     builder_factories: [grundBuilder]
-    build_extensions: {".dart": ["_module.g.dart", "_api.g.dart"]}
+    build_extensions: {".dart": [".g.dart"]}
     required_inputs: [".dart"]
     auto_apply: dependents
     build_to: source

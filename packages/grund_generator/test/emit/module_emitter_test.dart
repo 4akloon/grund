@@ -3,7 +3,7 @@ import 'package:test/test.dart';
 
 import '../helpers/fixture_package.dart';
 
-const _modules = 'lib/emit/modules_module.g.dart';
+const _modules = 'lib/emit/modules.g.dart';
 
 void main() {
   late FixturePackage fixture;

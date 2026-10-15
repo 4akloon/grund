@@ -6,7 +6,7 @@ Create an application, generate its code and run it with hot reload:
 dart run grund_cli init my_app     # or `grund init my_app` when activated
 cd my_app
 dart pub get
-dart run grund_cli gen             # writes lib/src/*_module.g.dart and *_api.g.dart
+dart run grund_cli gen             # writes lib/src/*.g.dart
 dart run grund_cli dev             # runs bin/main.dart, reloads on every save
 ```
 

@@ -8,14 +8,14 @@ import '../model/module_model.dart';
 import '../model/package_model.dart';
 import '../model/type_model.dart';
 
-/// Checks that the code generated into `X_module.g.dart` can name every
+/// Checks that the code generated into `X.g.dart` can name every
 /// class it uses: a private class (`_Foo`) of the module's library is not
 /// visible from another library.
 abstract final class PrivateDeclarationCheck {
   /// One problem for each private class a module of [package] names.
   static Iterable<Diagnostic> check(PackageModel package) sync* {
     for (final module in package.modules) {
-      final output = GeneratedNames.moduleLibraryPath(module.location.path);
+      final output = GeneratedNames.outputPath(module.location.path);
       for (final (type, location) in _references(module)) {
         for (final private in _privateTypes(type)) {
           yield Diagnostic(

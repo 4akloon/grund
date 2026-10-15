@@ -49,7 +49,7 @@ void main() {
       reason: '${first.problemLines}',
     );
     expect(changes.map((c) => c.outcome), everyElement(WriteOutcome.written));
-    expect(package.dir.read('lib/src/f7/api_api.g.dart'), contains("'/v4'"));
+    expect(package.dir.read('lib/src/f7/api.g.dart'), contains("'/v4'"));
     expect(
       cold.elapsed,
       lessThan(const Duration(seconds: 10)),

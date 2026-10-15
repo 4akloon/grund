@@ -2,7 +2,7 @@ import 'package:grund/grund.dart' as grund;
 import 'package:grund/annotations.dart';
 import 'package:grund_http/grund_http.dart';
 
-import 'auth_module.g.dart';
+import 'auth.g.dart';
 import 'users.dart';
 
 /// The role of the caller, set by [AuthHook].

@@ -26,8 +26,7 @@ abstract final class FixtureFiles {
     };
   }
 
-  static bool _isGenerated(String path) =>
-      path.endsWith('_module.g.dart') || path.endsWith('_api.g.dart');
+  static bool _isGenerated(String path) => path.endsWith('.g.dart');
 
   static String _path(Directory lib, File file) => p.posix.joinAll([
     'lib',

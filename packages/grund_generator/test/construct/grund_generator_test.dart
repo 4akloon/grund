@@ -174,14 +174,14 @@ void _parts() {
     final result = GrundGenerator([
       _FixedConstruct(
         units: [
-          _function('a', 1, path: 'lib/x_module.g.dart'),
+          _function('a', 1, path: 'lib/x.g.dart'),
           _function('a', 2),
         ],
       ),
     ]).generate(_package);
 
     expect(result.isSuccess, isTrue);
-    expect(result.files['lib/x_module.g.dart'], contains('int a() => 1;'));
+    expect(result.files['lib/x.g.dart'], contains('int a() => 1;'));
     expect(result.files[_library], contains('int a() => 2;'));
   });
 
@@ -190,7 +190,7 @@ void _parts() {
       _FixedConstruct(
         units: [
           PartUnit(
-            path: 'lib/src/tasks_api.g.dart',
+            path: 'lib/src/tasks.g.dart',
             hostPath: 'lib/src/tasks.dart',
             name: 'tasks',
             spec: Method(
@@ -205,7 +205,7 @@ void _parts() {
         ],
       ),
     ]).generate(_packageWithTasks);
-    final part = result.files['lib/src/tasks_api.g.dart'];
+    final part = result.files['lib/src/tasks.g.dart'];
 
     expect(part, startsWith(LibraryWriter.header));
     expect(part, contains("part of 'tasks.dart';"));
@@ -292,7 +292,7 @@ void _parts() {
     test('is a source library of the package', () {
       expect(
         () => generate(_package, [
-          part(path: 'lib/a_api.g.dart', hostPath: 'lib/a.dart'),
+          part(path: 'lib/a_part.g.dart', hostPath: 'lib/a.dart'),
         ]),
         throwsA(
           isA<StateError>().having(
@@ -306,8 +306,8 @@ void _parts() {
 
     test('may be a generated library', () {
       final result = generate(_package, [
-        _function('a', 1, path: 'lib/a_module.g.dart'),
-        part(path: 'lib/a_api.g.dart', hostPath: 'lib/a_module.g.dart'),
+        _function('a', 1, path: 'lib/a.g.dart'),
+        part(path: 'lib/a_part.g.dart', hostPath: 'lib/a.g.dart'),
       ]);
 
       expect(result.isSuccess, isTrue);

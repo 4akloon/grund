@@ -28,8 +28,8 @@ void main() {
       _print(
         WriteOutcome.written,
         const SyncedFiles(
-          written: ['lib/a_module.g.dart'],
-          deleted: ['lib/b_api.g.dart', 'lib/c_api.g.dart'],
+          written: ['lib/a.g.dart'],
+          deleted: ['lib/b.g.dart', 'lib/c.g.dart'],
           total: 3,
         ),
       ),
@@ -41,7 +41,7 @@ void main() {
     expect(
       _print(
         WriteOutcome.written,
-        const SyncedFiles(written: [], deleted: ['lib/b_api.g.dart'], total: 0),
+        const SyncedFiles(written: [], deleted: ['lib/b.g.dart'], total: 0),
       ),
       'Deleted 1 stale file in 7 ms.\n',
     );

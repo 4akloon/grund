@@ -5,10 +5,10 @@ abstract final class ShopSources {
   static const package = 'shop';
 
   /// The generated module library of `lib/src/app_module.dart`.
-  static const moduleOutput = 'lib/src/app_module_module.g.dart';
+  static const moduleOutput = 'lib/src/app_module.g.dart';
 
   /// The generated part of `lib/src/time_api.dart`.
-  static const apiOutput = 'lib/src/time_api_api.g.dart';
+  static const apiOutput = 'lib/src/time_api.g.dart';
 
   /// `lib/src/clock.dart`.
   static const clock = '''
@@ -27,7 +27,7 @@ import 'package:grund_http/grund_http.dart' as http;
 
 import 'clock.dart';
 
-part 'time_api_api.g.dart';
+part 'time_api.g.dart';
 
 @Api('/time')
 final class TimeApi {
@@ -45,7 +45,7 @@ final class TimeApi {
 import 'package:grund/annotations.dart';
 import 'package:grund/grund.dart' as grund;
 
-import 'app_module_module.g.dart';
+import 'app_module.g.dart';
 import 'clock.dart';
 import 'time_api.dart';
 
@@ -68,7 +68,7 @@ import 'package:grund/annotations.dart';
 import 'package:grund/grund.dart' as grund;
 
 import 'clock.dart';
-import 'only_module_module.g.dart';
+import 'only_module.g.dart';
 
 @Module(providers: [Clock])
 final class OnlyModule extends grund.Module with \$OnlyModule {
@@ -76,16 +76,15 @@ final class OnlyModule extends grund.Module with \$OnlyModule {
 }
 ''';
 
-  /// `lib/src/both.dart`: a module and an API in one library.
+  /// `lib/src/both.dart`: a module and an API in one library, which have
+  /// one output name between them.
   static const both = '''
 import 'package:grund/annotations.dart';
 import 'package:grund/grund.dart' as grund;
 import 'package:grund_http/annotations.dart';
 import 'package:grund_http/grund_http.dart' as http;
 
-import 'both_module.g.dart';
-
-part 'both_api.g.dart';
+part 'both.g.dart';
 
 @Api('/both')
 final class BothApi {
@@ -94,7 +93,7 @@ final class BothApi {
 }
 
 @Module(providers: [BothApi])
-final class BothModule extends grund.Module with \$BothModule {
+final class BothModule extends grund.Module {
   const BothModule();
 }
 ''';
@@ -109,7 +108,7 @@ import 'package:grund/annotations.dart';
 import 'package:grund/grund.dart' as grund;
 
 import 'clock.dart';
-import 'inner_module.g.dart';
+import 'inner.g.dart';
 
 @Injectable()
 final class NeedsClock {
@@ -130,7 +129,7 @@ import 'package:grund/annotations.dart';
 import 'package:grund/grund.dart' as grund;
 
 import 'inner.dart';
-import 'outer_module.g.dart';
+import 'outer.g.dart';
 
 @Module(imports: [InnerModule()])
 final class OuterModule extends grund.Module with \$OuterModule {
@@ -143,7 +142,7 @@ final class OuterModule extends grund.Module with \$OuterModule {
 import 'package:grund/annotations.dart';
 import 'package:grund/grund.dart' as grund;
 
-import 'second_module.g.dart';
+import 'second.g.dart';
 
 @Module()
 final class SecondModule extends grund.Module with \$SecondModule {
@@ -157,7 +156,7 @@ final class SecondModule extends grund.Module with \$SecondModule {
 import 'package:grund/annotations.dart';
 import 'package:grund/grund.dart' as grund;
 
-import 'both_modules_module.g.dart';
+import 'both_modules.g.dart';
 import 'only_module.dart';
 import 'second.dart';
 

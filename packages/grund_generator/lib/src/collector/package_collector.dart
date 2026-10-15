@@ -22,9 +22,9 @@ import 'unsupported_use_reader.dart';
 ///
 /// The driver resolves every library of `lib/` (the CLI with an
 /// `AnalysisContextCollection`, build_runner with its resolver) and passes
-/// them here; the generator's own outputs (`*_module.g.dart`,
-/// `*_api.g.dart`) are skipped, so a re-run never reads its previous output. The collector reads
-/// modules, injectables and `@Provides` itself, and lets each of
+/// them here; the generator's own outputs (`*.g.dart` libraries with the
+/// generator header) are skipped, so a re-run never reads its previous
+/// output. The collector reads modules, injectables and `@Provides` itself, and lets each of
 /// [constructs] read its own annotations ([Construct.collect]).
 final class PackageCollector {
   /// Creates the collector of package [packageName] rooted at
@@ -53,12 +53,10 @@ final class PackageCollector {
 
   final SourceLocations _locations;
 
-  static const _outputSuffixes = ['_module.g.dart', '_api.g.dart'];
-
   /// Whether [library] is a file this generator wrote: the name alone is not
-  /// enough (another tool may own a `foo_api.g.dart`), so the header decides.
+  /// enough (json_serializable or freezed may own a `foo.g.dart`), so the header decides.
   static bool _isGeneratorOutput(LibraryElement library) =>
-      _outputSuffixes.any('${library.uri}'.endsWith) &&
+      '${library.uri}'.endsWith('.g.dart') &&
       library.firstFragment.source.contents.data.startsWith(
         LibraryWriter.header,
       );

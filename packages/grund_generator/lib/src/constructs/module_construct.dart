@@ -14,7 +14,7 @@ import 'private_declaration_check.dart';
 import 'unsupported_use_check.dart';
 
 /// Validates the modules of a package and their bindings, and writes the
-/// mixin of each module into the `X_module.g.dart` next to its library.
+/// mixin of each module into the `X.g.dart` next to its library.
 final class ModuleConstruct extends Construct {
   /// Creates the construct.
   const ModuleConstruct();
@@ -52,7 +52,7 @@ final class ModuleConstruct extends Construct {
   ) => [
     for (final module in package.modules)
       LibraryUnit(
-        path: GeneratedNames.moduleLibraryPath(module.location.path),
+        path: GeneratedNames.outputPath(module.location.path),
         name: GeneratedNames.module(module.type.name),
         spec: ModuleEmitter.emit(module, claims),
         origin: module.location,

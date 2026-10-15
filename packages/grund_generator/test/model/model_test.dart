@@ -93,4 +93,15 @@ void main() {
   test('generated names derive from class names', () {
     expect(GeneratedNames.module('UsersModule'), r'$UsersModule');
   });
+
+  test('the output of a library is its path with the suffix .g.dart', () {
+    expect(
+      GeneratedNames.outputPath('lib/src/users.dart'),
+      'lib/src/users.g.dart',
+    );
+    expect(
+      GeneratedNames.outputPath('lib/users_api.dart'),
+      'lib/users_api.g.dart',
+    );
+  });
 }
