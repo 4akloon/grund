@@ -12,6 +12,10 @@ import 'route_entry.dart';
 /// Runs one matched route for one request: opens the call scope, runs the
 /// hooks and the handler, serializes the result, closes the scope. Always
 /// answers.
+///
+/// The call scope closes right after serialization: a `StreamBody` result is
+/// consumed after the call's Scoped instances were disposed, so its stream
+/// must not use them.
 final class RouteExecutor {
   /// Creates the executor.
   const RouteExecutor({

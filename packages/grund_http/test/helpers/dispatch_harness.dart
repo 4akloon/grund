@@ -69,10 +69,11 @@ final class DispatchHarness {
     String target, {
     Map<String, String> headers = const {},
     String? body,
+    CancelSignal? cancel,
   }) => dispatcher.dispatch(
     requestFor(method, target, headers: headers, body: body),
     table,
-    CancelSignal(),
+    cancel ?? CancelSignal(),
   );
 
   /// Closes the application.

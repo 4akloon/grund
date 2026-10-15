@@ -10,10 +10,38 @@ import '../helpers/http_fixtures.dart';
 import '../helpers/log_hook.dart';
 import '../helpers/probe_api.dart';
 
+final class _TxThenFail extends HttpHook {
+  const _TxThenFail();
+
+  @override
+  void before(HttpCtx c) {
+    c<Tx>();
+    throw StateError('hook failed after the transaction began');
+  }
+}
+
 void main() {
   final log = <String>[];
 
   setUp(log.clear);
+
+  test('the handler gets the cancel signal given to dispatch', () async {
+    CancelSignal? seen;
+    final harness = await DispatchHarness.start([
+      ProbeApi.binding('a', [
+        Route.get('/', (c) {
+          seen = c.cancel;
+          return 'ok';
+        }),
+      ]),
+    ]);
+    addTearDown(harness.close);
+    final cancel = CancelSignal();
+
+    await harness.send('GET', '/', cancel: cancel);
+
+    expect(seen, same(cancel));
+  });
 
   group('hook order', () {
     test(
@@ -245,6 +273,24 @@ void main() {
         expect(harness<TxLog>().disposed, 2);
       },
     );
+
+    test('it is disposed when a hook fails after resolving it', () async {
+      final harness = await DispatchHarness.start([
+        ...callBindings(),
+        ProbeApi.binding(
+          'a',
+          [Route.get('/', (c) => 'ok')],
+          use: [HookRef.instance(const _TxThenFail())],
+        ),
+      ]);
+      addTearDown(harness.close);
+
+      final response = await harness.send('GET', '/');
+
+      expect(response.status, 500);
+      expect(harness<TxLog>().created, 1);
+      expect(harness<TxLog>().disposed, 1);
+    });
 
     test('it is disposed also when the handler throws (RF-2)', () async {
       final harness = await DispatchHarness.start([
