@@ -12,7 +12,8 @@ import 'provider_claims.dart';
 /// `conflicting_provider_claim`), then every construct validates; any
 /// diagnostic stops generation, so a package with an error never gets a
 /// half-generated file. Declarations of one file that share a name are a
-/// `duplicate_generated_name`.
+/// `duplicate_generated_name`; a library and a part for one path are a
+/// `conflicting_outputs`.
 final class GrundGenerator {
   /// Creates the generator; [constructs] run in order.
   const GrundGenerator(this.constructs);
@@ -45,8 +46,8 @@ final class GrundGenerator {
       for (final construct in constructs)
         ...construct.generate(package, claims),
     ]);
-    return output.duplicates.isEmpty
+    return output.problems.isEmpty
         ? GenerationResult.generated(output.files)
-        : GenerationResult.failed(output.duplicates);
+        : GenerationResult.failed(output.problems);
   }
 }

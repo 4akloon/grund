@@ -75,6 +75,10 @@ final class DiagnosticCode {
     'duplicate_generated_name',
   );
 
+  /// A library and a part would be generated into the same file: the source
+  /// library declares two kinds of thing that need one output name.
+  static const conflictingOutputs = DiagnosticCode('conflicting_outputs');
+
   /// More than one construct claims the same provider of a module.
   static const conflictingProviderClaim = DiagnosticCode(
     'conflicting_provider_claim',
@@ -104,6 +108,7 @@ final class DiagnosticCode {
     unsupportedConstant,
     unsupportedUse,
     duplicateGeneratedName,
+    conflictingOutputs,
     conflictingProviderClaim,
     privateDeclaration,
   ];

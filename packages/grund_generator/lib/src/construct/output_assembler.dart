@@ -24,13 +24,14 @@ final class OutputAssembler {
   /// The package being generated.
   final PackageModel package;
 
-  /// The files of [units] by path, or the diagnostics of declarations
-  /// that share a name within one file.
+  /// The files of [units] by path, and the diagnostics of declarations
+  /// that share a name within one file or whose library and part would
+  /// share one path (no file is written for such a path).
   ///
-  /// Throws [StateError] when units of different kinds (or parts of
+  /// Throws [StateError] when other units of different kinds (or parts of
   /// different hosts) share a path, or a unit is of a kind this generator
   /// does not write: constructs that disagree are a programming error.
-  ({Map<String, String> files, List<Diagnostic> duplicates}) assemble(
+  ({Map<String, String> files, List<Diagnostic> problems}) assemble(
     List<GeneratedUnit> units,
   ) {
     final byPath = SplayTreeMap<String, List<GeneratedUnit>>();
@@ -39,12 +40,15 @@ final class OutputAssembler {
     }
     final targets = byPath.keys.toSet();
     final files = <String, String>{};
-    final duplicates = <Diagnostic>[];
+    final problems = <Diagnostic>[];
     for (final MapEntry(key: path, value: group) in byPath.entries) {
-      duplicates.addAll(_duplicateNames(group));
-      files[path] = _write(path, group, targets);
+      final conflicts = _conflictingKinds(path, group);
+      problems
+        ..addAll(conflicts)
+        ..addAll(_duplicateNames(group));
+      if (conflicts.isEmpty) files[path] = _write(path, group, targets);
     }
-    return (files: files, duplicates: duplicates..sort());
+    return (files: files, problems: problems..sort());
   }
 
   String _write(String path, List<GeneratedUnit> group, Set<String> targets) {
@@ -83,6 +87,31 @@ final class OutputAssembler {
       'The part $path belongs to $host, which is neither a source library '
       'of the package nor another generated file.',
     );
+  }
+
+  // A library and a part cannot both be the file at one path: with the
+  // fixed output names, that is two kinds of declaration in one source
+  // library, which the user resolves by splitting it.
+  static List<Diagnostic> _conflictingKinds(
+    String path,
+    List<GeneratedUnit> group,
+  ) {
+    final library = group.whereType<LibraryUnit>().firstOrNull;
+    final part = group.whereType<PartUnit>().firstOrNull;
+    if (library == null || part == null) return const [];
+    return [
+      for (final (here, other) in [
+        (library.origin, part.origin),
+        (part.origin, library.origin),
+      ])
+        Diagnostic(
+          DiagnosticCode.conflictingOutputs,
+          here,
+          'This declaration and the one at $other would be generated into '
+          '$path as a library and as a part of a library. Declare them in '
+          'separate libraries.',
+        ),
+    ];
   }
 
   static List<Diagnostic> _duplicateNames(List<GeneratedUnit> group) {

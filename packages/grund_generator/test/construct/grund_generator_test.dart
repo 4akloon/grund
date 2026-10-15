@@ -231,6 +231,44 @@ void _parts() {
     expect(() => generate([const _OtherUnit()]), throwsStateError);
   });
 
+  test('a library and a part for one path are a diagnostic on both sides', () {
+    const path = 'lib/src/tasks.g.dart';
+    final result = GrundGenerator([
+      _FixedConstruct(
+        units: [
+          LibraryUnit(
+            path: path,
+            name: r'$Tasks',
+            spec: _method('tasks', 1),
+            origin: const SourceLocation('lib/src/tasks.dart', 4, 7),
+          ),
+          PartUnit(
+            path: path,
+            hostPath: 'lib/src/tasks.dart',
+            name: 'routes',
+            spec: _method('routes', 2),
+            origin: const SourceLocation('lib/src/tasks.dart', 12, 7),
+          ),
+        ],
+      ),
+    ]).generate(_packageWithTasks);
+
+    expect(result.files, isEmpty);
+    expect(
+      [for (final d in result.diagnostics) d.toString()],
+      [
+        'lib/src/tasks.dart:4:7: error: This declaration and the one at '
+            'lib/src/tasks.dart:12:7 would be generated into $path as a '
+            'library and as a part of a library. Declare them in separate '
+            'libraries. [conflicting_outputs]',
+        'lib/src/tasks.dart:12:7: error: This declaration and the one at '
+            'lib/src/tasks.dart:4:7 would be generated into $path as a '
+            'library and as a part of a library. Declare them in separate '
+            'libraries. [conflicting_outputs]',
+      ],
+    );
+  });
+
   group('the host of a part', () {
     PartUnit part({required String path, required String hostPath}) => PartUnit(
       path: path,
