@@ -63,7 +63,7 @@ only. It has not run yet.
 
 ## Releases
 
-- The seven published packages share one version (lockstep); every
+- The eight published packages share one version (lockstep); every
   constraint between workspace members is `^<that version>`. Publishing,
   tags and pushes are done by a maintainer by hand, following
   `docs/RELEASING.md`; no change here publishes anything.
@@ -91,11 +91,20 @@ only. It has not run yet.
 - **The core has no codegen and no server.** `grund` depends only on the
   Dart SDK, `package:meta` and `package:logging`: no `dart:mirrors`, no `dart:io` server, no
   shelf, no analyzer. Annotations live in their own dependency-free package;
-  `analyzer` is allowed only in `grund_generator`/`grund_cli`/
-  `grund_build`, `vm_service` only in `grund_cli`, and `build` only
-  in `grund_build`. `dart:developer` (SDK) is allowed in the core for
+  `analyzer` is allowed only in `grund_generator`/
+  `grund_http_generator`/`grund_cli`/`grund_build`, `vm_service` only in
+  `grund_cli`, and `build` only in `grund_build`. `dart:developer` (SDK) is allowed in the core for
   the hot reload service extensions, which register only outside product
   mode.
+- **The core generator knows no HTTP.** `grund_generator` reads modules,
+  `@Injectable`, `@Provides` and `Bind` and offers the `Construct`
+  contract (annotations, collect into an `ExtensionModel`, claim a
+  provider, validate, generate); everything about `@Api`, routes,
+  parameters, hooks, validators and bodies lives in
+  `grund_http_generator`, which depends on `grund_generator`, never the
+  other way round. `packages/grund_generator/test/boundary_test.dart`
+  fails when a file of its `lib/` mentions `grund_http`, `HttpApi`,
+  `HttpCtx`, `HookRef`, `Route` or an HTTP annotation name.
 - **Logging goes through `package:logging`.** The framework logs on named
   loggers `Logger('grund.<area>')` and never configures `Logger.root` itself;
   output is attached explicitly with `LogOutput` (`App.run(log:)`). `App.start`
@@ -249,8 +258,9 @@ than about 5 lines repeated becomes a helper. `packages/grund_conformance`
 is unpublished test support for the adapter packages: its `lib/` may import
 `package:test`, and the `register` methods of its test groups are held to the
 test-file limits, not to the 40-line method limit.
-The generator's fixture packages (`packages/grund_generator/test/fixtures/*`)
-are unpublished workspace members; `users_app.grund.dart` there is the
+The generators' fixture packages (`packages/grund_generator/test/fixtures/*`,
+`packages/grund_http_generator/test/fixtures/*`) are unpublished workspace
+members; `users_app.grund.dart` there is the
 golden file: generated, committed, never edited by hand.
 
 **Self-review before saying "done".**
