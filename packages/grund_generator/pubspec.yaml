@@ -22,4 +22,3 @@ dev_dependencies:
   grund_annotations: ^0.1.0
   lints: ^5.1.0
   test: ^1.25.0
-  users_app: ^0.1.0

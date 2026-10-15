@@ -52,8 +52,8 @@ Future<LibraryElement> _resolve(
 }
 
 /// Prints the files generated for `<name> <directory>`, for example
-/// `dart run example/grund_generator_example.dart users_app
-/// test/fixtures/users_app`.
+/// `dart run example/grund_generator_example.dart cases_app
+/// test/fixtures/cases_app`.
 Future<void> main(List<String> arguments) async {
   if (arguments.length != 2) {
     stderr.writeln('usage: grund_generator_example.dart <name> <directory>');
