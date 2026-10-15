@@ -2,8 +2,11 @@
 /// third-party classes.
 ///
 /// ```dart
-/// app.serializers.register<Money>((m) => {'amount': m.cents, 'cur': m.code});
+/// registry.register<Money>((m) => {'amount': m.cents, 'cur': m.code});
 /// ```
+///
+/// Applications do not call it: they list `ResponseCodec`s in
+/// `HttpModule(codecs: ...)`.
 ///
 /// A converter applies to a handler result and to values nested in its
 /// `Map`s and `List`s; it is not applied to values nested inside the result

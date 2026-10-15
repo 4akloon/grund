@@ -37,6 +37,8 @@ HttpResponse serialize(
   registry ?? SerializerRegistry(),
 ).serialize(result, head ?? ResponseHead());
 
+Object? _opaqueJson(Opaque _) => 'opaque';
+
 void main() {
   group('ResponseSerializer', () {
     test('null is 204 without a body', () async {
@@ -136,6 +138,21 @@ void main() {
       );
     });
 
+    test('a ResponseCodec registers itself under its type', () async {
+      final registry = SerializerRegistry();
+      ResponseCodec<Money>((m) => m.cents).registerIn(registry);
+      // The module keeps codecs as ResponseCodec<Object>; the type survives.
+      for (final codec in const <ResponseCodec<Object>>[
+        ResponseCodec<Opaque>(_opaqueJson),
+      ]) {
+        codec.registerIn(registry);
+      }
+
+      final response = serialize([Money(5), Opaque()], registry: registry);
+
+      expect(await text(response), '[5,"opaque"]');
+    });
+
     test('a throwing toJson is a SerializationError with its cause', () {
       expect(
         () => serialize(Broken()),
@@ -180,7 +197,7 @@ void main() {
               .having(
                 (e) => e.message,
                 'message',
-                contains('register<Opaque>'),
+                contains('ResponseCodec<Opaque>'),
               ),
         ),
       );

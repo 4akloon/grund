@@ -18,12 +18,12 @@ final class SerializationError extends GrundError {
     // cause; any other cause is a toJson() that threw.
     if (failure != null && failure is! NoSuchMethodError) {
       return 'Cannot serialize $valueType to JSON: its toJson() or the JSON '
-          'encoder failed with $failure. Registered serializers do not apply '
-          'to values inside the result of a toJson().';
+          'encoder failed with $failure. Codecs do not apply to '
+          'values inside the result of a toJson().';
     }
     return 'Cannot serialize $valueType to JSON. Give it a toJson() method, '
-        'return an HttpResponse, or register a serializer with '
-        'app.serializers.register<$valueType>(...). Registered serializers '
+        'return an HttpResponse, or add a '
+        'ResponseCodec<$valueType>(...) to HttpModule(codecs: ...). Codecs '
         'do not apply to values inside the result of a toJson().';
   }
 }
