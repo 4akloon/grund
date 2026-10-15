@@ -27,20 +27,30 @@ final class OutputWriter {
   /// to the package root to content).
   ///
   /// Nothing is written when one of the files would replace a file without
-  /// the generator's header.
-  SyncedFiles sync(Map<String, String> files) {
+  /// the generator's header or has a leftover temporary file. [onTouched]
+  /// is called with the path (relative to the package root) of every file
+  /// right after it was written or deleted, also when a later step fails.
+  SyncedFiles sync(
+    Map<String, String> files, {
+    void Function(String path)? onTouched,
+  }) {
     final changes = <File, String>{};
     for (final MapEntry(key: path, value: content) in files.entries) {
       final target = _target(path);
       final existing = _read(target);
       if (existing == content) continue;
       if (existing != null) _checkGenerated(target, existing);
+      _checkTemporary(target);
       changes[target] = content;
     }
     final stale = _stale({for (final path in files.keys) _target(path).path});
-    changes.forEach(_replace);
+    for (final MapEntry(key: file, value: content) in changes.entries) {
+      _replace(file, content);
+      onTouched?.call(package.display(file.path));
+    }
     for (final file in stale) {
       _delete(file);
+      onTouched?.call(package.display(file.path));
     }
     return SyncedFiles(
       written: _displayed(changes.keys),
@@ -116,17 +126,24 @@ final class OutputWriter {
     );
   }
 
+  // Checked for every file before the first write, so a stray file cannot
+  // leave a partial set.
+  void _checkTemporary(File target) {
+    final temporary = '${target.path}.tmp';
+    if (FileSystemEntity.typeSync(temporary, followLinks: false) ==
+        FileSystemEntityType.notFound) {
+      return;
+    }
+    throw CliFailure(
+      CliExitCode.cannotCreate,
+      'Cannot write ${package.display(target.path)}: '
+      '${package.display(temporary)} exists; delete it if no other grund '
+      'run is writing.',
+    );
+  }
+
   void _replace(File target, String content) {
     final temporary = File('${target.path}.tmp');
-    if (FileSystemEntity.typeSync(temporary.path, followLinks: false) !=
-        FileSystemEntityType.notFound) {
-      final shown = package.display(temporary.path);
-      throw CliFailure(
-        CliExitCode.cannotCreate,
-        'Cannot write ${package.display(target.path)}: $shown exists; delete it if no other grund run is '
-        'writing.',
-      );
-    }
     try {
       target.parent.createSync(recursive: true);
       temporary.writeAsStringSync(content, flush: true);

@@ -33,8 +33,8 @@ final class ReportPrinter {
     final deleted = report.synced?.deleted.length ?? 0;
     final total = report.synced?.total ?? 0;
     return switch (report.outcome) {
-      WriteOutcome.written when total == 0 =>
-        'No annotations in lib/; deleted ${_files(deleted, 'stale')}.',
+      WriteOutcome.written when written == 0 =>
+        'Deleted ${_files(deleted, 'stale')} in $milliseconds ms.',
       WriteOutcome.written =>
         'Generated ${_files(written)}'
             '${deleted == 0 ? '' : ', deleted ${_files(deleted, 'stale')}'}'

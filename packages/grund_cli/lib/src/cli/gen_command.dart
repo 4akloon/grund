@@ -37,7 +37,8 @@ final class GenCommand extends Command<int> {
 
   @override
   String get description =>
-      'Generates *_module.g.dart and *_api.g.dart from the annotations in lib/.';
+      'Generates *_module.g.dart and *_api.g.dart from the annotations in '
+      'lib/.';
 
   @override
   void printUsage() => cli.out.writeln(usage);

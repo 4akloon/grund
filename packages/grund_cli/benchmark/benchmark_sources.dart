@@ -8,9 +8,9 @@ abstract final class BenchmarkSources {
     'lib/app.dart': _root(features),
   };
 
-  /// The API of feature [i] with one more route.
-  static String changedApi(int i) =>
-      _api(i).replaceFirst("@Get('/')", "@Get('/v2')");
+  /// The API of feature [i] with one more route, `/v<revision>`.
+  static String changedApi(int i, {int revision = 2}) =>
+      _api(i).replaceFirst("@Get('/')", "@Get('/v$revision')");
 
   /// The path of feature [i]'s API.
   static String apiPath(int i) => 'lib/src/f$i/api.dart';

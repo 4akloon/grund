@@ -26,7 +26,4 @@ final class ServedChanges {
 
   /// What was served before and is not now.
   final List<String> removed;
-
-  /// How many entries were added or removed.
-  int get count => added.length + removed.length;
 }

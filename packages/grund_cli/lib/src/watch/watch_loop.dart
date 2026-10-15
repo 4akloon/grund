@@ -15,9 +15,13 @@ import '../generate/generation_session.dart';
 /// Events are debounced: a burst (an editor saving through a temporary
 /// file, a branch switch) gives one run with every changed path. Runs never
 /// overlap; paths that change during a run are collected into exactly one
-/// follow-up run. Files named like the session's own output
-/// (`*_module.g.dart`, `*_api.g.dart`) and non-Dart files are ignored. A [CliFailure] of a run is
-/// printed and watching goes on; any other failure of a run ends [run] with
+/// follow-up run. Non-Dart files and files named like the session's own
+/// output (`*_module.g.dart`, `*_api.g.dart`) are ignored. The name alone
+/// decides, not the header: the watcher gets events synchronously and must
+/// not read a file that is being replaced, and the session's own writes
+/// would otherwise start a run after every run. The price is that editing
+/// a hand-written file with such a name starts no run. A [CliFailure] of a
+/// run is printed and watching goes on; any other failure of a run ends [run] with
 /// it at once, and so does an error of the watcher's event stream (OP8):
 /// the `finally` of [run] still stops the run in flight, so whoever started
 /// the loop can clean up (`dev` stops the application and restores the

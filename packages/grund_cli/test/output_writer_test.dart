@@ -194,4 +194,53 @@ void main() {
     );
     expect(dir.exists('$_output.tmp'), isFalse);
   }, skip: _cannotChmod());
+
+  test(
+    'a stray temporary file of a later file stops the set before any write',
+    () {
+      final (dir, writer) = _package();
+      dir.write('$_api.tmp', 'precious');
+
+      expect(
+        () => writer.sync({_output: _source, _api: _apiSource}),
+        _cannotCreate('delete it if no other grund run is writing'),
+      );
+
+      expect(dir.exists(_output), isFalse);
+      expect(dir.read('$_api.tmp'), 'precious');
+    },
+  );
+
+  test('a failure midway reports what was written before it', () {
+    final (dir, writer) = _package();
+    const blocked = 'lib/ro/blocked_api.g.dart';
+    dir.write('lib/ro/keep.txt', '');
+    Process.runSync('chmod', ['500', dir.resolve('lib/ro')]);
+    addTearDown(() => Process.runSync('chmod', ['700', dir.resolve('lib/ro')]));
+    final touched = <String>[];
+
+    expect(
+      () => writer.sync({
+        _output: _source,
+        blocked: _apiSource,
+      }, onTouched: touched.add),
+      _cannotCreate('Cannot write $blocked'),
+    );
+
+    expect(touched, [_output]);
+    expect(dir.exists(_output), isTrue);
+    expect(dir.exists('$blocked.tmp'), isFalse);
+  }, skip: _cannotChmod());
+
+  test('a failed write leaves no temporary file behind', () {
+    final (dir, writer) = _package();
+    Directory(dir.resolve(_api)).createSync(recursive: true);
+
+    expect(
+      () => writer.sync({_api: _apiSource}),
+      _cannotCreate('Cannot write'),
+    );
+
+    expect(dir.exists('$_api.tmp'), isFalse);
+  });
 }

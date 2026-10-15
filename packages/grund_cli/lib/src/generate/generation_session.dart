@@ -60,11 +60,16 @@ final class GenerationSession {
         diagnostics: [...result.diagnostics]..sort(),
       );
     }
-    final synced = _writer.sync(result.files);
-    await _analysis.changed([
-      for (final path in [...synced.written, ...synced.deleted])
-        p.join(package.path, path),
-    ]);
+    final touched = <String>[];
+    final SyncedFiles synced;
+    try {
+      synced = _writer.sync(result.files, onTouched: touched.add);
+    } finally {
+      // Also after a failure midway: the analyzer must see what was written.
+      await _analysis.changed([
+        for (final path in touched) p.join(package.path, path),
+      ]);
+    }
     return _report(stopwatch, outcome: synced.outcome, synced: synced);
   }
 

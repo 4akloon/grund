@@ -15,8 +15,8 @@ import 'interruption.dart';
 
 /// The `grund_cli` command line.
 ///
-/// `bin/grund_cli.dart` runs it with the core and the HTTP constructs; a package
-/// with constructs of its own runs it from `tool/grund.dart`:
+/// `bin/grund_cli.dart` runs it with the core and the HTTP constructs; a
+/// package with constructs of its own runs it from `tool/grund.dart`:
 /// `GrundCli(generator: GrundGenerator([...])).run(arguments)`.
 final class GrundCli {
   /// Creates the command line; output goes to [out] and [err] (stdout and

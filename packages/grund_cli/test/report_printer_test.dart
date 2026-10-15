@@ -37,13 +37,13 @@ void main() {
     );
   });
 
-  test('deleting the last generated files is announced', () {
+  test('deleting only stale files is announced as such', () {
     expect(
       _print(
         WriteOutcome.written,
         const SyncedFiles(written: [], deleted: ['lib/b_api.g.dart'], total: 0),
       ),
-      'No annotations in lib/; deleted 1 stale file.\n',
+      'Deleted 1 stale file in 7 ms.\n',
     );
   });
 

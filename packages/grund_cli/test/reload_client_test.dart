@@ -60,7 +60,8 @@ void main() {
     expect(result, isA<Reloaded>());
     final reloaded = result as Reloaded;
     expect(reloaded.libraries, greaterThan(0));
-    expect(reloaded.changes?.count, 0);
+    expect(reloaded.changes?.added, isEmpty);
+    expect(reloaded.changes?.removed, isEmpty);
     expect(reloaded.reassembleError, isNull);
     expect(await HelloApp.get(running.port, '/hello'), {
       'text': 'hello v2',

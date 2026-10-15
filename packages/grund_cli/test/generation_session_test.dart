@@ -160,6 +160,25 @@ void main() {
     },
   );
 
+  test('stale files stay while the sources have problems', () async {
+    final package = await TempPackage.create('shop', ShopSources.files);
+    final session = _open(package);
+    await session.run();
+
+    final report = await _change(
+      session,
+      package,
+      'lib/src/time_api.dart',
+      'class {',
+    );
+
+    expect(report.hasProblems, isTrue);
+    expect(report.synced, isNull);
+    for (final output in ShopSources.outputs) {
+      expect(package.dir.exists(output), isTrue);
+    }
+  });
+
   test('a generated file is never read back as a source', () async {
     final package = await TempPackage.create('shop', ShopSources.files);
     final session = _open(package);

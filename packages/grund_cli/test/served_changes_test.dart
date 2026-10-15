@@ -12,7 +12,6 @@ void main() {
 
       expect(changes.added, ['GET /tasks/:id', '7']);
       expect(changes.removed, ['DELETE /old']);
-      expect(changes.count, 3);
     });
 
     test('an answer without the lists means nothing changed', () {
@@ -24,7 +23,8 @@ void main() {
       ]) {
         final changes = ServedChanges.fromResponse(json);
 
-        expect(changes.count, 0, reason: '$json');
+        expect(changes.added, isEmpty, reason: '$json');
+        expect(changes.removed, isEmpty, reason: '$json');
       }
     });
   });
