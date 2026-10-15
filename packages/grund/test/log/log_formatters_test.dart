@@ -37,8 +37,9 @@ void main() {
     });
 
     test('colors only the level when asked', () {
-      final plain = const ConsoleLogFormatter().format(record());
-      final colored = const ConsoleLogFormatter(color: true).format(record());
+      final logRecord = record();
+      final plain = const ConsoleLogFormatter().format(logRecord);
+      final colored = const ConsoleLogFormatter(color: true).format(logRecord);
 
       expect(plain, isNot(contains('\x1B')));
       expect(colored, contains('\x1B[32mINFO\x1B[0m'));
