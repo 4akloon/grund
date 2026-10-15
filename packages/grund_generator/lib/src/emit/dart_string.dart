@@ -1,3 +1,5 @@
+import 'package:code_builder/code_builder.dart';
+
 /// Writes user strings (ids, paths, names) as Dart string literals.
 ///
 /// `code_builder`'s `literalString` escapes only quotes and newlines; a
@@ -9,6 +11,10 @@ abstract final class DartString {
   static String literal(String value) {
     return "'${escape(value)}'";
   }
+
+  /// [value] as an expression for `code_builder`.
+  static Expression expression(String value) =>
+      CodeExpression(Code(literal(value)));
 
   /// [value] escaped for the inside of a single-quoted literal, without the
   /// quotes: the form for a URI in a directive.

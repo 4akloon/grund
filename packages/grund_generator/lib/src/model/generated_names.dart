@@ -1,18 +1,20 @@
-/// Names of the declarations the core generator emits, derived from class
-/// names.
+/// Names of the declarations and files the core generator emits, derived
+/// from class names and source paths.
 ///
-/// `UsersModule` → the mixin `$UsersModule`. Another package's module is
+/// `UsersModule` → the mixin `$UsersModule`, written into the library
+/// `users.module.g.dart` next to `users.dart`. Another package's module is
 /// not imported by this library: its mixin is applied in its own source.
 abstract final class GeneratedNames {
   /// The mixin of `@Module` class [className].
   static String module(String className) => '\$$className';
 
-  /// The generated library of package [packageName].
-  static String library(String packageName) =>
-      'package:$packageName/$packageName.grund.dart';
-
-  /// The path of the generated library of package [packageName], relative
-  /// to the package root.
-  static String libraryPath(String packageName) =>
-      'lib/$packageName.grund.dart';
+  /// The generated module library of the source library at [sourcePath]
+  /// (relative to the package root, with `/` separators): `lib/a.dart` →
+  /// `lib/a.module.g.dart`.
+  static String moduleLibraryPath(String sourcePath) {
+    final stem = sourcePath.endsWith('.dart')
+        ? sourcePath.substring(0, sourcePath.length - '.dart'.length)
+        : sourcePath;
+    return '$stem.module.g.dart';
+  }
 }

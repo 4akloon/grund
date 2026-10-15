@@ -80,6 +80,10 @@ final class DiagnosticCode {
     'conflicting_provider_claim',
   );
 
+  /// A module names a private class; the code generated into another
+  /// library cannot reach it.
+  static const privateDeclaration = DiagnosticCode('private_declaration');
+
   /// Every code of this catalog, in declaration order.
   static const values = <DiagnosticCode>[
     circularModuleImport,
@@ -101,6 +105,7 @@ final class DiagnosticCode {
     unsupportedUse,
     duplicateGeneratedName,
     conflictingProviderClaim,
+    privateDeclaration,
   ];
 
   @override

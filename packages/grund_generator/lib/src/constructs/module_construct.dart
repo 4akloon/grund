@@ -3,13 +3,18 @@ import '../construct/generated_unit.dart';
 import '../construct/provider_claims.dart';
 import '../diagnostic/diagnostic.dart';
 import '../diagnostic/diagnostic_code.dart';
+import '../emit/module_emitter.dart';
+import '../construct/library_unit.dart';
+import '../model/generated_names.dart';
 import '../model/package_model.dart';
 import 'binding_check.dart';
 import 'dependency_check.dart';
 import 'module_structure_check.dart';
+import 'private_declaration_check.dart';
 import 'unsupported_use_check.dart';
 
-/// Validates the modules of a package and their bindings.
+/// Validates the modules of a package and their bindings, and writes the
+/// mixin of each module into the `X.module.g.dart` next to its library.
 final class ModuleConstruct extends Construct {
   /// Creates the construct.
   const ModuleConstruct();
@@ -26,6 +31,7 @@ final class ModuleConstruct extends Construct {
     final own = [
       ...structure,
       ...BindingCheck.check(package),
+      ...PrivateDeclarationCheck.check(package),
       ...UnsupportedUseCheck.check(package),
     ];
     return structure.any(_breaksGraphWalk)
@@ -43,5 +49,13 @@ final class ModuleConstruct extends Construct {
   Iterable<GeneratedUnit> generate(
     PackageModel package,
     ProviderClaims claims,
-  ) => const [];
+  ) => [
+    for (final module in package.modules)
+      LibraryUnit(
+        path: GeneratedNames.moduleLibraryPath(module.location.path),
+        name: GeneratedNames.module(module.type.name),
+        spec: ModuleEmitter.emit(module, claims),
+        origin: module.location,
+      ),
+  ];
 }

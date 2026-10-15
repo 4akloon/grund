@@ -24,15 +24,18 @@ void generate(String packageRoot, List<LibraryElement> libraries) {
 }
 ```
 
-Output (`lib/<package>.grund.dart`, one library per package):
+Output, one file per source library (`result.files`, path to content):
 
-- `@Module class UsersModule` becomes `Module usersModule()`, `@Controller
-  class UsersController` becomes `Controller<UsersController>
-  usersController()`, plus a private factory per provided class. They are
-  functions, not top-level `final`s, so a hot reload rebuilds the graph.
-- It imports `package:grund/grund.dart` as `grund` and the user's
-  libraries as `i1`, `i2`, ...; it is formatted with `dart_style` for the
-  package's language version.
+- A library `lib/users.dart` with `@Module` classes gets
+  `lib/users.module.g.dart` next to it: for each module `UsersModule` a
+  `mixin $UsersModule on grund.Module` with the `imports`, `bindings`,
+  `exports` and `global` overrides. The module class applies it with
+  `with $UsersModule`. A library without a module gets no file.
+- A provider a construct claims is written as the `emission` expression of
+  its binding, in the place of the provider.
+- Every file imports `package:grund/grund.dart` as `grund` and the user's
+  libraries as `i1`, `i2`, ... (numbered within the file); it is formatted
+  with `dart_style` for the package's language version.
 - The same sources give byte-identical output, whatever the order of the
   libraries; a change of output is a breaking change of the generator.
 - `PackageModel` lists modules, injectables and controllers in library-URI
@@ -54,9 +57,7 @@ Diagnostics stop generation; each has a stable code:
 
 | Construct | Codes |
 | --- | --- |
-| `ModuleConstruct` | `duplicate_module_id`, `circular_module_import`, `duplicate_provider`, `invalid_export`, `invalid_module_entry`, `unsupported_constant`, `missing_provider`, `circular_dependency` |
-| `ProviderConstruct` | `not_injectable`, `invalid_constructor`, `invalid_dependency`, `unsupported_constant` |
-| `ControllerConstruct` | `invalid_constructor`, `invalid_dependency`, `invalid_component`, `invalid_route_handler`, `invalid_handler_parameter`, `missing_from_json`, `unknown_path_parameter`, `unsupported_constant`, `duplicate_route` (also a controller listed by more than one module) |
+| `ModuleConstruct` | `circular_module_import`, `duplicate_binding`, `invalid_export`, `invalid_module_entry`, `invalid_module_class`, `invalid_name`, `missing_provider`, `circular_dependency`, `captive_dependency`, `not_injectable`, `invalid_constructor`, `invalid_dependency`, `invalid_provides`, `invalid_scope`, `invalid_bind`, `unsupported_constant`, `unsupported_use`, `private_declaration` |
 | `GrundGenerator` | `duplicate_generated_name`, `conflicting_provider_claim` |
 
 `unsupported_constant` is reported wherever a constant must be written into

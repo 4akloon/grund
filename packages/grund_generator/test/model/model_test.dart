@@ -92,6 +92,5 @@ void main() {
 
   test('generated names derive from class names', () {
     expect(GeneratedNames.module('UsersModule'), r'$UsersModule');
-    expect(GeneratedNames.library('shop'), 'package:shop/shop.grund.dart');
   });
 }

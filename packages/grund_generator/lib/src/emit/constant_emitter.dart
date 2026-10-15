@@ -12,6 +12,10 @@ abstract final class ConstantEmitter {
   static Expression expression(ConstantValue value) =>
       _write(value, isConst: true);
 
+  /// [value] as an expression without `const`: a module instance that is
+  /// created again for every generated getter.
+  static Expression instance(ConstantValue value) => _write(value);
+
   /// [values] as one `const` list literal.
   static Expression list(List<ConstantValue> values) =>
       literalConstList([for (final value in values) _write(value)]);
