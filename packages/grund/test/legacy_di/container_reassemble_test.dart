@@ -1,7 +1,7 @@
 import 'package:grund/grund.dart';
 import 'package:test/test.dart';
 
-import '../helpers/di_fixtures.dart';
+import 'di_fixtures.dart';
 
 /// The module `app` with [providers] and the imports [imports].
 Module appWith(
