@@ -11,7 +11,7 @@ what is printed, and where, is up to the application.
 | `grund.app` | starting, singletons created, started, shutting down, closed, reassembled, rollback warnings |
 | `grund.modules` | `AuthModule initialized +2ms` after each module's `onInit` |
 | `grund.routes` | `Mapped {GET, /tasks}` at start, `Unmapped {...}` on hot reload |
-| `grund.http` | `HTTP server listening on localhost:8080`, `HTTP server closed`, unhandled errors (`SEVERE`) |
+| `grund.http` | `HTTP server listening on localhost:8080`, `HTTP server closed`, unhandled errors (`SEVERE`), an `HttpException` with a cause (`SEVERE` from status 500, else `FINE`), a hook's `onError` replacing an error (`FINE`) |
 | `grund.access` | one line per request: `GET /tasks/1 200 12ms` |
 
 ## Attaching output
@@ -51,6 +51,14 @@ and error responses. Turn it off with
 query string is never logged.
 
 ## Errors
+
+An `HttpException` that carries a `cause` (and `causeStackTrace`) is logged on
+`grund.http` with them: `SEVERE` when the status is 500 or more, `FINE` below.
+One without a cause is a deliberate response and is not logged. The response
+body never reveals the cause. When a hook's `onError` throws and so replaces
+the error, `grund.http` gets a `FINE` record naming the hook and both error
+types, carrying the replaced error and its stack trace. Pass `cause:` and
+`causeStackTrace:` to keep the original in the `HttpException` you throw.
 
 An error that becomes a 500 response is logged as `SEVERE` on `grund.http`
 (message `Unhandled error`) with the error and its stack trace; the response

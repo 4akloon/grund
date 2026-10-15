@@ -1,6 +1,11 @@
 ## 0.1.0
 
 - Initial release.
+- `HttpException.cause` and `causeStackTrace` (forwarded by every built-in
+  subclass) keep the error a hook or handler replaced. The responder logs
+  such an exception on `grund.http` (`SEVERE` from status 500, else `FINE`)
+  and never sends the cause to the client; the hook chain logs an `onError`
+  that replaces an error as `FINE`.
 - Logging: an unhandled error is logged as `SEVERE` on `grund.http` (error and
   stack trace); subscribe to `Logger.root.onRecord` to forward it. The
   response is still produced when a listener throws, but the listener's

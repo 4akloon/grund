@@ -15,7 +15,11 @@ import 'status_code.dart';
 ///
 /// - [HttpException]: its status and headers; `detail` is its message, `code`
 ///   and `pointer` (as an entry of `errors`) are kept, `details` becomes the
-///   extension `details` (a list of [ProblemError]s becomes `errors`).
+///   extension `details` (a list of [ProblemError]s becomes `errors`). One
+///   with a `cause` is also logged on `grund.http` with the cause and its
+///   stack trace: `SEVERE` for a status of 500 or more, `FINE` below; one
+///   without is a deliberate response and is not logged. The body never
+///   reveals the cause, also with [debug].
 /// - anything else: logged as `SEVERE` on the logger `grund.http` with the
 ///   error and its stack trace (a record listener that throws is not
 ///   contained here: the failure goes to the zone it was registered in, and
@@ -50,6 +54,7 @@ final class ProblemResponder {
         _internal(error, stackTrace, instance),
       );
     }
+    _reportCause(error);
     final headers = HeaderMap.of(error.headers);
     final full = _fromException(error, instance, withDetails: true);
     // A details value the encoder rejects (a cycle) must not turn a 400 into
@@ -59,6 +64,22 @@ final class ProblemResponder {
       headers,
       full,
       fallback: _fromException(error, instance, withDetails: false),
+    );
+  }
+
+  void _reportCause(HttpException error) {
+    final cause = error.cause;
+    if (cause == null) return;
+    final level = error.status >= StatusCode.internalServerError
+        ? Level.SEVERE
+        : Level.FINE;
+    final code = error.code == null ? '' : ' (${error.code})';
+    _logger.log(
+      level,
+      '${error.status} ${StatusCode.reasonPhrase(error.status)}$code '
+      'replaced an error',
+      cause,
+      error.causeStackTrace,
     );
   }
 

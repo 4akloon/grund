@@ -24,6 +24,31 @@ void main() {
       expect(const ServiceUnavailableException().status, 503);
     });
 
+    test('every built-in subclass forwards cause and causeStackTrace', () {
+      final cause = StateError('boom');
+      final trace = StackTrace.fromString('original trace');
+      final errors = <HttpException>[
+        BadRequestException(cause: cause, causeStackTrace: trace),
+        UnauthorizedException(cause: cause, causeStackTrace: trace),
+        ForbiddenException(cause: cause, causeStackTrace: trace),
+        NotFoundException(cause: cause, causeStackTrace: trace),
+        MethodNotAllowedException(
+          const ['GET'],
+          cause: cause,
+          causeStackTrace: trace,
+        ),
+        PayloadTooLargeException(cause: cause, causeStackTrace: trace),
+        UnprocessableContentException(cause: cause, causeStackTrace: trace),
+        ServiceUnavailableException(cause: cause, causeStackTrace: trace),
+      ];
+
+      for (final error in errors) {
+        expect(error.cause, same(cause), reason: '$error');
+        expect(error.causeStackTrace, same(trace), reason: '$error');
+      }
+      expect(const NotFoundException().cause, isNull);
+    });
+
     test('code and pointer are kept for the problem body', () {
       const error = BadRequestException(
         code: 'parameter_invalid',

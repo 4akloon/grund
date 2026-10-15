@@ -1,4 +1,5 @@
 import 'package:grund_http/grund_http.dart';
+import 'package:logging/logging.dart';
 import 'package:test/test.dart';
 
 import '../helpers/http_fixtures.dart';
@@ -41,6 +42,78 @@ void main() {
         'details': {'realm': 'api'},
       });
       expect(log.unhandledErrors, isEmpty);
+    });
+
+    group('an HttpException with a cause', () {
+      final trace = StackTrace.fromString('original trace');
+
+      test('503 is logged as SEVERE with the cause and its trace', () async {
+        final cause = StateError('db down');
+
+        final response = responder.respond(
+          ServiceUnavailableException(cause: cause, causeStackTrace: trace),
+          StackTrace.current,
+        );
+        await log.messages('grund.http');
+
+        final record = log.records.single;
+        expect(record.loggerName, 'grund.http');
+        expect(record.level, Level.SEVERE);
+        expect(record.message, allOf(contains('503'), contains('Service')));
+        expect(record.error, same(cause));
+        expect(record.stackTrace, same(trace));
+        expect(response.status, 503);
+      });
+
+      test('404 is logged as FINE', () async {
+        final cause = StateError('missing');
+
+        responder.respond(
+          NotFoundException(
+            code: 'task_not_found',
+            cause: cause,
+            causeStackTrace: trace,
+          ),
+          StackTrace.current,
+        );
+        await log.messages('grund.http');
+
+        final record = log.records.single;
+        expect(record.level, Level.FINE);
+        expect(
+          record.message,
+          allOf(contains('404'), contains('task_not_found')),
+        );
+        expect(record.error, same(cause));
+        expect(record.stackTrace, same(trace));
+      });
+
+      test('the body never reveals the cause', () async {
+        final response = const ProblemResponder(debug: true).respond(
+          ServiceUnavailableException(
+            cause: StateError('secret'),
+            causeStackTrace: trace,
+          ),
+          StackTrace.current,
+        );
+
+        expect(await jsonOf(response), {
+          'type': 'about:blank',
+          'title': 'Service Unavailable',
+          'status': 503,
+          'detail': 'Service Unavailable',
+        });
+      });
+    });
+
+    test('an HttpException without a cause is not logged', () async {
+      responder.respond(
+        const ServiceUnavailableException(),
+        StackTrace.current,
+      );
+      await log.messages('grund.http');
+
+      expect(log.records, isEmpty);
     });
 
     test('a pointer becomes an entry of errors', () async {

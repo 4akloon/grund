@@ -28,6 +28,8 @@ class HttpException implements Exception {
     this.pointer,
     this.details,
     this.headers = const {},
+    this.cause,
+    this.causeStackTrace,
   }) : _message = message;
 
   /// HTTP status code of the response.
@@ -55,6 +57,13 @@ class HttpException implements Exception {
   /// `www-authenticate`).
   final Map<String, String> headers;
 
+  /// The error this exception replaces (what a hook or handler caught before
+  /// it chose this response), kept for the logs: never sent to the client.
+  final Object? cause;
+
+  /// The stack trace of [cause].
+  final StackTrace? causeStackTrace;
+
   @override
   String toString() => '$runtimeType($status): $message';
 }
@@ -67,6 +76,8 @@ class BadRequestException extends HttpException {
     super.code,
     super.pointer,
     super.details,
+    super.cause,
+    super.causeStackTrace,
   }) : super(StatusCode.badRequest);
 }
 
@@ -78,32 +89,49 @@ class UnauthorizedException extends HttpException {
     super.code,
     super.details,
     super.headers,
+    super.cause,
+    super.causeStackTrace,
   }) : super(StatusCode.unauthorized);
 }
 
 /// 403: the credentials are valid but not sufficient.
 class ForbiddenException extends HttpException {
   /// Creates the exception.
-  const ForbiddenException({super.message, super.code, super.details})
-    : super(StatusCode.forbidden);
+  const ForbiddenException({
+    super.message,
+    super.code,
+    super.details,
+    super.cause,
+    super.causeStackTrace,
+  }) : super(StatusCode.forbidden);
 }
 
 /// 404: no route matches the path, or the requested entity does not exist.
 class NotFoundException extends HttpException {
   /// Creates the exception.
-  const NotFoundException({super.message, super.code, super.details})
-    : super(StatusCode.notFound);
+  const NotFoundException({
+    super.message,
+    super.code,
+    super.details,
+    super.cause,
+    super.causeStackTrace,
+  }) : super(StatusCode.notFound);
 }
 
 /// 405: a route matches the path but not the method; [allowed] is sent in
 /// the `allow` header.
 class MethodNotAllowedException extends HttpException {
   /// Creates the exception for the [allowed] methods.
-  MethodNotAllowedException(this.allowed, {super.message, super.code})
-    : super(
-        StatusCode.methodNotAllowed,
-        headers: {'allow': allowed.join(', ')},
-      );
+  MethodNotAllowedException(
+    this.allowed, {
+    super.message,
+    super.code,
+    super.cause,
+    super.causeStackTrace,
+  }) : super(
+         StatusCode.methodNotAllowed,
+         headers: {'allow': allowed.join(', ')},
+       );
 
   /// Methods the matched path accepts, sorted.
   final List<String> allowed;
@@ -112,8 +140,13 @@ class MethodNotAllowedException extends HttpException {
 /// 413: the request body is larger than the configured limit.
 class PayloadTooLargeException extends HttpException {
   /// Creates the exception.
-  const PayloadTooLargeException({super.message, super.code, super.details})
-    : super(StatusCode.payloadTooLarge);
+  const PayloadTooLargeException({
+    super.message,
+    super.code,
+    super.details,
+    super.cause,
+    super.causeStackTrace,
+  }) : super(StatusCode.payloadTooLarge);
 }
 
 /// 422: the request is well-formed but its content is not acceptable (a
@@ -125,12 +158,19 @@ class UnprocessableContentException extends HttpException {
     super.code,
     super.pointer,
     super.details,
+    super.cause,
+    super.causeStackTrace,
   }) : super(StatusCode.unprocessableContent);
 }
 
 /// 503: the application is shutting down or temporarily unable to serve.
 class ServiceUnavailableException extends HttpException {
   /// Creates the exception.
-  const ServiceUnavailableException({super.message, super.code, super.details})
-    : super(StatusCode.serviceUnavailable);
+  const ServiceUnavailableException({
+    super.message,
+    super.code,
+    super.details,
+    super.cause,
+    super.causeStackTrace,
+  }) : super(StatusCode.serviceUnavailable);
 }

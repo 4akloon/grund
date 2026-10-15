@@ -29,6 +29,18 @@ abstract class HttpHook {
 
   /// Offered the [error] of the chain; a non-null response replaces it.
   ///
+  /// Throwing replaces the error the remaining hooks (and, unanswered, the
+  /// caller) see. The original is kept only when the thrown `HttpException`
+  /// carries it, so pass it along:
+  ///
+  /// ```dart
+  /// throw ServiceUnavailableException(cause: error, causeStackTrace: stack);
+  /// ```
+  ///
+  /// The responder logs such a cause (`SEVERE` from status 500, else `FINE`);
+  /// without it the replaced error is only in the `FINE` log of the hook
+  /// chain.
+  ///
   /// Every hook of the chain is asked, innermost first, also one whose
   /// [before] did not run because an earlier hook refused the request: do
   /// not rely on state that [before] sets up.

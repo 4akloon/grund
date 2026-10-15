@@ -1,8 +1,10 @@
 import 'package:grund_http/grund_http.dart';
+import 'package:logging/logging.dart';
 import 'package:test/test.dart';
 
 import '../helpers/ctx_factory.dart';
 import '../helpers/http_fixtures.dart';
+import '../helpers/log_capture.dart';
 import '../helpers/log_hook.dart';
 
 void main() {
@@ -152,6 +154,46 @@ void main() {
         'onError inner StateError',
         'onError outer NotFoundException',
       ]);
+    });
+
+    test(
+      'an onError that throws is logged as FINE with the replaced error',
+      () async {
+        final capture = LogCapture.start();
+        final trace = StackTrace.fromString('original trace');
+        final original = StateError('first');
+
+        await chain([
+          LogHook('outer', log, answers: HttpResponse.text('final')),
+          LogHook('inner', log, failOnError: const NotFoundException()),
+        ]).run(c, (_) => Error.throwWithStackTrace(original, trace));
+        await capture.messages('grund.http');
+
+        final record = capture.records.single;
+        expect(record.loggerName, 'grund.http');
+        expect(record.level, Level.FINE);
+        expect(
+          record.message,
+          allOf(
+            contains('LogHook'),
+            contains('StateError'),
+            contains('NotFoundException'),
+          ),
+        );
+        expect(record.error, same(original));
+        expect(record.stackTrace, same(trace));
+      },
+    );
+
+    test('an onError that answers logs nothing', () async {
+      final capture = LogCapture.start();
+
+      await chain([
+        LogHook('one', log, answers: HttpResponse.text('ok')),
+      ]).run(c, (_) => throw StateError('x'));
+      await capture.messages('grund.http');
+
+      expect(capture.records, isEmpty);
     });
 
     test(

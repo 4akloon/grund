@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:grund/grund.dart';
+import 'package:logging/logging.dart';
 
 import '../ctx/http_ctx.dart';
 import '../http/http_response.dart';
@@ -25,6 +26,8 @@ final class HookChain {
     Injector injector,
   ) => HookChain([for (final ref in refs) ref.resolve(injector)]);
 
+  static final Logger _logger = Logger('grund.http');
+
   /// The hooks, outermost first.
   final List<HttpHook> hooks;
 
@@ -33,7 +36,8 @@ final class HookChain {
   ///
   /// When anything throws, the `onError` hooks are asked in reverse order;
   /// the first non-null response is returned instead of the result. An error
-  /// that an `onError` throws is what the next hook is offered. When nobody
+  /// that an `onError` throws is what the next hook is offered (and the
+  /// replaced error is logged as `FINE` on `grund.http`). When nobody
   /// answers, the last error is rethrown with its stack trace.
   Future<Object?> run(
     HttpCtx c,
@@ -68,6 +72,12 @@ final class HookChain {
         final response = await hook.onError(c, failure.$1, failure.$2);
         if (response != null) return response;
       } on Object catch (thrown, thrownTrace) {
+        _logger.fine(
+          '${hook.runtimeType}.onError replaced ${failure.$1.runtimeType} '
+          'with ${thrown.runtimeType}',
+          failure.$1,
+          failure.$2,
+        );
         failure = (thrown, thrownTrace);
       }
     }

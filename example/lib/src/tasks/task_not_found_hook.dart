@@ -12,6 +12,8 @@ final class TaskNotFoundHook extends HttpHook {
     throw NotFoundException(
       message: 'No task ${error.id}.',
       code: 'task_not_found',
+      cause: error,
+      causeStackTrace: stack,
     );
   }
 }
