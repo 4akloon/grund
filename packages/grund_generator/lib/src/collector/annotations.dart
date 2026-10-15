@@ -22,23 +22,20 @@ abstract final class Annotations {
       if (isAnnotation(value.type, names)) value,
   ];
 
-  /// The values of every annotation on [element] whose class extends
-  /// `RouteMetadata`, in source order.
-  static List<DartObject> routeMetadata(Element element) => [
-    for (final value in _values(element))
-      if (value.type case InterfaceType(element: final typeElement))
-        if (typeElement.allSupertypes.any(
-          (type) => isAnnotation(type, const {'RouteMetadata'}),
-        ))
-          value,
-  ];
-
   /// Whether [type] is one of the classes [names] of the annotations
   /// package.
   static bool isAnnotation(DartType? type, Set<String> names) =>
       type is InterfaceType &&
       names.contains(type.element.name) &&
       '${type.element.library.uri}'.startsWith(packageUri);
+
+  /// The `@Named` qualifier of [element], or `null`.
+  static String? named(Element element) {
+    final annotation = find(element, 'Named');
+    return annotation == null
+        ? null
+        : field(annotation, 'name')?.toStringValue();
+  }
 
   /// Field [name] of [object], looked up in its superclasses too.
   static DartObject? field(DartObject object, String name) {

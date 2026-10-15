@@ -1,11 +1,11 @@
 import '../diagnostic/source_location.dart';
-import 'constant_value.dart';
-import 'enhancers_model.dart';
-import 'handler_parameter.dart';
+import 'hook_model.dart';
+import 'param_model.dart';
+import 'return_kind.dart';
 import 'type_model.dart';
 
-/// A controller method annotated with `@Get`, `@Post`, `@Put`, `@Patch` or
-/// `@Delete`.
+/// A method of an `@Api` class annotated with `@Get`, `@Post`, `@Put`,
+/// `@Patch` or `@Delete`.
 final class RouteModel {
   /// Creates the model.
   const RouteModel({
@@ -13,10 +13,12 @@ final class RouteModel {
     required this.path,
     required this.handlerName,
     required this.returnType,
+    required this.returnKind,
     required this.location,
+    this.status,
     this.parameters = const [],
-    this.enhancers = const EnhancersModel(),
-    this.metadata = const [],
+    this.use = const [],
+    this.invalidEntries = const [],
     this.documentation,
     this.problem,
   });
@@ -24,7 +26,7 @@ final class RouteModel {
   /// The upper-cased HTTP method.
   final String method;
 
-  /// The path relative to the controller path.
+  /// The path relative to the API path.
   final String path;
 
   /// The method name.
@@ -33,17 +35,23 @@ final class RouteModel {
   /// The declared return type.
   final TypeModel returnType;
 
+  /// What the handler returns.
+  final ReturnKind returnKind;
+
   /// Where the method is declared.
   final SourceLocation location;
 
+  /// The response status of the annotation, or `null`.
+  final int? status;
+
   /// The parameters, in declaration order.
-  final List<HandlerParameter> parameters;
+  final List<ParamModel> parameters;
 
-  /// Route-level components.
-  final EnhancersModel enhancers;
+  /// Route-level hooks, in order.
+  final List<HookModel> use;
 
-  /// Route-level `RouteMetadata` annotations.
-  final List<ConstantValue> metadata;
+  /// One sentence per `use` entry the generator cannot use.
+  final List<String> invalidEntries;
 
   /// The `///` comment of the method, if any.
   final String? documentation;

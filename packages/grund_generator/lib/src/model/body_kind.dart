@@ -1,17 +1,17 @@
 /// How a `@Body()` parameter is read.
 enum BodyKind {
-  /// `T.fromJson(json)`.
-  fromJson,
+  /// `await c.body(T.fromJson)`.
+  object,
+
+  /// `await c.bodyList(T.fromJson)` for a `List<T>`.
+  list,
 
   /// The decoded JSON object as a `Map<String, Object?>`.
   jsonObject,
 
-  /// The body as text.
-  text,
-
-  /// The body as bytes.
+  /// The raw bytes as a `Uint8List`.
   bytes,
 
-  /// No way to read the type: it has no `fromJson`.
+  /// No way to read the type: no `fromJson`, or nullable.
   unsupported,
 }

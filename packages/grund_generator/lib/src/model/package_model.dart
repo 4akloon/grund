@@ -1,9 +1,11 @@
 import 'package:pub_semver/pub_semver.dart';
 
-import 'controller_model.dart';
+import 'api_model.dart';
 import 'dto_model.dart';
 import 'injectable_model.dart';
 import 'module_model.dart';
+import 'provides_model.dart';
+import 'route_model.dart';
 
 /// Everything the generator collected from one package: the input of every
 /// `Construct`.
@@ -14,7 +16,9 @@ final class PackageModel {
     required this.languageVersion,
     this.modules = const [],
     this.injectables = const [],
-    this.controllers = const [],
+    this.apis = const [],
+    this.strayProvides = const [],
+    this.strayRoutes = const [],
     this.dtos = const [],
   });
 
@@ -28,20 +32,24 @@ final class PackageModel {
   /// order within a library.
   final List<ModuleModel> modules;
 
-  /// Classes provided through their constructor, each once, in library-URI
-  /// order, then source order within a library.
+  /// Classes annotated with `@Injectable` or `@Api`, each once, in
+  /// library-URI order, then source order within a library.
   final List<InjectableModel> injectables;
 
-  /// Classes annotated with `@Controller`, in library-URI order, then source
-  /// order within a library.
-  final List<ControllerModel> controllers;
+  /// Classes annotated with `@Api`, in the same order.
+  final List<ApiModel> apis;
+
+  /// `@Provides` methods of classes that are not annotated with `@Module`.
+  final List<ProvidesModel> strayProvides;
+
+  /// Route methods of classes that are not annotated with `@Api`.
+  final List<RouteModel> strayRoutes;
 
   /// Request bodies and handler results, sorted by library URI, then name.
   final List<DtoModel> dtos;
 
-  /// Whether the package has no modules, injectables or controllers: there
-  /// is nothing to generate, and a driver removes a library it generated
+  /// Whether the package has no modules, injectables or APIs: there is
+  /// nothing to generate, and a driver removes a library it generated
   /// before.
-  bool get isEmpty =>
-      modules.isEmpty && injectables.isEmpty && controllers.isEmpty;
+  bool get isEmpty => modules.isEmpty && injectables.isEmpty && apis.isEmpty;
 }

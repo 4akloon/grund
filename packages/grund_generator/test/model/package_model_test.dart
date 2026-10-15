@@ -5,7 +5,7 @@ import 'package:test/test.dart';
 import '../helpers/graph_models.dart';
 
 void main() {
-  test('a package without modules, injectables or controllers is empty', () {
+  test('a package without modules, injectables or apis is empty', () {
     expect(GraphModels.package([]).isEmpty, isTrue);
   });
 
@@ -13,26 +13,41 @@ void main() {
     expect(GraphModels.package([GraphModels.module('App')]).isEmpty, isFalse);
   });
 
-  test('a controller makes the package non-empty', () {
-    final controller = GraphModels.controller('Users', guard: 'Auth');
-
-    expect(GraphModels.package([], [controller]).isEmpty, isFalse);
-  });
-
-  test('an injectable makes the package non-empty', () {
+  test('an api makes the package non-empty', () {
     final package = PackageModel(
       packageName: 'app',
       languageVersion: Version(3, 8, 0),
-      injectables: [
-        InjectableModel(
-          type: GraphModels.type('Clock'),
-          isAnnotated: true,
-          constructor: const ConstructorModel([]),
+      apis: [
+        ApiModel(
+          type: GraphModels.type('TasksApi'),
+          path: '/tasks',
           location: const SourceLocation('lib/app.dart', 1, 7),
         ),
       ],
     );
 
     expect(package.isEmpty, isFalse);
+  });
+
+  test('an injectable makes the package non-empty', () {
+    final package = PackageModel(
+      packageName: 'app',
+      languageVersion: Version(3, 8, 0),
+      injectables: [GraphModels.provider('Clock').injectable],
+    );
+
+    expect(package.isEmpty, isFalse);
+  });
+
+  test('a module lists the bindings of its providers and @Provides', () {
+    final module = GraphModels.module(
+      'App',
+      providers: [
+        GraphModels.provider('Repo', needs: ['Clock']),
+      ],
+      provides: [GraphModels.provides('App', 'Clock')],
+    );
+
+    expect([for (final b in module.bindings) '${b.key}'], ['Repo', 'Clock']);
   });
 }

@@ -49,7 +49,8 @@ abstract final class DtoReader {
         element is ClassElement &&
         element.typeParameters.isEmpty &&
         !element.library.isInSdk &&
-        !uri.startsWith('package:grund/');
+        !uri.startsWith('package:grund/') &&
+        !uri.startsWith('package:grund_http/');
     return isData ? element : null;
   }
 

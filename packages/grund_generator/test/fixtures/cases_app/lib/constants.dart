@@ -1,18 +1,45 @@
 // Constants for ConstantReader tests: each annotation on [Holder] is read
 // by name.
-import 'package:grund/grund.dart' hide Controller, Module;
+import 'package:grund/grund.dart' show Key;
 import 'package:grund_annotations/grund_annotations.dart';
 
-/// A public token.
-const dbUrl = Token<String>('db.url');
+/// A value object with a public constant.
+final class Label {
+  /// Creates the label.
+  const Label(this.name);
 
-const _secret = Token<int>('secret');
+  /// The label text.
+  final String name;
+}
+
+/// A public constant.
+const dbLabel = Label('db.url');
+
+const _secret = Label('secret');
+
+/// Something that is built from a named constructor and has a type argument.
+final class Ref<T extends Object> {
+  /// A reference by type.
+  const Ref.type() : value = null;
+
+  /// A reference to a given value.
+  const Ref.instance(this.value);
+
+  /// The value, if any.
+  final T? value;
+}
+
+/// Marks something for the tests.
+abstract class Marker {
+  /// Creates the marker.
+  const Marker();
+}
 
 /// Statuses.
 enum Status { active, banned }
 
 /// Metadata with every kind of field.
-final class Tagged extends RouteMetadata {
+final class Tagged extends Marker {
   /// Creates the metadata.
   const Tagged(
     this.label, {
@@ -51,7 +78,7 @@ final class Tagged extends RouteMetadata {
 }
 
 /// Metadata holding a private object.
-final class Wrapped extends RouteMetadata {
+final class Wrapped extends Marker {
   /// Creates the metadata.
   const Wrapped(this.value);
 
@@ -73,7 +100,12 @@ final class _Hidden {
   type: Holder,
 )
 @Wrapped(_Hidden())
-@Inject(dbUrl)
-@Value(_secret)
-@UseGuards([Holder])
-class Holder {}
+@Named('db')
+@Wrapped(_secret)
+@Wrapped(Ref<Holder>.instance(Holder()))
+@Wrapped(Key<Holder>('main'))
+@Api('/holder', use: [#guard])
+class Holder {
+  /// Creates the holder.
+  const Holder();
+}

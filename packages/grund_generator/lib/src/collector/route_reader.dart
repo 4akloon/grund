@@ -3,29 +3,30 @@ import 'package:analyzer/dart/element/element.dart';
 
 import '../model/route_model.dart';
 import 'annotations.dart';
-import 'constant_reader.dart';
-import 'enhancers_reader.dart';
-import 'handler_parameter_reader.dart';
+import 'entry_read.dart';
+import 'hook_reader.dart';
+import 'param_reader.dart';
+import 'return_reader.dart';
 import 'source_locations.dart';
 import 'type_reader.dart';
 
-/// Reads the handler methods of a `@Controller` class.
+/// Reads the route methods of a class.
 final class RouteReader {
   /// Creates the reader.
-  RouteReader(this.locations) : _parameters = HandlerParameterReader(locations);
+  RouteReader(this.locations) : _parameters = ParamReader(locations);
 
   /// Locations of methods and parameters.
   final SourceLocations locations;
 
-  final HandlerParameterReader _parameters;
+  final ParamReader _parameters;
 
   /// The names of the route annotations.
   static const annotations = {'Get', 'Post', 'Put', 'Patch', 'Delete'};
 
-  /// The routes of [controller]: one per method with a route annotation,
-  /// in declaration order.
-  List<RouteModel> read(ClassElement controller) => [
-    for (final method in controller.methods)
+  /// The routes of [owner]: one per method with a route annotation, in
+  /// declaration order.
+  List<RouteModel> read(ClassElement owner) => [
+    for (final method in owner.methods)
       if (Annotations.all(method, annotations) case [
         final first,
         ...final rest,
@@ -37,24 +38,26 @@ final class RouteReader {
     MethodElement method,
     DartObject route, {
     required bool isSingle,
-  }) => RouteModel(
-    method: _string(method, route, 'method'),
-    path: _string(method, route, 'path'),
-    handlerName: method.displayName,
-    returnType: TypeReader.read(method.returnType),
-    location: locations.of(method),
-    parameters: [
-      for (final parameter in method.formalParameters)
-        _parameters.read(parameter),
-    ],
-    enhancers: EnhancersReader.read(method),
-    metadata: [
-      for (final value in Annotations.routeMetadata(method))
-        ConstantReader.read(value),
-    ],
-    documentation: method.documentationComment,
-    problem: _problem(method, isSingle: isSingle),
-  );
+  }) {
+    final hooks = HookReader.read(route);
+    return RouteModel(
+      method: _string(method, route, 'method'),
+      path: _string(method, route, 'path'),
+      handlerName: method.displayName,
+      returnType: TypeReader.read(method.returnType),
+      returnKind: ReturnReader.read(method.returnType),
+      location: locations.of(method),
+      status: Annotations.field(route, 'status')?.toIntValue(),
+      parameters: [
+        for (final parameter in method.formalParameters)
+          _parameters.read(parameter),
+      ],
+      use: EntryRead.values(hooks),
+      invalidEntries: EntryRead.problems(hooks),
+      documentation: method.documentationComment,
+      problem: _problem(method, isSingle: isSingle),
+    );
+  }
 
   /// The string field [field] of the route annotation [route] on [method].
   static String _string(MethodElement method, DartObject route, String field) {

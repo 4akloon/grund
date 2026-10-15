@@ -1,9 +1,9 @@
 // Edge-case constants for ConstantReader tests: each class below carries one
 // [Probe] whose single argument is read by class name.
-import 'package:grund_annotations/grund_annotations.dart';
+import 'constants.dart' show Marker;
 
 /// Metadata that wraps any constant.
-final class Probe extends RouteMetadata {
+final class Probe extends Marker {
   /// Creates the metadata.
   const Probe(this.value);
 

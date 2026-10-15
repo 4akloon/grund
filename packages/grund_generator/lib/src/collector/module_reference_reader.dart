@@ -1,15 +1,13 @@
 import 'package:analyzer/dart/constant/value.dart';
-import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 
-import '../model/generated_names.dart';
 import '../model/module_reference.dart';
 import 'annotations.dart';
+import 'constant_reader.dart';
 import 'type_reader.dart';
 
-/// Reads a module reference in `imports` or `exports` of `@Module`: a
-/// `@Module` class, or a tear-off of a function without required
-/// parameters that returns a core `Module`.
+/// Reads an entry of `@Module(imports: ...)`: a `const` instance of a class
+/// that extends the core `Module`.
 final class ModuleReferenceReader {
   /// Creates the reader for package [packageName].
   ModuleReferenceReader(this.packageName);
@@ -17,54 +15,23 @@ final class ModuleReferenceReader {
   /// The package being generated.
   final String packageName;
 
-  /// The reference [entry] denotes, or `null` when it is not a module.
+  /// The reference [entry] denotes, or `null` when it is not a module
+  /// instance.
   ModuleReference? read(DartObject entry) {
-    if (entry.toTypeValue() case final InterfaceType type) {
-      return _class(type);
-    }
-    if (entry.toFunctionValue() case final function?) {
-      return _function(function);
-    }
-    return null;
+    final type = entry.type;
+    if (type is! InterfaceType || !isModuleClass(type)) return null;
+    final model = TypeReader.read(type);
+    final instance = ConstantReader.read(entry);
+    return _isLocal(type)
+        ? LocalModuleReference(model, instance)
+        : OpaqueModuleReference(model, instance);
   }
 
-  /// Whether [type] is a `@Module` class.
-  static bool isModuleClass(DartType type) =>
-      type is InterfaceType && Annotations.find(type.element, 'Module') != null;
+  /// Whether [type] extends the core `Module`.
+  static bool isModuleClass(InterfaceType type) =>
+      TypeReader.hasSupertype(type.element, 'Module', 'package:grund/');
 
-  ModuleReference? _class(InterfaceType type) {
-    if (!isModuleClass(type)) return null;
-    final uri = type.element.library.uri;
-    if (uri.scheme != 'package' || uri.pathSegments.isEmpty) return null;
-    final owner = uri.pathSegments.first;
-    if (owner == packageName) {
-      return LocalModuleReference(TypeReader.read(type));
-    }
-    return OpaqueModuleReference(
-      name: GeneratedNames.module(type.element.displayName),
-      libraryUri: GeneratedNames.library(owner),
-    );
-  }
-
-  ModuleReference? _function(ExecutableElement function) {
-    final name = function.name;
-    final library = function.library;
-    final enclosing = function.enclosingElement;
-    final ok =
-        name != null &&
-        !function.formalParameters.any((p) => p.isRequired) &&
-        TypeReader.isGrund(function.returnType, 'Module') &&
-        function.isPublic &&
-        (function is TopLevelFunctionElement ||
-            (function is MethodElement &&
-                function.isStatic &&
-                enclosing is InterfaceElement &&
-                enclosing.isPublic));
-    if (!ok) return null;
-    return OpaqueModuleReference(
-      name: name,
-      libraryUri: '${library.uri}',
-      enclosingName: enclosing is InterfaceElement ? enclosing.name : null,
-    );
-  }
+  bool _isLocal(InterfaceType type) =>
+      Annotations.find(type.element, 'Module') != null &&
+      '${type.element.library.uri}'.startsWith('package:$packageName/');
 }

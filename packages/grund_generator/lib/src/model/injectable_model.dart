@@ -1,5 +1,7 @@
 import '../diagnostic/source_location.dart';
+import 'binding_key.dart';
 import 'constructor_model.dart';
+import 'lifetime.dart';
 import 'type_model.dart';
 
 /// A class that a module provides through its constructor: a class in
@@ -8,17 +10,29 @@ final class InjectableModel {
   /// Creates the model.
   const InjectableModel({
     required this.type,
+    required this.lifetime,
     required this.isAnnotated,
     required this.constructor,
     required this.location,
+    this.name,
+    this.isApi = false,
     this.documentation,
   });
 
   /// The class.
   final TypeModel type;
 
-  /// Whether the class is annotated with `@Injectable()`.
+  /// The `@Named` qualifier of the class, or `null`.
+  final String? name;
+
+  /// The lifetime of the binding.
+  final Lifetime lifetime;
+
+  /// Whether the class is annotated with `@Injectable()` or `@Api(...)`.
   final bool isAnnotated;
+
+  /// Whether the class is annotated with `@Api(...)`.
+  final bool isApi;
 
   /// How to create an instance.
   final ConstructorModel constructor;
@@ -28,4 +42,7 @@ final class InjectableModel {
 
   /// The `///` comment of the class, if any.
   final String? documentation;
+
+  /// The key under which the class is bound when it is bound as itself.
+  BindingKey get key => BindingKey(type, name);
 }

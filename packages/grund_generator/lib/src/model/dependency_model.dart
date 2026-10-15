@@ -1,7 +1,8 @@
 import '../diagnostic/source_location.dart';
-import 'provider_key.dart';
+import 'binding_key.dart';
 
-/// A constructor parameter that dependency injection fills.
+/// A parameter of a constructor or `@Provides` method that dependency
+/// injection fills.
 ///
 /// Exactly one of [key] and [problem] is set.
 final class DependencyModel {
@@ -10,7 +11,7 @@ final class DependencyModel {
     required this.name,
     required this.isNamed,
     required this.location,
-    required ProviderKey this.key,
+    required BindingKey this.key,
   }) : problem = null;
 
   /// A parameter that cannot be injected, because of [problem].
@@ -30,8 +31,8 @@ final class DependencyModel {
   /// Where the parameter is declared.
   final SourceLocation location;
 
-  /// The provider key to resolve; `null` when [problem] is set.
-  final ProviderKey? key;
+  /// The binding to resolve; `null` when [problem] is set.
+  final BindingKey? key;
 
   /// Why the parameter cannot be injected, as a sentence.
   final String? problem;

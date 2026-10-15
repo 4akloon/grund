@@ -20,6 +20,7 @@ dev_dependencies:
   grund: ^0.1.0
   # The fixture packages under test/fixtures import the annotations.
   grund_annotations: ^0.1.0
+  grund_http: ^0.1.0
   lints: ^5.1.0
   test: ^1.25.0
   users_app: ^0.1.0

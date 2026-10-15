@@ -1,8 +1,5 @@
 import 'package:code_builder/code_builder.dart';
 
-import '../constructs/controller_construct.dart';
-import '../constructs/module_construct.dart';
-import '../constructs/provider_construct.dart';
 import '../diagnostic/diagnostic.dart';
 import '../diagnostic/diagnostic_code.dart';
 import '../emit/library_writer.dart';
@@ -19,14 +16,9 @@ final class GrundGenerator {
   /// Creates the generator; [constructs] run in order.
   const GrundGenerator(this.constructs);
 
-  /// The v1 constructs: modules, then controllers, then the provider
-  /// factories they use.
-  const GrundGenerator.core()
-    : constructs = const [
-        ModuleConstruct(),
-        ControllerConstruct(),
-        ProviderConstruct(),
-      ];
+  /// The v1 constructs. None yet: the module, provider and API constructs
+  /// arrive with the checks and the emitters.
+  const GrundGenerator.core() : constructs = const [];
 
   /// The constructs.
   final List<Construct> constructs;

@@ -1,5 +1,5 @@
-import 'module_reference.dart';
-import 'provider_key.dart';
+import 'binding_key.dart';
+import 'type_model.dart';
 
 /// One entry of `@Module(exports: ...)`.
 sealed class ModuleExport {
@@ -7,20 +7,20 @@ sealed class ModuleExport {
   const ModuleExport();
 }
 
-/// An exported provider key.
+/// An exported binding: a type or a `Key<T>('name')`.
 final class KeyExport extends ModuleExport {
   /// Creates the export.
   const KeyExport(this.key);
 
   /// The exported key.
-  final ProviderKey key;
+  final BindingKey key;
 }
 
-/// A re-exported imported module.
+/// A re-exported imported module, written as its type.
 final class ModuleReexport extends ModuleExport {
   /// Creates the export.
-  const ModuleReexport(this.module);
+  const ModuleReexport(this.type);
 
-  /// The re-exported module.
-  final ModuleReference module;
+  /// The class of the re-exported module.
+  final TypeModel type;
 }

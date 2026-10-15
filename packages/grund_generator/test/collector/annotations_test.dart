@@ -17,47 +17,36 @@ void main() {
   String? typeName(DartObject? value) => value?.type?.element?.name;
 
   test('find returns the first annotation of that name', () {
-    expect(typeName(Annotations.find(holder, 'Inject')), 'Inject');
+    expect(typeName(Annotations.find(holder, 'Api')), 'Api');
     expect(Annotations.find(holder, 'Module'), isNull);
   });
 
   test('all returns annotations of any given name in source order', () {
-    final found = Annotations.all(holder, {'UseGuards', 'Inject'});
+    final found = Annotations.all(holder, {'Api', 'Named'});
 
-    expect(found.map(typeName), ['Inject', 'UseGuards']);
+    expect(found.map(typeName), ['Named', 'Api']);
   });
 
   test('an annotation from another package is not matched by name', () {
     expect(Annotations.all(holder, {'Tagged', 'Wrapped'}), isEmpty);
   });
 
-  test('routeMetadata returns annotations extending RouteMetadata', () {
-    final found = Annotations.routeMetadata(holder);
-
-    expect(found.map(typeName), ['Tagged', 'Wrapped']);
+  test('named reads the name of @Named', () {
+    expect(Annotations.named(holder), 'db');
   });
 
   test('field reads a field declared on the annotation class', () {
-    final tagged = Annotations.routeMetadata(holder).first;
+    final api = Annotations.find(holder, 'Api')!;
 
-    expect(Annotations.field(tagged, 'label')?.toStringValue(), r"it's $5");
-    expect(Annotations.field(tagged, 'missing'), isNull);
-  });
-
-  test('field looks through the super chain', () {
-    final guards = Annotations.find(holder, 'UseGuards')!;
-
-    // `types` is declared on the superclass UseComponents.
-    expect(guards.getField('types'), isNull);
-    expect(Annotations.field(guards, 'types')?.toListValue(), hasLength(1));
+    expect(Annotations.field(api, 'path')?.toStringValue(), '/holder');
+    expect(Annotations.field(api, 'missing'), isNull);
   });
 
   test('describe names a type and falls back to the value type', () {
-    final guards = Annotations.find(holder, 'UseGuards')!;
-    final types = Annotations.field(guards, 'types')?.toListValue();
-    final tagged = Annotations.routeMetadata(holder).first;
+    final api = Annotations.find(holder, 'Api')!;
+    final use = Annotations.field(api, 'use')?.toListValue();
 
-    expect(Annotations.describe(types!.single), 'Holder');
-    expect(Annotations.describe(tagged), 'a value of type Tagged');
+    expect(Annotations.describe(use!.single), 'a value of type Symbol');
+    expect(Annotations.describe(api), 'a value of type Api');
   });
 }

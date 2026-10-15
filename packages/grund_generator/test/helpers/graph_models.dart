@@ -1,22 +1,21 @@
 import 'package:grund_generator/src/diagnostic/source_location.dart';
-import 'package:grund_generator/src/model/component_reference.dart';
+import 'package:grund_generator/src/model/binding_key.dart';
+import 'package:grund_generator/src/model/constant_value.dart';
 import 'package:grund_generator/src/model/constructor_model.dart';
-import 'package:grund_generator/src/model/controller_model.dart';
 import 'package:grund_generator/src/model/dependency_model.dart';
-import 'package:grund_generator/src/model/enhancers_model.dart';
 import 'package:grund_generator/src/model/injectable_model.dart';
+import 'package:grund_generator/src/model/lifetime.dart';
 import 'package:grund_generator/src/model/module_export.dart';
 import 'package:grund_generator/src/model/module_model.dart';
 import 'package:grund_generator/src/model/module_reference.dart';
 import 'package:grund_generator/src/model/package_model.dart';
-import 'package:grund_generator/src/model/provider_key.dart';
 import 'package:grund_generator/src/model/provider_model.dart';
-import 'package:grund_generator/src/model/route_model.dart';
+import 'package:grund_generator/src/model/provides_model.dart';
 import 'package:grund_generator/src/model/type_kind.dart';
 import 'package:grund_generator/src/model/type_model.dart';
 import 'package:pub_semver/pub_semver.dart';
 
-/// Builders of small hand-made module graphs for the dependency tests.
+/// Builders of small hand-made module graphs for the check tests.
 abstract final class GraphModels {
   /// A class type named [name].
   static TypeModel type(String name) => TypeModel(
@@ -25,83 +24,89 @@ abstract final class GraphModels {
     libraryUri: 'package:app/app.dart',
   );
 
-  /// The key of the class [name].
-  static ProviderKey key(String name) => TypeKey(type(name));
+  /// The key of the class [name], qualified by [qualifier].
+  static BindingKey key(String name, [String? qualifier]) =>
+      BindingKey(type(name), qualifier);
+
+  /// A dependency on [need] (`Name` or `Name('qualifier')` is not parsed;
+  /// pass the key).
+  static DependencyModel need(BindingKey need) => DependencyModel.injected(
+    name: need.type.name.toLowerCase(),
+    isNamed: false,
+    location: SourceLocation('lib/app.dart', 2, need.type.name.length),
+    key: need,
+  );
 
   /// A class provider of [name] that needs the classes [needs].
-  static ClassProvider provider(String name, [List<String> needs = const []]) =>
-      ClassProvider(
-        key(name),
-        InjectableModel(
-          type: type(name),
-          isAnnotated: true,
-          location: SourceLocation('lib/app.dart', 1, name.length),
-          constructor: ConstructorModel([
-            for (final need in needs)
-              DependencyModel.injected(
-                name: need.toLowerCase(),
-                isNamed: false,
-                location: SourceLocation('lib/app.dart', 2, need.length),
-                key: key(need),
-              ),
-          ]),
-        ),
-      );
+  static ProviderModel provider(
+    String name, {
+    List<String> needs = const [],
+    Lifetime lifetime = Lifetime.singleton,
+  }) => ProviderModel(
+    key(name),
+    InjectableModel(
+      type: type(name),
+      lifetime: lifetime,
+      isAnnotated: true,
+      location: SourceLocation('lib/app.dart', 1, name.length),
+      constructor: ConstructorModel([for (final n in needs) need(key(n))]),
+    ),
+  );
+
+  /// A `@Provides` method of [owner] that provides [name].
+  static ProvidesModel provides(
+    String owner,
+    String name, {
+    List<String> needs = const [],
+    Lifetime lifetime = Lifetime.singleton,
+    String? problem,
+  }) => ProvidesModel(
+    owner: type(owner),
+    methodName: name.toLowerCase(),
+    location: SourceLocation('lib/app.dart', 6, name.length),
+    key: problem == null ? key(name) : null,
+    lifetime: lifetime,
+    dependencies: [for (final n in needs) need(key(n))],
+    problem: problem,
+  );
 
   /// A module named [name].
   static ModuleModel module(
     String name, {
     List<ModuleReference> imports = const [],
     List<ProviderModel> providers = const [],
+    List<ProvidesModel> provides = const [],
     List<ModuleExport> exports = const [],
-    List<TypeModel> controllers = const [],
     bool isGlobal = false,
   }) => ModuleModel(
     type: type(name),
-    id: name,
     location: SourceLocation('lib/app.dart', 3, name.length),
     imports: imports,
     providers: providers,
+    provides: provides,
     exports: exports,
-    controllers: controllers,
     isGlobal: isGlobal,
   );
 
-  /// A reference to the module [name].
+  /// A reference to the module [name] from this package.
   static LocalModuleReference reference(String name) =>
-      LocalModuleReference(type(name));
+      LocalModuleReference(type(name), _instance(name));
 
-  /// A controller [name] with a guard [guard] on the class and on one route.
-  static ControllerModel controller(String name, {required String guard}) {
-    final component = ComponentReference(type(guard), isValid: true);
-    final enhancers = EnhancersModel(guards: [component]);
-    return ControllerModel(
-      type: type(name),
-      path: '/',
-      constructor: const ConstructorModel([]),
-      location: SourceLocation('lib/app.dart', 4, name.length),
-      enhancers: enhancers,
-      routes: [
-        RouteModel(
-          method: 'GET',
-          path: '/',
-          handlerName: 'get',
-          returnType: TypeModel.voidType,
-          location: SourceLocation('lib/app.dart', 5, 1),
-          enhancers: enhancers,
-        ),
-      ],
-    );
-  }
+  /// A reference to the module [name] from elsewhere.
+  static OpaqueModuleReference opaque(String name) =>
+      OpaqueModuleReference(type(name), _instance(name));
 
-  /// A package of [modules] and [controllers].
-  static PackageModel package(
-    List<ModuleModel> modules, [
-    List<ControllerModel> controllers = const [],
-  ]) => PackageModel(
+  /// An export of the class [name].
+  static KeyExport export(String name, [String? qualifier]) =>
+      KeyExport(key(name, qualifier));
+
+  /// A package of [modules].
+  static PackageModel package(List<ModuleModel> modules) => PackageModel(
     packageName: 'app',
     languageVersion: Version(3, 8, 0),
     modules: modules,
-    controllers: controllers,
   );
+
+  static ObjectConstant _instance(String name) =>
+      ObjectConstant(type: type(name), constructorName: '');
 }

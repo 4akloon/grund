@@ -1,12 +1,8 @@
-import 'package:grund_generator/src/collector/package_collector.dart';
-import 'package:grund_generator/src/model/constant_value.dart';
-import 'package:grund_generator/src/model/dependency_model.dart';
-import 'package:grund_generator/src/model/injectable_model.dart';
+import 'package:grund_generator/src/model/lifetime.dart';
 import 'package:grund_generator/src/model/module_export.dart';
 import 'package:grund_generator/src/model/module_model.dart';
 import 'package:grund_generator/src/model/module_reference.dart';
 import 'package:grund_generator/src/model/package_model.dart';
-import 'package:grund_generator/src/model/provider_model.dart';
 import 'package:test/test.dart';
 
 import '../helpers/fixture_package.dart';
@@ -16,141 +12,97 @@ void main() {
 
   setUpAll(() async {
     final fixture = FixturePackage.open('cases_app');
-    final libraries = await fixture.libraries([
-      'lib/providers/constructors.dart',
+    package = await fixture.collect([
       'lib/modules/invalid_entries.dart',
       'lib/modules/basic.dart',
-      'lib/modules/app.dart',
+      'lib/modules/with_api.dart',
     ]);
-    package = PackageCollector('cases_app', fixture.root).collect(libraries);
   });
 
   ModuleModel module(String name) =>
       package.modules.firstWhere((m) => m.type.name == name);
 
-  InjectableModel injectable(String name) =>
-      package.injectables.firstWhere((i) => i.type.name == name);
-
-  List<String> dependencies(String name) => [
-    for (final dependency in injectable(name).constructor.dependencies)
-      switch (dependency) {
-        DependencyModel(:final key?) => '${dependency.name}: $key',
-        DependencyModel(:final problem) => '${dependency.name}: $problem',
-      },
-  ];
-
-  test('modules and injectables in library URI order', () {
+  test('modules come in library URI order', () {
     expect(package.languageVersion.toString(), '3.8.0');
     expect(
       [for (final m in package.modules) m.type.name],
-      ['AppModule', 'DbModule', 'BrokenModule'],
+      ['DbModule', 'AppModule', 'BrokenModule', 'TasksModule'],
     );
-    expect(package.injectables.first.type.name, 'SystemClock');
-    expect(package.injectables.last.type.name, 'Fine');
   });
 
-  test('a module keeps its id, flags, location and documentation', () {
+  test('a module keeps its flags, location and documentation', () {
     final db = module('DbModule');
 
-    expect(db.id, 'db');
     expect(db.isGlobal, isTrue);
+    expect(db.extendsModule, isTrue);
     expect(db.documentation, '/// Database access.');
     expect(db.location.path, 'lib/modules/basic.dart');
-    expect(module('AppModule').id, 'AppModule');
+    expect(module('AppModule').isGlobal, isFalse);
     expect(db.invalidEntries, isEmpty);
   });
 
-  test('class, Bind and Value providers', () {
+  test('class and Bind providers are keyed by what they provide', () {
     final providers = module('DbModule').providers;
 
     expect(
-      [for (final p in providers) '${p.key}'],
-      ['Repo', 'Clock', 'Token<String>(db.url)', 'AppConfig'],
+      [for (final p in providers) "${p.key} <- ${p.injectable.type}"],
+      [
+        'Repo <- Repo',
+        'Clock <- SystemClock',
+        "PrimaryDb('primary') <- PrimaryDb",
+        'Tx <- Tx',
+      ],
     );
-    expect((providers[1] as ClassProvider).injectable.type.name, 'SystemClock');
-    final url = (providers[2] as ValueProvider).value as StringConstant;
-    expect(url.value, 'postgres://localhost');
-    final config = (providers[3] as ValueProvider).value as ReferenceConstant;
-    expect(config.name, 'appConfig');
+    expect(providers.last.injectable.lifetime, Lifetime.scoped);
   });
 
-  test('imports and exports: local class, function tear-off, keys', () {
+  test('@Provides methods keep key, scope and async-ness', () {
+    final provides = module('DbModule').provides;
+
+    expect(provides.first.key.toString(), 'AppConfig');
+    expect(provides.first.lifetime, Lifetime.singleton);
+    final session = provides[1];
+    expect("${session.key}", "Session('main')");
+    expect(session.lifetime, Lifetime.scoped);
+    expect(session.isAsync, isTrue);
+    expect("${session.dependencies.single.key}", 'Clock');
+  });
+
+  test('a @Provides method that cannot be called has a problem', () {
+    final [_, _, notStatic, nothing] = module('DbModule').provides;
+
+    expect(notStatic.problem, contains('is not static'));
+    expect(nothing.problem, contains('returns void'));
+    expect(notStatic.key, isNull);
+  });
+
+  test('imports are local or opaque, re-exports and keys are exports', () {
     final app = module('AppModule');
     final db = module('DbModule');
 
-    expect(app.invalidEntries, isEmpty);
     expect(app.imports.first, isA<LocalModuleReference>());
-    final explicit = app.imports.last as OpaqueModuleReference;
-    expect(explicit.name, 'explicitModule');
-    expect(explicit.libraryUri, 'package:cases_app/modules/explicit.dart');
-    final reexport = app.exports.single as ModuleReexport;
-    expect(reexport.module.display, 'DbModule');
+    expect(app.imports.last, isA<OpaqueModuleReference>());
+    expect(app.imports.last.display, 'ExplicitModule');
+    expect((app.exports.single as ModuleReexport).type.display, 'DbModule');
     expect(
       [for (final e in db.exports) '${(e as KeyExport).key}'],
-      ['Repo', 'Token<String>(db.url)'],
+      ['Repo', "PrimaryDb('primary')", 'Clock', "Session('main')"],
     );
   });
 
   test('entries the generator cannot read become problems', () {
     final broken = module('BrokenModule');
 
+    expect(broken.extendsModule, isFalse);
     expect(broken.invalidEntries, [
-      'imports: String is not a module.',
-      'imports: a value of type String is not a module.',
-      'providers: a value of type int is not a class, Bind<K, I>() or '
-          'Value(v).',
-      'providers: a value of type Token<String> is not a class, Bind<K, I>() '
-          'or Value(v).',
-      'providers: Value(...) of type int cannot be provided as '
-          'Token<String>(db.url).',
-      'controllers: Repo is not a @Controller class of this package.',
-      'exports: a value of type int is not a class, token or module.',
+      'imports: String is not a const instance of a Module.',
+      'imports: a value of type String is not a const instance of a Module.',
+      'providers: a value of type int is not a class or Bind<I, C>().',
+      'providers: a value of type Label is not a class or Bind<I, C>().',
+      'exports: a value of type int is not a class, a Key<T>() or an '
+          'imported module.',
     ]);
     expect(broken.imports, isEmpty);
     expect(broken.providers, isEmpty);
-  });
-
-  test('dependencies by type, by token and by required name', () {
-    expect(dependencies('Repo'), [
-      'clock: Clock',
-      'url: Token<String>(db.url)',
-      'config: AppConfig',
-    ]);
-    expect(injectable('Repo').constructor.dependencies.last.isNamed, isTrue);
-    expect(dependencies('Fine'), [
-      'clock: Clock',
-      'port: Token<int>(port)',
-      'repo: Repo',
-    ]);
-  });
-
-  test('classes dependency injection cannot create', () {
-    expect(injectable('Shape').constructor.problem, 'Shape is abstract.');
-    expect(
-      injectable('Box').constructor.problem,
-      'Box is generic; provide a subclass with fixed type arguments.',
-    );
-    expect(
-      injectable('Named').constructor.problem,
-      'Named has no unnamed constructor; grund creates it with Named(...).',
-    );
-  });
-
-  test('parameters dependency injection cannot fill', () {
-    expect(dependencies('Optional'), [
-      'clock: Parameter clock of Optional is optional; grund injects '
-          'required positional and required named parameters only.',
-    ]);
-    expect(dependencies('Odd'), [
-      'clock: Parameter clock of Odd has type Clock?; grund injects '
-          'non-nullable class types, or a Token with @Inject(token).',
-      'callback: Parameter callback of Odd has type void Function(); grund '
-          'injects non-nullable class types, or a Token with @Inject(token).',
-    ]);
-    expect(dependencies('BadTokens'), [
-      'port: Parameter port of BadTokens has type int, but '
-          'Token<String>(db.url) provides String.',
-      'url: The @Inject argument of Parameter url of BadTokens is not a Token.',
-    ]);
   });
 }

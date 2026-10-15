@@ -7,18 +7,23 @@ import '../model/body_kind.dart';
 /// Decides how a `@Body()` parameter of a given type is read.
 abstract final class BodyKindReader {
   /// The body kind of [type]: a class with `fromJson(Map<String, ...>)`, a
-  /// JSON object map, `String` text or `List<int>` bytes.
+  /// list of them, a JSON object map, or raw bytes.
   static BodyKind read(DartType type) {
     if (type is! InterfaceType ||
         type.nullabilitySuffix != NullabilitySuffix.none) {
       return BodyKind.unsupported;
     }
-    if (type.isDartCoreString) return BodyKind.text;
-    if (type.isDartCoreList && type.typeArguments.single.isDartCoreInt) {
-      return BodyKind.bytes;
-    }
+    if (_isBytes(type)) return BodyKind.bytes;
     if (_isJsonObject(type)) return BodyKind.jsonObject;
-    return hasFromJson(type.element) ? BodyKind.fromJson : BodyKind.unsupported;
+    if (type.isDartCoreList) {
+      final item = type.typeArguments.single;
+      return item is InterfaceType &&
+              item.nullabilitySuffix == NullabilitySuffix.none &&
+              hasFromJson(item.element)
+          ? BodyKind.list
+          : BodyKind.unsupported;
+    }
+    return hasFromJson(type.element) ? BodyKind.object : BodyKind.unsupported;
   }
 
   /// Whether [element] has a `fromJson` constructor or static method whose
@@ -40,6 +45,11 @@ abstract final class BodyKindReader {
         required.single.isPositional &&
         _isJsonObject(required.single.type);
   }
+
+  static bool _isBytes(InterfaceType type) =>
+      (type.element.name == 'Uint8List' &&
+          '${type.element.library.uri}' == 'dart:typed_data') ||
+      (type.isDartCoreList && type.typeArguments.single.isDartCoreInt);
 
   static bool _isJsonObject(DartType type) =>
       type is InterfaceType &&

@@ -1,9 +1,9 @@
 import 'package:grund_generator/src/diagnostic/diagnostic.dart';
 import 'package:grund_generator/src/diagnostic/diagnostic_code.dart';
 import 'package:grund_generator/src/diagnostic/source_location.dart';
-import 'package:grund_generator/src/model/constant_value.dart';
+import 'package:grund_generator/src/model/binding_key.dart';
 import 'package:grund_generator/src/model/generated_names.dart';
-import 'package:grund_generator/src/model/provider_key.dart';
+import 'package:grund_generator/src/model/return_kind.dart';
 import 'package:grund_generator/src/model/route_model.dart';
 import 'package:grund_generator/src/model/type_kind.dart';
 import 'package:grund_generator/src/model/type_model.dart';
@@ -72,18 +72,24 @@ void main() {
     expect(_type('User').isDeclaredAs('User', _users), isTrue);
   });
 
-  test('provider keys: a type, or a token by value type and name', () {
-    TokenKey token(String name, String expression) => TokenKey(
-      valueType: _type('String'),
-      name: name,
-      expression: StringConstant(expression),
-    );
+  test('binding keys: a type with an optional name', () {
+    final repo = BindingKey(_type('Repo'));
+    final named = BindingKey(_type('Repo'), 'main');
 
-    expect(TypeKey(_type('Repo')), TypeKey(_type('Repo')));
-    expect(token('db.url', 'a'), token('db.url', 'b'));
-    expect(token('db.url', 'a'), isNot(token('db.host', 'a')));
-    expect(token('db.url', 'a').display, 'Token<String>(db.url)');
-    expect(TypeKey(_type('Repo')).display, 'Repo');
+    expect(repo, BindingKey(_type('Repo')));
+    expect(repo, isNot(named));
+    expect(named.display, "Repo('main')");
+    expect(repo.display, 'Repo');
+  });
+
+  test('binding keys sort by display, then library', () {
+    final keys = [
+      BindingKey(_type('Repo'), 'b'),
+      BindingKey(_type('Repo')),
+      BindingKey(_type('Clock')),
+    ]..sort();
+
+    expect([for (final k in keys) k.display], ['Clock', 'Repo', "Repo('b')"]);
   });
 
   test('route path parameters in declaration order', () {
@@ -92,6 +98,7 @@ void main() {
       path: '/:org/users/:id/*',
       handlerName: 'find',
       returnType: TypeModel.voidType,
+      returnKind: ReturnKind.none,
       location: const SourceLocation('lib/a.dart', 1, 1),
     );
 
@@ -99,11 +106,8 @@ void main() {
   });
 
   test('generated names derive from class names', () {
-    expect(GeneratedNames.module('UsersModule'), 'usersModule');
-    expect(GeneratedNames.module('Config'), 'configModule');
-    expect(GeneratedNames.controller('UsersController'), 'usersController');
-    expect(GeneratedNames.controller('Health'), 'healthController');
-    expect(GeneratedNames.factory('UsersService'), '_createUsersService');
+    expect(GeneratedNames.module('UsersModule'), r'$UsersModule');
+    expect(GeneratedNames.routes('TasksApi'), 'TasksApiRoutes');
     expect(GeneratedNames.library('shop'), 'package:shop/shop.grund.dart');
   });
 }

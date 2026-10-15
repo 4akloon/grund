@@ -2,7 +2,6 @@ import 'package:analyzer/dart/constant/value.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:grund_generator/src/collector/constant_reader.dart';
 import 'package:grund_generator/src/collector/source_locations.dart';
-import 'package:grund_generator/src/collector/token_reader.dart';
 import 'package:grund_generator/src/model/constant_value.dart';
 import 'package:test/test.dart';
 
@@ -42,48 +41,51 @@ void main() {
     expect(tagged.unsupported, isNull);
   });
 
-  test('a public constant is read as a reference to it', () {
-    final inject = ConstantReader.read(annotation('Inject')) as ObjectConstant;
-    final token = inject.positional.single as ReferenceConstant;
+  List<DartObject> wrappedValues() => [
+    for (final a in holder.metadata.annotations)
+      if (a.computeConstantValue() case final value?)
+        if (value.type?.element?.name == 'Wrapped') value,
+  ];
 
-    expect(token.name, 'dbUrl');
-    expect(token.libraryUri, 'package:cases_app/constants.dart');
-    expect(token.enclosingName, isNull);
-  });
+  ConstantValue wrapped(int index) =>
+      (ConstantReader.read(wrappedValues()[index]) as ObjectConstant)
+          .positional
+          .single;
 
   // Review Focus 3: private constants and classes in annotations.
   test('a private constant is rebuilt from its constructor call', () {
-    final value = ConstantReader.read(annotation('Value')) as ObjectConstant;
-    final token = value.positional.single as ObjectConstant;
+    final label = wrapped(1) as ObjectConstant;
 
-    expect(token.type.display, 'Token<int>');
-    expect((token.positional.single as StringConstant).value, 'secret');
+    expect(label.type.display, 'Label');
+    expect((label.positional.single as StringConstant).value, 'secret');
   });
 
-  // Review Focus 3.
   test('a private class cannot be written in generated code', () {
-    final wrapped = ConstantReader.read(annotation('Wrapped'));
+    final hidden = ConstantReader.read(wrappedValues().first);
 
-    expect(wrapped.unsupported?.reason, '_Hidden is private');
+    expect(hidden.unsupported?.reason, '_Hidden is private');
   });
 
-  test('a list of types', () {
-    final guards = ConstantReader.read(annotation('UseGuards'));
-    final types = (guards as ObjectConstant).positional.single as ListConstant;
+  test('a named constructor keeps its name and type arguments', () {
+    final ref = wrapped(2) as ObjectConstant;
 
-    expect(types.elementType.display, 'Type');
-    expect((types.elements.single as TypeConstant).type.display, 'Holder');
+    expect(ref.type.display, 'Ref<Holder>');
+    expect(ref.constructorName, 'instance');
+    expect(ref.positional.single, isA<ObjectConstant>());
   });
 
-  test('a token reads as a key with its value type', () {
-    final inject = annotation('Inject');
-    final (key, valueType) =
-        TokenReader.read(inject.getField('token')) ?? fail('not a token');
+  test('a key keeps its name argument', () {
+    final key = wrapped(3) as ObjectConstant;
 
-    expect(key.display, 'Token<String>(db.url)');
-    expect(valueType.isDartCoreString, isTrue);
-    expect(key.expression, isA<ReferenceConstant>());
-    expect(TokenReader.read(annotation('Tagged')), isNull);
+    expect(key.type.display, 'Key<Holder>');
+    expect((key.positional.single as StringConstant).value, 'main');
+  });
+
+  test('a list of symbols is unsupported', () {
+    final api = ConstantReader.read(annotation('Api')) as ObjectConstant;
+    final use = api.named['use'] as ListConstant;
+
+    expect(use.elements.single, isA<UnsupportedConstant>());
   });
 
   test('locations are relative to the package root', () {

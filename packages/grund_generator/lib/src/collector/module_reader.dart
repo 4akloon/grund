@@ -1,19 +1,16 @@
 import 'package:analyzer/dart/constant/value.dart';
 import 'package:analyzer/dart/element/element.dart';
-import 'package:analyzer/dart/element/type.dart';
 
-import '../model/module_export.dart';
 import '../model/module_model.dart';
 import '../model/module_reference.dart';
-import '../model/provider_key.dart';
-import '../model/type_model.dart';
 import 'annotations.dart';
 import 'entry_read.dart';
+import 'export_entry_reader.dart';
 import 'injectable_reader.dart';
 import 'module_reference_reader.dart';
 import 'provider_entry_reader.dart';
+import 'provides_reader.dart';
 import 'source_locations.dart';
-import 'token_reader.dart';
 import 'type_reader.dart';
 
 /// Reads a `@Module` class into a [ModuleModel]. Entries it cannot read go
@@ -22,7 +19,8 @@ final class ModuleReader {
   /// Creates the reader for package [packageName].
   ModuleReader(this.packageName, this.locations)
     : _references = ModuleReferenceReader(packageName),
-      _injectables = InjectableReader(locations);
+      _providers = ProviderEntryReader(InjectableReader(locations)),
+      _provides = ProvidesReader(locations);
 
   /// The package being generated.
   final String packageName;
@@ -32,37 +30,35 @@ final class ModuleReader {
 
   final ModuleReferenceReader _references;
 
-  final InjectableReader _injectables;
+  final ProviderEntryReader _providers;
+
+  final ProvidesReader _provides;
 
   /// The module declared by [element], whose `@Module` is [annotation].
   ModuleModel read(ClassElement element, DartObject annotation) {
-    final providerReader = ProviderEntryReader(
-      _injectables,
-      element.library.typeSystem,
-    );
     final imports = [for (final e in _list(annotation, 'imports')) _import(e)];
     final providers = [
-      for (final e in _list(annotation, 'providers')) providerReader.read(e),
+      for (final e in _list(annotation, 'providers')) _providers.read(e),
     ];
-    final controllers = [
-      for (final e in _list(annotation, 'controllers')) _controller(e),
+    final exports = [
+      for (final e in _list(annotation, 'exports')) ExportEntryReader.read(e),
     ];
-    final exports = [for (final e in _list(annotation, 'exports')) _export(e)];
     return ModuleModel(
       type: TypeReader.read(element.thisType),
-      id:
-          Annotations.field(annotation, 'id')?.toStringValue() ??
-          element.displayName,
       location: locations.of(element),
       imports: EntryRead.values(imports),
       providers: EntryRead.values(providers),
-      controllers: EntryRead.values(controllers),
+      provides: _provides.read(element),
       exports: EntryRead.values(exports),
       isGlobal: Annotations.field(annotation, 'global')?.toBoolValue() ?? false,
+      extendsModule: TypeReader.hasSupertype(
+        element,
+        'Module',
+        'package:grund/',
+      ),
       invalidEntries: EntryRead.problems([
         ...imports,
         ...providers,
-        ...controllers,
         ...exports,
       ]),
       documentation: element.documentationComment,
@@ -72,43 +68,12 @@ final class ModuleReader {
   EntryRead<ModuleReference> _import(DartObject entry) =>
       switch (_references.read(entry)) {
         final reference? => ReadEntry(reference),
-        null => _invalid('imports', entry, 'is not a module'),
+        null => InvalidEntry(
+          'imports: ${Annotations.describe(entry)} is not a const instance '
+          'of a Module.',
+        ),
       };
-
-  EntryRead<TypeModel> _controller(DartObject entry) {
-    final type = entry.toTypeValue();
-    final local =
-        type is InterfaceType &&
-        Annotations.find(type.element, 'Controller') != null &&
-        '${type.element.library.uri}'.startsWith('package:$packageName/');
-    return local
-        ? ReadEntry(TypeReader.read(type))
-        : _invalid(
-            'controllers',
-            entry,
-            'is not a @Controller class of this package',
-          );
-  }
-
-  EntryRead<ModuleExport> _export(DartObject entry) {
-    if (_references.read(entry) case final reference?) {
-      return ReadEntry(ModuleReexport(reference));
-    }
-    if (entry.toTypeValue() case final InterfaceType type) {
-      return ReadEntry(KeyExport(TypeKey(TypeReader.read(type))));
-    }
-    if (TokenReader.read(entry) case (final key, _)) {
-      return ReadEntry(KeyExport(key));
-    }
-    return _invalid('exports', entry, 'is not a class, token or module');
-  }
 
   static List<DartObject> _list(DartObject annotation, String name) =>
       Annotations.field(annotation, name)?.toListValue() ?? const [];
-
-  static InvalidEntry<T> _invalid<T>(
-    String field,
-    DartObject entry,
-    String what,
-  ) => InvalidEntry('$field: ${Annotations.describe(entry)} $what.');
 }

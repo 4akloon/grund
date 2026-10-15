@@ -1,5 +1,4 @@
 // Classes whose constructors dependency injection cannot or can call.
-import 'package:grund/grund.dart' hide Controller, Module;
 import 'package:grund_annotations/grund_annotations.dart';
 
 import '../modules/basic.dart';
@@ -17,9 +16,9 @@ final class Box<T> {}
 
 /// Only a named constructor.
 @Injectable()
-final class Named {
+final class OnlyNamed {
   /// Creates it.
-  Named.create();
+  OnlyNamed.create();
 }
 
 /// An optional parameter.
@@ -69,34 +68,25 @@ final class Loose {
   final Object anything;
 }
 
-/// Tokens that do not fit.
-@Injectable()
-final class BadTokens {
-  /// Creates it.
-  BadTokens(@Inject(dbUrl) this.port, @Inject('db.url') this.url);
-
-  /// Declared int, but the token is a String.
-  final int port;
-
-  /// Not a token.
-  final String url;
-}
-
-/// A token of a subtype fits a supertype parameter.
-const portToken = Token<int>('port');
-
 /// Injects through every accepted form.
-@Injectable()
+@Injectable(scope: Scope.transient)
 final class Fine {
   /// Creates it.
-  Fine(this.clock, @Inject(portToken) this.port, {required this.repo});
+  Fine(this.clock, @Named('primary') this.db, {required this.repo});
 
   /// The clock.
   final Clock clock;
 
-  /// The port, as a num.
-  final num port;
+  /// The database.
+  final PrimaryDb db;
 
   /// The repository.
   final Repo repo;
+}
+
+/// A class with `@Provides` that is not a module.
+final class NotAModule {
+  /// Provided from the wrong place.
+  @Provides()
+  static Plain plain() => Plain();
 }
