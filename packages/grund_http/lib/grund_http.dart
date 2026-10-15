@@ -12,7 +12,7 @@ export 'src/http/header_map.dart';
 export 'src/http/http_exception.dart';
 export 'src/http/http_request.dart';
 export 'src/http/http_response.dart';
-export 'src/http/print_error_log.dart';
+export 'src/http/logging_error_log.dart';
 export 'src/http/problem.dart';
 export 'src/http/problem_code.dart';
 export 'src/http/problem_error.dart';

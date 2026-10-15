@@ -5,7 +5,7 @@ import '../hook/hook_ref.dart';
 import '../hook/http_hook.dart';
 import '../hook/middleware.dart';
 import '../http/error_log.dart';
-import '../http/print_error_log.dart';
+import '../http/logging_error_log.dart';
 import '../serialize/response_codec.dart';
 import 'http_config.dart';
 import 'http_server.dart';
@@ -57,7 +57,7 @@ final class HttpModule extends Module {
 
   @override
   List<Binding<Object>> get bindings => [
-    Singleton<ErrorLog>((i) => const PrintErrorLog(), dependsOn: const []),
+    Singleton<ErrorLog>((i) => const LoggingErrorLog(), dependsOn: const []),
     Singleton<HttpConfig>((i) => config, dependsOn: const []),
     Singleton<HttpServer>(
       (i) => HttpServer(

@@ -11,6 +11,7 @@ import '../http/problem_code.dart';
 import '../http/problem_responder.dart';
 import '../serialize/response_serializer.dart';
 import '../serialize/serializer_registry.dart';
+import 'access_log.dart';
 import 'active_calls.dart';
 import 'http_config.dart';
 import 'http_module.dart';
@@ -18,6 +19,7 @@ import 'request_dispatcher.dart';
 import 'route_executor.dart';
 import 'route_table.dart';
 import 'route_table_builder.dart';
+import 'server_log.dart';
 
 /// Serves the `HttpApi`s of the application over an `HttpAdapter`.
 ///
@@ -42,13 +44,16 @@ final class HttpServer extends Runner {
        );
 
   HttpServer._(this._module, this._adapter, this._config, this._problems)
-    : _dispatcher = _dispatcherFor(_module, _config, _problems);
+    : _dispatcher = _dispatcherFor(_module, _config, _problems),
+      _access = AccessLog(enabled: _config.accessLog);
 
   final HttpModule _module;
   final HttpAdapter _adapter;
   final HttpConfig _config;
   final ProblemResponder _problems;
   final RequestDispatcher _dispatcher;
+  final AccessLog _access;
+  final ServerLog _log = const ServerLog();
   final ActiveCalls _calls = ActiveCalls();
   RouteTable? _table;
   var _listening = false;
@@ -87,13 +92,17 @@ final class HttpServer extends Runner {
   /// Never throws for a request; every failure is a problem response, and a
   /// server that is shutting down answers 503.
   Future<HttpResponse> handle(HttpRequest request) {
-    if (_stopping) return Future.value(_unavailable(request));
+    if (_stopping) {
+      return _access.record(request, () async => _unavailable(request));
+    }
     return _calls.track(() => _answer(request));
   }
 
   @override
   Future<void> prepare(Injector injector) async {
-    _table = await _buildTable(injector);
+    final table = await _buildTable(injector);
+    _table = table;
+    _log.mapped(table.routes);
   }
 
   @override
@@ -111,6 +120,7 @@ final class HttpServer extends Runner {
       _listening = false;
       rethrow;
     }
+    _log.listening(_config.address, _config.port);
   }
 
   @override
@@ -123,6 +133,7 @@ final class HttpServer extends Runner {
     try {
       if (_listening) await _adapter.close();
       await _calls.idle;
+      if (_listening) _log.closed();
     } finally {
       _calls.cancelAll();
     }
@@ -133,13 +144,20 @@ final class HttpServer extends Runner {
     final next = await _buildTable(injector);
     final previous = routes;
     _table = next;
-    return ReassembleReport.between(previous, next.routes);
+    final report = ReassembleReport.between(previous, next.routes);
+    _log
+      ..mapped(report.added)
+      ..unmapped(report.removed);
+    return report;
   }
 
   Future<RouteTable> _buildTable(Injector injector) =>
       RouteTableBuilder.build(injector.all<HttpApi>(), _module.use);
 
-  Future<HttpResponse> _answer(HttpRequest request) async {
+  Future<HttpResponse> _answer(HttpRequest request) =>
+      _access.record(request, () => _serve(request));
+
+  Future<HttpResponse> _serve(HttpRequest request) async {
     final table = _table;
     if (table == null) {
       throw const ApplicationStateError(

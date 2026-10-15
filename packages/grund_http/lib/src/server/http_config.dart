@@ -10,6 +10,7 @@ final class HttpConfig {
     this.port = 8080,
     this.maxBodyBytes = 1048576,
     this.debug = false,
+    this.accessLog = true,
   });
 
   /// What the adapter binds to: a host name or an address object, whatever
@@ -25,4 +26,8 @@ final class HttpConfig {
   /// Whether a 500 response shows the error and its stack trace. Never
   /// enable it in production.
   final bool debug;
+
+  /// Whether every answered request is logged as one `INFO` line on the
+  /// logger `grund.access`: `GET /tasks/1 200 12ms`.
+  final bool accessLog;
 }
