@@ -48,9 +48,7 @@ abstract final class HookReader {
       HookModel(
         type: model,
         isInstance: false,
-        expression: model.name.startsWith('_')
-            ? UnsupportedConstant('${model.name} is private')
-            : _hookRefOf(model, 'type', const []),
+        expression: _privateName(model) ?? _hookRefOf(model, 'type', const []),
       ),
     );
   }
@@ -61,7 +59,9 @@ abstract final class HookReader {
       HookModel(
         type: model,
         isInstance: true,
-        expression: _hookRefOf(model, 'instance', [ConstantReader.read(entry)]),
+        expression:
+            _privateName(model) ??
+            _hookRefOf(model, 'instance', [ConstantReader.read(entry)]),
       ),
     );
   }
@@ -75,6 +75,12 @@ abstract final class HookReader {
           expression: ConstantReader.read(entry),
         ),
       );
+
+  /// Names a hook class that no other library can write down.
+  static UnsupportedConstant? _privateName(TypeModel hook) =>
+      hook.name.startsWith('_')
+      ? UnsupportedConstant('${hook.name} is private')
+      : null;
 
   static ObjectConstant _hookRefOf(
     TypeModel hook,

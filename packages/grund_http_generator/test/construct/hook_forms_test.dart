@@ -111,4 +111,46 @@ void main() {
       expect(hooks[3].message, contains('a value of type int'));
     },
   );
+
+  test('a hook constant of a private class is reported as private', () async {
+    final result = await generate('invalid_private_hook');
+    final unsupported = [
+      for (final d in result.diagnostics)
+        if (d.code.id == 'unsupported_constant') d,
+    ];
+
+    expect(
+      [for (final d in unsupported) d.message],
+      [contains('_PrivHook is private')],
+    );
+  });
+
+  /// `type isInstance` of each hook of `MoreHooksApi`.
+  Future<List<String>> moreHooks() async {
+    final package = await fixture.collect(['lib/apis/hook_forms_more.dart']);
+    final api = package.extensionModel<HttpPackageModel>()!.apis.single;
+    return [for (final h in api.use) '${h.type.display} ${h.isInstance}'];
+  }
+
+  test('a const variable is an instance of its type', () async {
+    expect((await moreHooks())[0], 'FormsRolesHook true');
+  });
+
+  test('an alias of a hook class is the class itself', () async {
+    expect((await moreHooks())[1], 'FormsAuthHook false');
+  });
+
+  test('a generic hook class keeps its type arguments', () async {
+    expect((await moreHooks())[2], 'FormsBoxHook<int> false');
+  });
+
+  test('a HookRef constant is an instance only through .instance', () async {
+    final package = await fixture.collect(['lib/apis/hook_forms_ref.dart']);
+    final api = package.extensionModel<HttpPackageModel>()!.apis.single;
+
+    expect(
+      [for (final h in api.use) '${h.type.display} ${h.isInstance}'],
+      ['FormsAuthHook false', 'FormsAuditHook true'],
+    );
+  });
 }
