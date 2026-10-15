@@ -15,9 +15,11 @@ void main() {
   late PackageModel package; // Set in setUpAll.
 
   setUpAll(() async {
-    package = await FixturePackage.open(
-      'http_cases_app',
-    ).collect(['lib/apis/tasks.dart', 'lib/apis/invalid.dart']);
+    package = await FixturePackage.open('http_cases_app').collect([
+      'lib/apis/tasks.dart',
+      'lib/apis/invalid.dart',
+      'lib/apis/lookalike.dart',
+    ]);
   });
 
   ApiModel api(String name) => package
@@ -164,5 +166,9 @@ void main() {
       ],
       ['stray'],
     );
+  });
+
+  test('a method annotated with a Get of another library is not a route', () {
+    expect(api('LookalikeApi').routes, isEmpty);
   });
 }

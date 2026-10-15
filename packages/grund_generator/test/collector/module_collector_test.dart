@@ -15,6 +15,7 @@ void main() {
     package = await fixture.collect([
       'lib/modules/invalid_entries.dart',
       'lib/modules/basic.dart',
+      'lib/modules/lookalike.dart',
     ]);
   });
 
@@ -25,6 +26,7 @@ void main() {
     expect(package.libraryPaths, [
       'lib/modules/basic.dart',
       'lib/modules/invalid_entries.dart',
+      'lib/modules/lookalike.dart',
     ]);
   });
 
@@ -111,5 +113,9 @@ void main() {
     ]);
     expect(broken.imports, isEmpty);
     expect(broken.providers, isEmpty);
+  });
+
+  test('a class named Module from another library is not a module', () {
+    expect(package.modules.where((m) => m.type.name == 'NotOurs'), isEmpty);
   });
 }

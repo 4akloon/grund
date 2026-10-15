@@ -9,8 +9,8 @@ import '../model/route_model.dart';
 import 'api_host_reader.dart';
 import 'api_reader.dart';
 import 'dto_reader.dart';
-import 'route_reader.dart';
 import 'http_annotations.dart';
+import 'route_reader.dart';
 
 /// Reads the `@Api` classes of a package, the route methods outside them
 /// and the bodies their routes take and return.

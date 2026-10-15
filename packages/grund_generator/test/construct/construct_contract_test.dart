@@ -188,14 +188,14 @@ void main() {
   });
 
   test('construct annotations join their member annotations', () {
-    const one = ConstructAnnotations(
+    final one = ConstructAnnotations(
       libraries: {'package:app/src/jobs/'},
       classes: {
         'Job': {'Every'},
       },
       injectable: {'Job'},
     );
-    const two = ConstructAnnotations(
+    final two = ConstructAnnotations(
       libraries: {'package:app/src/channels/'},
       classes: {
         'Job': {'Once'},
@@ -215,6 +215,14 @@ void main() {
       'package:app/src/channels/',
     });
     expect(both.names, {'Job', 'Every', 'Once', 'Channel'});
+  });
+
+  test('annotation classes without a library are rejected', () {
+    expect(
+      () =>
+          ConstructAnnotations(libraries: const {}, classes: const {'Job': {}}),
+      throwsArgumentError,
+    );
   });
 
   test('every binding of a claim is a binding of the module', () {

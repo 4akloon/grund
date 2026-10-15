@@ -23,7 +23,7 @@ final class ApiConstruct extends Construct {
   String get name => 'api';
 
   @override
-  ConstructAnnotations get annotations => const ConstructAnnotations(
+  ConstructAnnotations get annotations => ConstructAnnotations(
     libraries: {HttpAnnotations.library},
     classes: {'Api': RouteReader.annotations},
     injectable: {'Api'},

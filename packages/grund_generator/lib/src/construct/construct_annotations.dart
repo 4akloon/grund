@@ -6,11 +6,19 @@
 /// and it collects a class carrying one of [injectable] as an injectable.
 final class ConstructAnnotations {
   /// Creates the set.
-  const ConstructAnnotations({
+  ConstructAnnotations({
     required this.libraries,
     this.classes = const {},
     this.injectable = const {},
-  });
+  }) {
+    if (classes.isNotEmpty && libraries.isEmpty) {
+      throw ArgumentError.value(
+        libraries,
+        'libraries',
+        'must name the libraries declaring ${classes.keys.join(', ')}',
+      );
+    }
+  }
 
   /// URI prefixes of the libraries declaring the annotations, such as
   /// `package:grund/src/annotations/`; a class of the same name from any

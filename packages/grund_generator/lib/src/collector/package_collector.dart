@@ -36,7 +36,7 @@ final class PackageCollector {
   }) : _locations = SourceLocations(packageRoot);
 
   /// The annotations the collector reads itself.
-  static const coreAnnotations = ConstructAnnotations(
+  static final coreAnnotations = ConstructAnnotations(
     libraries: {Annotations.coreLibrary},
     classes: {
       'Injectable': {},

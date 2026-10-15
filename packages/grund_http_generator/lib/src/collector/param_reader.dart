@@ -3,15 +3,15 @@ import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:grund_generator/grund_generator.dart';
 
+import '../model/invalid_source_reason.dart';
 import '../model/param_location.dart';
 import '../model/param_model.dart';
-import '../model/invalid_source_reason.dart';
 import '../model/param_source.dart';
 import '../model/value_kind.dart';
 import 'body_kind_reader.dart';
+import 'http_annotations.dart';
 import 'validator_reader.dart';
 import 'value_kind_reader.dart';
-import 'http_annotations.dart';
 
 /// Reads where a parameter of a route handler gets its value from.
 final class ParamReader {

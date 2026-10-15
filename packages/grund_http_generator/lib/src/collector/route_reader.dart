@@ -4,9 +4,9 @@ import 'package:grund_generator/grund_generator.dart';
 
 import '../model/route_model.dart';
 import 'hook_reader.dart';
+import 'http_annotations.dart';
 import 'param_reader.dart';
 import 'return_reader.dart';
-import 'http_annotations.dart';
 
 /// Reads the route methods of a class.
 final class RouteReader {
