@@ -1,9 +1,11 @@
 name: grund
-description: NestJS-style modular backend framework for Dart without dart:mirrors.
+description: >-
+  Modular backend framework for Dart without dart:mirrors: modules, typed
+  dependency injection, call scopes and runners.
 version: 0.1.0
 repository: https://github.com/4akLoon/grund/tree/master/packages/grund
 issue_tracker: https://github.com/4akLoon/grund/issues
-topics: [server, backend, framework, dependency-injection, http]
+topics: [server, backend, framework, dependency-injection]
 environment:
   sdk: ^3.8.0
 resolution: workspace
