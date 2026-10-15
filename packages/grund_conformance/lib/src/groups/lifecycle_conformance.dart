@@ -3,11 +3,12 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:grund/grund.dart';
+import 'package:grund_http/grund_http.dart';
 import 'package:test/test.dart';
 
 import '../adapter_under_test.dart';
-import '../conformance_app.dart';
 import '../conformance_probe.dart';
+import '../conformance_root.dart';
 import '../conformance_server.dart';
 import '../raw_http.dart';
 
@@ -35,13 +36,13 @@ abstract final class LifecycleConformance {
       // Replaces the server with one whose adapter has [closeTimeout].
       Future<void> restart({
         Duration? closeTimeout = ConformanceServer.defaultCloseTimeout,
-        ErrorLogger? applicationLogger,
+        ErrorLog? errorLog,
       }) async {
         await server.close();
         server = await ConformanceServer.start(
           factory,
           closeTimeout: closeTimeout,
-          applicationLogger: applicationLogger,
+          errorLog: errorLog,
         );
       }
 
@@ -104,13 +105,13 @@ abstract final class LifecycleConformance {
         final response = server.send('GET', '/probe/slow');
         await server.probe.entered.future.timeout(stepTimeout);
 
-        await server.app.close(force: true).timeout(stepTimeout);
+        await server.adapter.close(force: true).timeout(stepTimeout);
 
         await expectLater(response, throwsA(isA<IOException>()));
       });
 
       // Review Focus 6: the adapter drops the connection after the timeout
-      // and Application.close does not wait for the abandoned handler.
+      // and App.close does not wait for the abandoned handler.
       test('close gives up on a stuck handler after closeTimeout', () async {
         await restart(closeTimeout: shortCloseTimeout);
         final response = server.send('GET', '/probe/slow');
@@ -155,10 +156,8 @@ abstract final class LifecycleConformance {
         await expectCloseWaitsForSlowHandler();
       });
 
-      test('answers 500 without a body when the app logger throws', () async {
-        await restart(
-          applicationLogger: (error, _) => throw StateError('logger failed'),
-        );
+      test('answers 500 without a body when the ErrorLog throws', () async {
+        await restart(errorLog: const _ThrowingErrorLog());
 
         final failed = await server.send('GET', '/probe/fail');
         final next = await server.send('GET', '/users/1');
@@ -215,36 +214,39 @@ abstract final class LifecycleConformance {
         });
       }
 
-      test('a failed bind can be retried on another port', () async {
-        final blocker = await ServerSocket.bind(
-          InternetAddress.loopbackIPv4,
-          0,
-        );
-        addTearDown(blocker.close);
-        final underTest = factory((_, _) {}, null);
-        final app = await Application.create(
-          () => conformanceModule(ConformanceProbe()),
-          adapter: underTest.adapter,
-          onError: (_, _) {},
-        );
-        addTearDown(() => app.close(force: true));
+      test(
+        'a failed bind fails the start; another application serves',
+        () async {
+          final blocker = await ServerSocket.bind(
+            InternetAddress.loopbackIPv4,
+            0,
+          );
+          addTearDown(blocker.close);
+          final app = App(
+            root: ConformanceRoot(
+              ConformanceProbe(),
+              adapter: factory((_, _) {}, null).module,
+              port: blocker.port,
+            ),
+          );
 
-        await expectLater(
-          app.listen(port: blocker.port, address: InternetAddress.loopbackIPv4),
-          throwsA(isA<SocketException>()),
-        );
-        await app.listen(port: 0, address: InternetAddress.loopbackIPv4);
+          await expectLater(
+            app.start(),
+            throwsA(
+              isA<RunnerError>().having(
+                (error) => error.error,
+                'error',
+                isA<SocketException>(),
+              ),
+            ),
+          );
+          final next = await ConformanceServer.start(factory);
+          addTearDown(next.close);
 
-        final client = HttpClient();
-        addTearDown(() => client.close(force: true));
-        final request = await client.get(
-          '127.0.0.1',
-          underTest.boundPort(),
-          '/users/1',
-        );
-        expect((await request.close()).statusCode, 200);
-        await app.close().timeout(stepTimeout);
-      });
+          expect(app.isClosed, isTrue);
+          expect((await next.send('GET', '/users/1')).status, 200);
+        },
+      );
 
       // Review Focus 4: the stream is cancelled and close is not stuck.
       test('survives a client that leaves mid-response', () async {
@@ -259,4 +261,13 @@ abstract final class LifecycleConformance {
       });
     });
   }
+}
+
+/// An error log that fails, to prove the adapter survives it.
+final class _ThrowingErrorLog implements ErrorLog {
+  const _ThrowingErrorLog();
+
+  @override
+  void report(Object error, StackTrace stackTrace) =>
+      throw StateError('log failed');
 }

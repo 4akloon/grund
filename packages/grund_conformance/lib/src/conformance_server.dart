@@ -2,45 +2,65 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:grund/grund.dart';
+import 'package:grund_http/grund_http.dart';
 
 import 'adapter_under_test.dart';
 import 'client_response.dart';
-import 'conformance_app.dart';
 import 'conformance_probe.dart';
+import 'conformance_root.dart';
 
 /// The conformance application served by one adapter on 127.0.0.1 and an
 /// ephemeral port, with an `HttpClient` and the first error the
 /// adapter reported.
 final class ConformanceServer {
-  ConformanceServer._(this.app, this.port, this.probe, this._errors);
+  ConformanceServer._(
+    this.app,
+    this.adapter,
+    this.port,
+    this.probe,
+    this._errors,
+  );
 
   /// The adapter's `closeTimeout` unless a test sets one: longer than any
   /// wait in the suite, so only the timeout tests reach it.
   static const defaultCloseTimeout = Duration(seconds: 30);
 
-  /// Creates the application with the adapter from [factory] and listens.
-  /// [applicationLogger] replaces the recording `onError` of the
-  /// application (to test a logger that throws); [closeTimeout] goes to
-  /// the adapter.
+  /// Starts the application with the adapter from [factory] and listens.
+  /// [errorLog] replaces the recording `ErrorLog` of the application (to
+  /// test one that throws); [closeTimeout] goes to the adapter.
   static Future<ConformanceServer> start(
     AdapterFactory factory, {
-    ErrorLogger? applicationLogger,
+    ErrorLog? errorLog,
     Duration? closeTimeout = defaultCloseTimeout,
   }) async {
     final probe = ConformanceProbe();
     final errors = _ReportedErrors();
     final underTest = factory(errors.adapter, closeTimeout);
-    final app = await Application.create(
-      () => conformanceModule(probe),
-      adapter: underTest.adapter,
-      onError: applicationLogger ?? errors.application,
+    final app = App(
+      root: ConformanceRoot(probe, adapter: underTest.module),
+      overrides: [
+        Singleton<ErrorLog>(
+          (_) => errorLog ?? errors.application,
+          dependsOn: const [],
+        ),
+      ],
     );
-    await app.listen(port: 0, address: InternetAddress.loopbackIPv4);
-    return ConformanceServer._(app, underTest.boundPort(), probe, errors);
+    await app.start();
+    final adapter = app.container.root<HttpAdapter>();
+    return ConformanceServer._(
+      app,
+      adapter,
+      underTest.portOf(adapter),
+      probe,
+      errors,
+    );
   }
 
   /// The served application.
-  final Application app;
+  final App app;
+
+  /// The adapter under test, as the application resolved it.
+  final HttpAdapter adapter;
 
   /// The port the adapter bound.
   final int port;
@@ -73,12 +93,14 @@ final class ConformanceServer {
     return ClientResponse.read(await request.close());
   }
 
-  /// Closes the client and the application (forcefully, so a test that
-  /// failed midway does not hang the suite) and releases waiting handlers.
+  /// Closes the client, the adapter (forcefully, so a test that failed
+  /// midway does not hang the suite) and the application, and releases
+  /// waiting handlers.
   Future<void> close() async {
     if (!probe.release.isCompleted) probe.release.complete();
     client.close(force: true);
-    await app.close(force: true);
+    await adapter.close(force: true);
+    await app.close();
   }
 }
 
@@ -91,5 +113,12 @@ final class _ReportedErrors {
   }
 
   /// Silences the application log: 500s are expected in the suite.
-  void application(Object error, StackTrace _) {}
+  ErrorLog get application => const _SilentErrorLog();
+}
+
+final class _SilentErrorLog implements ErrorLog {
+  const _SilentErrorLog();
+
+  @override
+  void report(Object error, StackTrace stackTrace) {}
 }

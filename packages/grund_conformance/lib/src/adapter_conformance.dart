@@ -11,13 +11,10 @@ import 'groups/request_conformance.dart';
 /// ```dart
 /// void main() => AdapterConformance.run(
 ///   'IoAdapter',
-///   (onError, closeTimeout) {
-///     final adapter = IoAdapter(
-///       onError: onError,
-///       closeTimeout: closeTimeout,
-///     );
-///     return AdapterUnderTest(adapter, boundPort: () => adapter.port);
-///   },
+///   (onError, closeTimeout) => AdapterUnderTest.of<IoAdapter>(
+///     IoAdapterModule(onError: onError, closeTimeout: closeTimeout),
+///     port: (adapter) => adapter.port,
+///   ),
 /// );
 /// ```
 abstract final class AdapterConformance {

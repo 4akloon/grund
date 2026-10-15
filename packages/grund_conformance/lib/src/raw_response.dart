@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:grund/grund.dart';
+import 'package:grund_http/grund_http.dart';
 
 /// A response read byte for byte from a socket by `RawHttp`: what
 /// `HttpClient` hides (the exact header lines, the bytes after a `HEAD`

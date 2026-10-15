@@ -34,7 +34,12 @@ abstract final class RequestConformance {
           (created.status, created.headers.value('location')),
           (201, '/users/3'),
         );
-        expect((missing.json as Map)['statusCode'], 404);
+        expect(missing.status, 404);
+        expect(
+          missing.headers.contentType?.mimeType,
+          'application/problem+json',
+        );
+        expect(missing.json, containsPair('status', 404));
       });
 
       test('passes every method upper-cased', () async {

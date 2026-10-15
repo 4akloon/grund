@@ -1,20 +1,27 @@
 import 'dart:convert';
 
-import 'package:grund/grund.dart';
 import 'package:grund/testing.dart';
 import 'package:grund_conformance/grund_conformance.dart';
+import 'package:grund_http/grund_http.dart';
+import 'package:grund_http/testing.dart';
 import 'package:test/test.dart';
 
+import 'helpers/no_socket_adapter_module.dart';
+
 void main() {
-  group('conformanceModule', () {
+  group('ConformanceRoot', () {
     late ConformanceProbe probe; // Set in setUp before every test.
-    late Application app; // Set in setUp before every test.
+    late TestApp app; // Set in setUp before every test.
+    late HttpServer server; // Set in setUp before every test.
     late TestClient client; // Set in setUp before every test.
 
     setUp(() async {
       probe = ConformanceProbe();
-      app = await Application.create(() => conformanceModule(probe));
-      client = TestClient(app);
+      app = await TestApp.start(
+        root: ConformanceRoot(probe, adapter: const NoSocketAdapterModule()),
+      );
+      server = app<HttpServer>();
+      client = TestClient(server);
     });
     tearDown(() => app.close());
 
@@ -23,7 +30,12 @@ void main() {
 
       expect((await client.get('/users/1')).json, {'id': 1, 'name': 'ann'});
       expect((created.status, created.headers['location']), (201, '/users/3'));
-      expect((await client.get('/users/9')).status, 404);
+      final missing = await client.get('/users/9');
+      expect(missing.status, 404);
+      expect(
+        missing.headers['content-type'],
+        startsWith('application/problem+json'),
+      );
     });
 
     test('echoes the request', () async {
@@ -72,7 +84,7 @@ void main() {
     });
 
     test('holds the gated stream until the probe releases it', () async {
-      final response = await app.handle(
+      final response = await server.handle(
         HttpRequest(method: 'GET', uri: Uri.parse('/probe/gated-stream')),
       );
       final body = response.body.readAll();
@@ -84,7 +96,7 @@ void main() {
     });
 
     test('reports when the endless stream is cancelled', () async {
-      final response = await app.handle(
+      final response = await server.handle(
         HttpRequest(method: 'GET', uri: Uri.parse('/probe/endless')),
       );
       final subscription = switch (response.body) {
@@ -98,7 +110,7 @@ void main() {
     });
 
     test('fails the broken stream after one chunk', () async {
-      final response = await app.handle(
+      final response = await server.handle(
         HttpRequest(method: 'GET', uri: Uri.parse('/probe/broken-stream')),
       );
 
