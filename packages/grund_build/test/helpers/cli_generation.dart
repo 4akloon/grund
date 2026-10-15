@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:grund_cli/grund_cli.dart';
+import 'package:path/path.dart' as p;
 
 import 'temp_dir.dart';
 import 'workspace_package_config.dart';
@@ -10,8 +11,8 @@ import 'workspace_package_config.dart';
 abstract final class CliGeneration {
   /// Generates package [name] made of [files] (path relative to the
   /// package root → content). Returns the CLI's report and the generated
-  /// library it left on disk.
-  static Future<({GenerationReport report, String? library})> run(
+  /// files it left on disk (path relative to the package root → content).
+  static Future<({GenerationReport report, Map<String, String> files})> run(
     String name,
     Map<String, String> files,
   ) async {
@@ -23,13 +24,22 @@ abstract final class CliGeneration {
     final session = GenerationSession(PackageRoot.open(dir.path));
     try {
       final report = await session.run();
-      final output = 'lib/$name.grund.dart';
-      return (
-        report: report,
-        library: dir.exists(output) ? dir.read(output) : null,
-      );
+      return (report: report, files: _generated(dir, files.keys));
     } finally {
       await session.close();
     }
+  }
+
+  static Map<String, String> _generated(TempDir dir, Iterable<String> given) {
+    final lib = Directory(dir.resolve('lib'));
+    final found = {
+      for (final file in lib.listSync(recursive: true).whereType<File>())
+        p.posix.joinAll(p.split(p.relative(file.path, from: dir.path))): file,
+    };
+    return {
+      for (final MapEntry(:key, :value)
+          in found.entries.toList()..sort((a, b) => a.key.compareTo(b.key)))
+        if (!given.contains(key)) key: value.readAsStringSync(),
+    };
   }
 }

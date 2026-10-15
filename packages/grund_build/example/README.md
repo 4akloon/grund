@@ -1,6 +1,6 @@
 # grund_build example
 
-Generate the grund library with build_runner, next to other builders
+Generate the grund files with build_runner, next to other builders
 such as `json_serializable`.
 
 ```yaml
@@ -10,25 +10,21 @@ environment:
   sdk: ^3.8.0
 dependencies:
   grund: ^0.1.0
-  grund_annotations: ^0.1.0
+  grund_http: ^0.1.0
 dev_dependencies:
   build_runner: ^2.10.5
   grund_build: ^0.1.0
 ```
 
-```yaml
-# build.yaml
-targets:
-  $default:
-    builders:
-      grund_build:
-        options:
-          package: shop
-```
+No `build.yaml` is needed.
 
 ```dart
 // lib/src/catalog.dart
-import 'package:grund_annotations/grund_annotations.dart';
+import 'package:grund/annotations.dart';
+import 'package:grund_http/annotations.dart';
+import 'package:grund_http/grund_http.dart' as http;
+
+part 'catalog_api.g.dart';
 
 /// The products on sale.
 @Injectable()
@@ -38,28 +34,41 @@ final class Catalog {
 }
 
 /// `GET /products`.
-@Controller('/products')
-final class ProductsController {
-  /// Creates the controller.
-  ProductsController(this.catalog);
+@Api('/products')
+final class ProductsApi {
+  /// Creates the API.
+  ProductsApi(this.catalog);
 
   /// The catalog.
   final Catalog catalog;
 
   /// Lists the products.
-  @Get()
+  @Get('/')
   List<String> list() => catalog.names();
 }
+```
+
+```dart
+// lib/src/shop_module.dart
+import 'package:grund/annotations.dart';
+import 'package:grund/grund.dart' as grund;
+
+import 'catalog.dart';
+import 'shop_module_module.g.dart';
 
 /// The root module.
-@Module(id: 'shop', providers: [Catalog], controllers: [ProductsController])
-final class ShopModule {}
+@Module(providers: [Catalog, ProductsApi])
+final class ShopModule extends grund.Module with $ShopModule {
+  /// Creates the module.
+  const ShopModule();
+}
 ```
 
 ```sh
-dart run build_runner build    # writes lib/shop.grund.dart with shopModule()
+dart run build_runner build
+# writes lib/src/catalog_api.g.dart (the part of catalog.dart) and
+# lib/src/shop_module_module.g.dart (the mixin $ShopModule)
 ```
 
-`Application.create(shopModule)` then starts the application. The output
-is byte-identical to `dart run grund_cli gen`, so a package can switch
-between the two without a diff.
+The output is byte-identical to `dart run grund_cli gen`, so a package can
+switch between the two without a diff.

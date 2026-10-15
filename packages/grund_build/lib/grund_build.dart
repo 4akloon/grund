@@ -1,20 +1,17 @@
-/// The build_runner builder of grund: writes
-/// `lib/<package>.grund.dart` from the annotations of a package, byte
-/// for byte what `grund_cli gen` writes for the same sources.
+/// The build_runner builder of grund: writes `X_module.g.dart` and
+/// `X_api.g.dart` next to every library that declares `@Module` or `@Api`,
+/// byte for byte what `grund_cli gen` writes for the same sources.
 ///
 /// `build.yaml` of this package applies [grundBuilder] to every package
-/// that depends on `grund_build`; the package names itself in its own
-/// `build.yaml` ([GrundBuildOptions]).
+/// that depends on `grund_build`; it needs no options.
 library;
 
 import 'package:build/build.dart';
 
-import 'src/grund_build_options.dart';
+import 'src/grund_builder.dart';
 
-export 'src/grund_build_options.dart';
 export 'src/grund_builder.dart';
 
-/// The builder factory `build.yaml` names: the [Builder] that
-/// [GrundBuildOptions.builderFor] makes from [options].
-Builder grundBuilder(BuilderOptions options) =>
-    GrundBuildOptions.builderFor(options);
+/// The builder factory `build.yaml` names: the [GrundBuilder] that runs
+/// the constructs `grund_cli` runs. It takes no options.
+Builder grundBuilder(BuilderOptions options) => const GrundBuilder();

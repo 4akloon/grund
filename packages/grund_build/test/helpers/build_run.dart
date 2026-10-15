@@ -2,27 +2,28 @@ import 'package:build/build.dart';
 import 'package:build_test/build_test.dart';
 
 /// One build of a package with build_test, in memory: the sources of every
-/// package of the test's package config (so `package:grund_annotations`
-/// and the workspace fixtures resolve without `pub get`), plus the given
-/// files.
+/// package of the test's package config (so `package:grund` and the
+/// workspace fixtures resolve without `pub get`), plus the given files.
 final class BuildRun {
-  BuildRun._(this._output, this._result);
+  BuildRun._(this._package, this._result);
 
   /// Builds [package] with [builder]; [files] (path relative to the package
-  /// root → content) are added to or replace its sources.
+  /// root → content) are the package's sources, every one of them a build
+  /// input.
   ///
-  /// A generated library the package already has is removed first, so
-  /// [library] is always the builder's own output.
+  /// The generated files the package already has in the workspace are
+  /// removed first, so [outputs] holds only what the builder wrote.
   static Future<BuildRun> run(
     Builder builder,
-    String package, [
-    Map<String, String> files = const {},
-  ]) async {
+    String package,
+    Map<String, String> files,
+  ) async {
     final readerWriter = TestReaderWriter(rootPackage: package);
     await readerWriter.testing.loadIsolateSources();
-    final output = AssetId(package, 'lib/$package.grund.dart');
-    if (readerWriter.testing.exists(output)) {
-      readerWriter.testing.delete(output);
+    for (final asset in readerWriter.testing.assets.toList()) {
+      if (asset.package == package && _isOutputName(asset.path)) {
+        readerWriter.testing.delete(asset);
+      }
     }
     final result = await testBuilder(
       builder,
@@ -34,10 +35,13 @@ final class BuildRun {
       readerWriter: readerWriter,
       flattenOutput: true,
     );
-    return BuildRun._(output, result);
+    return BuildRun._(package, result);
   }
 
-  final AssetId _output;
+  static bool _isOutputName(String path) =>
+      path.endsWith('_module.g.dart') || path.endsWith('_api.g.dart');
+
+  final String _package;
   final TestBuilderResult _result;
 
   /// Whether the build succeeded.
@@ -46,8 +50,12 @@ final class BuildRun {
   /// The errors the build logged, in order.
   List<String> get errors => [..._result.errors];
 
-  /// The generated library, or `null` when the build did not write it.
-  String? get library => _result.outputs.contains(_output)
-      ? _result.readerWriter.testing.readString(_output)
-      : null;
+  /// What the builder wrote: path relative to the package root → content,
+  /// in path order.
+  Map<String, String> get outputs => {
+    for (final id
+        in _result.outputs.where((id) => id.package == _package).toList()
+          ..sort())
+      id.path: _result.readerWriter.testing.readString(id),
+  };
 }

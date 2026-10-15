@@ -1,8 +1,10 @@
 # grund_build
 
-The build_runner builder of grund. It writes `lib/<package>.grund.dart`
-from the annotations of a package: the same files are read, the same
-constructs run and the same bytes are written as by `grund_cli gen`.
+The build_runner builder of grund. For every Dart library of `lib/` it
+writes the files `grund_cli gen` writes for it: `x_module.g.dart` next to
+`x.dart` when `x.dart` declares `@Module`, and `x_api.g.dart` (the part of
+`x.dart`) when it declares `@Api`. The same constructs run and the same
+bytes and header are written as by `grund_cli gen`.
 Use it when a package already generates code with build_runner (for example
 `json_serializable`); otherwise `grund_cli gen --watch` and `dev` are
 faster and need no configuration.
@@ -14,15 +16,8 @@ dev_dependencies:
   grund_build: ^0.1.0
 ```
 
-```yaml
-# build.yaml, next to pubspec.yaml
-targets:
-  $default:
-    builders:
-      grund_build:
-        options:
-          package: shop # the name in pubspec.yaml
-```
+No `build.yaml` is needed: the builder applies to every package that
+depends on `grund_build` and has no options.
 
 ```sh
 dart run build_runner build                 # generate once
@@ -30,59 +25,65 @@ dart run build_runner watch                 # regenerate on every change
 dart run build_runner build --only-check    # build_runner 2.16+: fail if a generated file is out of date, write nothing
 ```
 
-## The package option
-
-build_runner does not tell a builder which package it builds before the
-build, and the builder must declare its output, `lib/<package>.grund.dart`,
-before. So the package names itself in its `build.yaml`. A missing option,
-a name that is not a valid package name, an unknown option or the name of
-another package (a `build.yaml` copied from another package) fails the build
-with the `build.yaml` to write; nothing is written.
-
 ## What it does
 
-- Reads every Dart file of `lib/` except generated `*.grund.dart` files
-  and runs the core constructs of `grund_generator`
-  (`GrundGenerator.core()`), as `grund_cli gen` does.
-- Problems are build errors, one per line, as
+One build step runs per library of `lib/`; the outputs are declared as
+`.dart` to `_module.g.dart` and `_api.g.dart`, and a step writes only the
+ones its library needs (build_runner accepts an output that is not written).
+
+- **What a step reads.** The module graph and dependency checks need the
+  modules a library reaches, so the step resolves its library and every
+  library of the same package it reaches through imports and exports,
+  collects and generates them as one package, and writes the files of its
+  own library. Other packages are not followed. A library that nothing
+  reaches from the input does not influence the input's files.
+- **Problems are build errors, one per line,** as
   `path:line:column: error: message [code]`, the lines `grund_cli gen`
-  prints for the same sources. Syntax errors (in part files too) have the
-  code `syntax_error`; the generator's codes are listed in the
-  `grund_generator` README. Any problem fails the build and nothing is
-  written.
+  prints. Only the problems of the step's own library (and its part files)
+  are reported by that step; a problem in an imported library is reported by
+  the step of that library, so it appears once, not once per importer.
+  Syntax errors have the code `syntax_error`; the generator's codes are
+  listed in the `grund_generator` and `grund_http_generator` READMEs. While a
+  library it reaches has a problem, a step writes nothing, and the step with
+  the problem fails the build.
+- Generated files (name `*_module.g.dart` or `*_api.g.dart` and the
+  generator's header) and part files are not inputs.
 - A part another builder has not written yet (`user.g.dart` of
   `json_serializable`) does not change the output: the generator reads
   annotations and declarations, not generated members. `build.yaml` of
   `grund_build` has `required_inputs: [".dart"]`, so build_runner runs it
   after the builders that write `.dart` files and types declared in
   generated parts resolve. This is a declaration in `build.yaml`, pinned by
-  a test; the order itself is build_runner's. The outputs of builders with
-  `build_to: cache` are visible to this builder but not to
-  `grund_cli gen`, which reads only the files on disk.
-- When `lib/` has no annotations, nothing is written; build_runner deletes
-  a library it generated before.
-- A construct that generates a file of its own (`FileUnit`) fails the
-  build: this builder writes only `lib/<package>.grund.dart`. Generate
-  such a package with `grund_cli gen`.
+  a test; the order itself is build_runner's.
+- The files of one build step are invisible to the analyzer of that step:
+  `x.dart` imports `x_module.g.dart`, which the step is about to write. The
+  generator does not need its content.
 
 ## Differences from grund_cli gen
 
 - **The output belongs to build_runner.** `grund_cli gen` never
   overwrites a file without the generated header; build_runner deletes a
-  file in the way of an output (since build_runner 2.7, conflicting
-  outputs are always deleted) before any builder runs. Do not keep a
-  hand-written `lib/<package>.grund.dart`.
-- **Problems delete the library.** `grund_cli gen` leaves the library
-  as it was while the sources have problems; build_runner deletes the
-  previous output of a failed build step, so code that imports the library
-  stops compiling until the problems are fixed.
+  file in the way of an output before any builder runs, and deletes the
+  output of a library that no longer needs it (`grund_cli gen` deletes only
+  stale files that have the header).
+- **Problems delete the files of the library.** `grund_cli gen` leaves the
+  files as they were while the sources have problems; build_runner deletes
+  the previous output of a failed build step, so code that imports a
+  generated file stops compiling until the problems are fixed.
+- **Reach, not the whole package.** `grund_cli gen` checks every library of
+  the package together; a step checks what its library reaches. A check
+  that only sees the whole package (a hint that names an unreached module in a
+  message, for example) can differ in text; the code and location agree.
+  A library no other library reaches is checked by its own step only, so
+  a syntax error in an unrelated library does not stop the others'
+  files from being written, though the build fails.
 - The generated header is the same, so `grund_cli gen` and `dev` accept
-  a library build_runner wrote, and the other way round.
+  files build_runner wrote, and the other way round.
 
 ## build_runner and grund_cli in one package
 
 Both write the same bytes and the same header, so they never fight over
-the library, but give it one writer per package:
+the files, but give them one writer per package:
 
 - `dart run build_runner watch`, when other builders (`json_serializable`)
   run anyway; restart the application yourself.
@@ -90,13 +91,13 @@ the library, but give it one writer per package:
   need `dart run build_runner watch` beside it, disable `grund_build`
   in the package's `build.yaml` (`enabled: false` under
   `grund_build:`), so build_runner does not rewrite or delete the
-  library `dev` reloads.
+  files `dev` reloads.
 
 ## Own constructs
 
 Dart cannot load constructs at run time, so a package with constructs of
-its own declares its own builder. With `build`, `grund_build` and
-`grund_generator` in its dev dependencies:
+its own declares its own builder. With `build`, `grund_build`,
+`grund_generator` and `grund_http_generator` in its dev dependencies:
 
 ```dart
 // tool/builder.dart
@@ -104,10 +105,9 @@ import 'package:build/build.dart';
 import 'package:grund_build/grund_build.dart';
 import 'package:grund_generator/grund_generator.dart';
 
-Builder shopBuilder(BuilderOptions options) => GrundBuildOptions.builderFor(
-  options,
+Builder shopBuilder(BuilderOptions options) => GrundBuilder(
   generator: GrundGenerator([
-    ...const GrundGenerator.core().constructs,
+    ...GrundBuilder.defaultGenerator.constructs,
     // MyConstruct(),
   ]),
 );
@@ -119,7 +119,7 @@ builders:
   grund:
     import: tool/builder.dart
     builder_factories: [shopBuilder]
-    build_extensions: {"$lib$": ["shop.grund.dart"]} # <package>.grund.dart
+    build_extensions: {".dart": ["_module.g.dart", "_api.g.dart"]}
     required_inputs: [".dart"] # run after freezed, json_serializable, ...
     build_to: source
     auto_apply: root_package
@@ -128,10 +128,10 @@ targets:
     builders:
       grund_build:
         enabled: false
-      shop:grund:
-        options:
-          package: shop
 ```
+
+The builder writes only a module library and an API part per library; a file
+of another kind that a construct generates (a `FileUnit`) is not written.
 
 ## Versions
 
@@ -157,6 +157,6 @@ cd packages/grund_build && dart test integration
 On build_runner older than 2.16 (Dart before 3.11) the integration test
 skips itself, because `--only-check` is missing there.
 
-It runs `dart run build_runner build --only-check` in the generator's golden
-fixture `users_app` and passes when the committed
-`lib/users_app.grund.dart` is what the builder writes.
+It runs `dart run build_runner build --only-check` in the golden fixture
+`users_app` of `grund_http_generator` and passes when its committed
+`*_module.g.dart` and `*_api.g.dart` files are what the builder writes.

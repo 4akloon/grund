@@ -7,8 +7,8 @@ import 'dart:isolate';
 
 import 'package:test/test.dart';
 
-/// The root of the generator's golden fixture `users_app`, whose
-/// `build.yaml` configures `grund_build`.
+/// The root of the generator's golden fixture `users_app`, which depends on
+/// `grund_build` and needs no `build.yaml`.
 Future<Directory> usersApp() async {
   final lib = await Isolate.resolvePackageUri(Uri.parse('package:users_app/'));
   if (lib == null) throw StateError('users_app is not in the package config.');
@@ -37,8 +37,8 @@ Future<(int, int)?> buildRunnerVersion() async {
 void main() {
   // The real build_runner, as a child process: it compiles the build
   // script (about 20 s the first time) and checks, writing nothing, that
-  // the outputs it would write are the committed ones.
-  test('build_runner generates the committed golden library', () async {
+  // the files it would write are the committed ones.
+  test('build_runner generates the committed golden files', () async {
     final version = await buildRunnerVersion();
     if (version == null ||
         version.$1 < 2 ||

@@ -1,42 +1,43 @@
-// The builder and `grund_cli gen` over the generator's fixtures: the same
-// bytes for users_app (the golden package), the same problems for
-// cases_app (one scenario per library, most of them invalid).
-import 'dart:convert';
-
+// The builder and `grund_cli gen` over the same sources: the same file set,
+// byte for byte, for the golden package users_app and for a small shop.
 import 'package:grund_build/grund_build.dart';
 import 'package:test/test.dart';
 
 import 'helpers/build_run.dart';
 import 'helpers/cli_generation.dart';
 import 'helpers/fixture_files.dart';
+import 'helpers/shop_sources.dart';
 
 void main() {
-  test('users_app: the builder writes the bytes the CLI writes', () async {
-    final build = await BuildRun.run(GrundBuilder('users_app'), 'users_app');
-    final cli = await CliGeneration.run(
-      'users_app',
-      await FixtureFiles.of('users_app'),
-    );
+  test('users_app: the builder writes the files the CLI writes', () async {
+    final sources = await FixtureFiles.of('users_app');
 
-    final library = cli.library ?? fail('the CLI wrote no library');
-    expect(utf8.encode(build.library ?? ''), utf8.encode(library));
+    final build = await BuildRun.run(GrundBuilder(), 'users_app', sources);
+    final cli = await CliGeneration.run('users_app', sources);
+
+    expect(cli.files, hasLength(4));
+    expect(build.outputs, cli.files);
   });
 
-  test('users_app: the builder writes the committed golden library', () async {
-    final build = await BuildRun.run(GrundBuilder('users_app'), 'users_app');
-    final golden = await FixtureFiles.golden('users_app');
+  test('users_app: the builder writes the committed golden files', () async {
+    final sources = await FixtureFiles.of('users_app');
+    final golden = await FixtureFiles.of('users_app', generated: true)
+      ..removeWhere((path, _) => sources.containsKey(path));
 
-    expect(build.library, golden);
+    final build = await BuildRun.run(GrundBuilder(), 'users_app', sources);
+
+    expect(build.outputs, golden);
   });
 
-  test('cases_app: the builder reports the problems the CLI reports', () async {
-    final build = await BuildRun.run(GrundBuilder('cases_app'), 'cases_app');
-    final cli = await CliGeneration.run(
-      'cases_app',
-      await FixtureFiles.of('cases_app'),
+  test('shop: the builder writes the files the CLI writes', () async {
+    final build = await BuildRun.run(
+      GrundBuilder(),
+      ShopSources.package,
+      ShopSources.files,
     );
+    final cli = await CliGeneration.run(ShopSources.package, ShopSources.files);
 
-    expect(cli.report.diagnostics, isNotEmpty);
-    expect(build.errors, cli.report.problemLines);
+    expect(cli.files.keys, [ShopSources.moduleOutput, ShopSources.apiOutput]);
+    expect(build.outputs, cli.files);
   });
 }

@@ -1,57 +1,93 @@
 import 'package:grund_build/grund_build.dart';
+import 'package:grund_generator/grund_generator.dart';
 import 'package:test/test.dart';
 
 import 'helpers/build_run.dart';
-import 'helpers/cli_generation.dart';
 import 'helpers/shop_sources.dart';
 
 Future<BuildRun> _build(Map<String, String> files) =>
-    BuildRun.run(GrundBuilder(ShopSources.package), ShopSources.package, files);
+    BuildRun.run(GrundBuilder(), ShopSources.package, files);
 
 void main() {
-  test('the library is the one the CLI writes', () async {
-    final build = await _build(ShopSources.files);
-    final cli = await CliGeneration.run(ShopSources.package, ShopSources.files);
+  test('a module library gets its module file and nothing else', () async {
+    final build = await _build({
+      'lib/src/clock.dart': ShopSources.clock,
+      'lib/src/only_module.dart': ShopSources.onlyModule,
+    });
 
     expect(build.succeeded, isTrue);
-    expect(build.library, cli.library);
+    expect(build.outputs.keys, ['lib/src/only_module_module.g.dart']);
   });
 
-  test('a package without annotations gets no library', () async {
+  test('an API library gets its part and no module file', () async {
+    final build = await _build({
+      'lib/src/clock.dart': ShopSources.clock,
+      'lib/src/time_api.dart': ShopSources.api,
+    });
+
+    expect(build.succeeded, isTrue);
+    expect(build.outputs.keys, [ShopSources.apiOutput]);
+  });
+
+  test('a library with a module and an API gets both files', () async {
+    final build = await _build({'lib/src/both.dart': ShopSources.both});
+
+    expect(build.succeeded, isTrue);
+    expect(build.outputs.keys, [
+      'lib/src/both_api.g.dart',
+      'lib/src/both_module.g.dart',
+    ]);
+  });
+
+  test('every library writes only its own files', () async {
+    final build = await _build(ShopSources.files);
+
+    expect(build.succeeded, isTrue);
+    expect(build.outputs.keys, [
+      ShopSources.moduleOutput,
+      ShopSources.apiOutput,
+    ]);
+  });
+
+  test('a package without annotations gets no file', () async {
     final build = await _build({
       'lib/src/plain.dart': 'final class Plain {}\n',
     });
 
     expect(build.succeeded, isTrue);
-    expect(build.library, isNull);
+    expect(build.outputs, isEmpty);
   });
 
-  // Review Focus 1: a stale or foreign *.grund.dart in lib/ is not read.
-  test('generated libraries in lib/ are not sources', () async {
-    final files = {
+  test('generated files in lib/ are not inputs', () async {
+    final first = await _build(ShopSources.files);
+    final again = await _build({
       ...ShopSources.files,
-      'lib/src/old.grund.dart': 'this is not Dart',
-    };
+      ...first.outputs,
+      // A stale output that no longer parses must not fail the build.
+      'lib/src/old_api.g.dart': '${LibraryWriter.header}\nthis is not Dart\n',
+    });
 
-    final build = await _build(files);
+    expect(again.succeeded, isTrue);
+    expect(again.outputs, first.outputs);
+  });
+
+  test('a part file is not an input', () async {
+    final build = await _build({
+      'lib/src/clock.dart': ShopSources.clock,
+      'lib/src/user.dart': "part 'user_part.dart';\n",
+      'lib/src/user_part.dart': "part of 'user.dart';\n\nfinal class P {}\n",
+    });
 
     expect(build.succeeded, isTrue);
-    expect(build.library, (await CliGeneration.run('shop', files)).library);
+    expect(build.outputs, isEmpty);
   });
 
-  // Review Focus 4: build_runner may run before json_serializable.
-  test('a part another builder has not written yet changes nothing', () async {
-    final withPart = await _build({
-      'lib/src/user.dart': ShopSources.user,
-      'lib/src/user.g.dart': ShopSources.userPart,
-      'lib/src/users.dart': ShopSources.users,
-    });
-    final withoutPart = await _build({
-      'lib/src/user.dart': ShopSources.user,
-      'lib/src/users.dart': ShopSources.users,
+  test('a library outside lib/ is not an input', () async {
+    final build = await _build({
+      'lib/src/clock.dart': ShopSources.clock,
+      'test/helper.dart': ShopSources.onlyModule,
     });
 
-    expect(withPart.library, isNotNull);
-    expect(withoutPart.library, withPart.library);
+    expect(build.outputs, isEmpty);
   });
 }

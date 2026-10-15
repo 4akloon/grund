@@ -1,13 +1,18 @@
-/// Sources of a small annotated package `shop`: a clock service, a
-/// controller that uses it, the root module, and the variants the builder
-/// tests need.
+/// Sources of a small annotated package `shop`: a clock service, an API
+/// that uses it, the root module, and the variants the builder tests need.
 abstract final class ShopSources {
   /// The package name.
   static const package = 'shop';
 
+  /// The generated module library of `lib/src/app_module.dart`.
+  static const moduleOutput = 'lib/src/app_module_module.g.dart';
+
+  /// The generated part of `lib/src/time_api.dart`.
+  static const apiOutput = 'lib/src/time_api_api.g.dart';
+
   /// `lib/src/clock.dart`.
   static const clock = '''
-import 'package:grund_annotations/grund_annotations.dart';
+import 'package:grund/annotations.dart';
 
 @Injectable()
 final class Clock {
@@ -15,80 +20,121 @@ final class Clock {
 }
 ''';
 
-  /// `lib/src/time_controller.dart`.
-  static const controller = '''
-import 'package:grund_annotations/grund_annotations.dart';
+  /// `lib/src/time_api.dart`.
+  static const api = '''
+import 'package:grund_http/annotations.dart';
+import 'package:grund_http/grund_http.dart' as http;
 
 import 'clock.dart';
 
-@Controller('/time')
-final class TimeController {
-  TimeController(this.clock);
+part 'time_api_api.g.dart';
+
+@Api('/time')
+final class TimeApi {
+  TimeApi(this.clock);
 
   final Clock clock;
 
-  @Get()
+  @Get('/')
   Map<String, String> now() => {'now': clock.now().toIso8601String()};
 }
 ''';
 
   /// `lib/src/app_module.dart`.
   static const module = '''
-import 'package:grund_annotations/grund_annotations.dart';
+import 'package:grund/annotations.dart';
+import 'package:grund/grund.dart' as grund;
 
+import 'app_module_module.g.dart';
 import 'clock.dart';
-import 'time_controller.dart';
+import 'time_api.dart';
 
-@Module(id: 'app', providers: [Clock], controllers: [TimeController])
-final class AppModule {}
+@Module(providers: [Clock, TimeApi])
+final class AppModule extends grund.Module with \$AppModule {
+  const AppModule();
+}
 ''';
 
   /// The files of the valid package.
   static const files = {
     'lib/src/clock.dart': clock,
-    'lib/src/time_controller.dart': controller,
+    'lib/src/time_api.dart': api,
     'lib/src/app_module.dart': module,
   };
+
+  /// `lib/src/only_module.dart`: a module and no API.
+  static const onlyModule = '''
+import 'package:grund/annotations.dart';
+import 'package:grund/grund.dart' as grund;
+
+import 'clock.dart';
+import 'only_module_module.g.dart';
+
+@Module(providers: [Clock])
+final class OnlyModule extends grund.Module with \$OnlyModule {
+  const OnlyModule();
+}
+''';
+
+  /// `lib/src/both.dart`: a module and an API in one library.
+  static const both = '''
+import 'package:grund/annotations.dart';
+import 'package:grund/grund.dart' as grund;
+import 'package:grund_http/annotations.dart';
+import 'package:grund_http/grund_http.dart' as http;
+
+import 'both_module.g.dart';
+
+part 'both_api.g.dart';
+
+@Api('/both')
+final class BothApi {
+  @Get('/')
+  String hello() => 'hello';
+}
+
+@Module(providers: [BothApi])
+final class BothModule extends grund.Module with \$BothModule {
+  const BothModule();
+}
+''';
 
   /// `lib/src/broken.dart`: two syntax errors on one line.
   static const broken = 'final class Broken { void f( }\n';
 
-  /// `lib/src/user.dart`: a request body whose `fromJson` lives in a part
-  /// that another builder (json_serializable) generates.
-  static const user = '''
-part 'user.g.dart';
+  /// `lib/src/inner.dart`: a module whose provider needs a `Clock` nobody
+  /// provides, a `missing_provider`.
+  static const inner = '''
+import 'package:grund/annotations.dart';
+import 'package:grund/grund.dart' as grund;
 
-final class User {
-  const User(this.name);
+import 'clock.dart';
+import 'inner_module.g.dart';
 
-  factory User.fromJson(Map<String, Object?> json) => _\$UserFromJson(json);
+@Injectable()
+final class NeedsClock {
+  NeedsClock(this.clock);
 
-  final String name;
+  final Clock clock;
+}
 
-  Map<String, Object?> toJson() => {'name': name};
+@Module(providers: [NeedsClock])
+final class InnerModule extends grund.Module with \$InnerModule {
+  const InnerModule();
 }
 ''';
 
-  /// `lib/src/user.g.dart`, the generated part of [user].
-  static const userPart = '''
-part of 'user.dart';
+  /// `lib/src/outer.dart`: a valid module that imports [inner].
+  static const outer = '''
+import 'package:grund/annotations.dart';
+import 'package:grund/grund.dart' as grund;
 
-User _\$UserFromJson(Map<String, Object?> json) => User(json['name'] as String);
-''';
+import 'inner.dart';
+import 'outer_module.g.dart';
 
-  /// `lib/src/users.dart`: a controller and module that take a [user].
-  static const users = '''
-import 'package:grund_annotations/grund_annotations.dart';
-
-import 'user.dart';
-
-@Controller('/users')
-final class UsersController {
-  @Post()
-  User create(@Body() User user) => user;
+@Module(imports: [InnerModule()])
+final class OuterModule extends grund.Module with \$OuterModule {
+  const OuterModule();
 }
-
-@Module(id: 'users', controllers: [UsersController])
-final class UsersModule {}
 ''';
 }
