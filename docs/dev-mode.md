@@ -6,25 +6,29 @@ grund dev -t bin/server.dart -- --port 9090
 ```
 
 `dev` does what `gen --watch` does and also runs the application. After
-every save it regenerates `lib/<package>.grund.dart` and then, in the
-running process:
+every save it regenerates the `*.g.dart` files and then, in the running
+process:
 
 1. **hot reloads** the changed libraries (the Dart VM's `reloadSources`);
-2. **reassembles** every grund application in the process: the module
-   functions run again, the new graph is validated, providers that already
-   exist keep their instances, new providers are created, removed ones are
-   dropped, and controllers and the route table are rebuilt. The swap is
-   atomic: a request that is running finishes on the old routes.
+2. **reassembles** every grund application in the process (`App.reassemble`):
+   the module graph is built again from the root module and validated,
+   singletons whose module and key are unchanged keep their instances, new
+   ones are created, removed ones are dropped, and each runner swaps its
+   structures; the HTTP server reads `HttpApi.routes` again and rebuilds its
+   route table. The swap is atomic: a request that is running finishes on the
+   old routes. If any step fails, the previous state keeps serving.
 
-The process, its port, its open connections and the state of your
-providers survive. One line per event tells you what happened:
+The process, its port, its open connections and the state of your singletons
+survive. One line per event tells you what happened, and the routes that were
+added or removed are listed under the summary:
 
 ```text
 # Example output: the timings and the library count vary.
 Started bin/main.dart (pid 4242, VM service http://127.0.0.1:40107/abc=/).
-Reloaded 7 libraries in 82 ms, 0 routes changed.
-Reloaded 7 libraries in 95 ms, 1 route changed.
-Restarting bin/main.dart: lib/src/health/health_controller.dart changed a field, a constructor or a top-level variable.
+Reloaded 3 libraries in 180 ms, 2 added, 0 removed.
+  + GET /hello/bye
+  + GET /hello/hi
+Restarting bin/main.dart: lib/src/greeter.dart changed a field, a constructor or a top-level variable.
 ```
 
 ## When it restarts instead
@@ -66,8 +70,8 @@ it closed gracefully; `SIGTERM` sent to `dev` alone closes it first.
 - **A reload does not run `main` again.** Changes to the server setup in
   `main` (the adapter, the port, middleware added with `app.use`) take
   effect after `R`.
-- **A `Provider.value` keeps its old value**, like every kept instance. A
-  changed configuration value needs a restart.
+- **A kept singleton keeps its old state**, also a configuration value it
+  read in its factory. A changed value needs a restart.
 - **Only `lib/` and the directory of the target are watched.** A change in
   a path dependency or in `tool/` is reloaded with `r`, without the restart
   check; press `R` after changing a field there.

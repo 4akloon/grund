@@ -99,8 +99,9 @@ unchecked user input into a header; see [faq.md](faq.md#known-limitations).
 
 ## Writing an adapter
 
-Implement `HttpAdapter` from `package:grund_http/adapter.dart` (`listen` and
-`close`; the class documentation states the contract), provide it from a
+Implement `HttpAdapter` from `package:grund_http/grund_http.dart` (`listen` and
+`close`; the class documentation states the contract; helpers for it are in
+`package:grund_http/adapter.dart`), provide it from a
 module the way `IoAdapterModule` does, and run `AdapterConformance.run` from
 `grund_conformance` against it, as
 `packages/grund_io/test/io_adapter_conformance_test.dart` does.
