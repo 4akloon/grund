@@ -1,8 +1,0 @@
-# dartnest_build writes lib/users_app.dartnest.dart; build_runner does not
-# tell a builder the package name before it builds, so it is named here.
-targets:
-  $default:
-    builders:
-      dartnest_build:
-        options:
-          package: users_app

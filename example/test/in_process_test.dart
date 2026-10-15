@@ -1,9 +1,9 @@
 // Without a server: TestClient sends requests straight to app.handle, the
 // fastest way to test routes, guards and filters.
-import 'package:dartnest/dartnest.dart';
-import 'package:dartnest/testing.dart';
+import 'package:grund/grund.dart';
+import 'package:grund/testing.dart';
 import 'package:tasks_api/tasks_api.dart';
-import 'package:tasks_api/tasks_api.dartnest.dart';
+import 'package:tasks_api/tasks_api.grund.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -41,7 +41,7 @@ void main() {
         headers: {'x-api-key': 'reader-key'},
       );
       expect(list.json, [
-        {'id': 2, 'title': 'Run dartnest dev', 'done': true},
+        {'id': 2, 'title': 'Run grund dev', 'done': true},
       ]);
     },
   );

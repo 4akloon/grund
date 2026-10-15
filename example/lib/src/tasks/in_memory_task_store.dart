@@ -1,15 +1,15 @@
-import 'package:dartnest_annotations/dartnest_annotations.dart';
+import 'package:grund_annotations/grund_annotations.dart';
 
 import 'task.dart';
 import 'task_store.dart';
 
 /// A [TaskStore] in memory, starting with two tasks. Its state survives a
-/// hot reload, because dartnest keeps provider instances.
+/// hot reload, because grund keeps provider instances.
 @Injectable()
 final class InMemoryTaskStore implements TaskStore {
   final Map<int, Task> _tasks = {
-    1: const Task(id: 1, title: 'Read the dartnest README'),
-    2: const Task(id: 2, title: 'Run dartnest dev', done: true),
+    1: const Task(id: 1, title: 'Read the grund README'),
+    2: const Task(id: 2, title: 'Run grund dev', done: true),
   };
   int _lastId = 2;
 

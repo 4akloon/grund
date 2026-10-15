@@ -1,9 +1,9 @@
-// The committed lib/tasks_api.dartnest.dart is what `dartnest gen` writes
+// The committed lib/tasks_api.grund.dart is what `grund gen` writes
 // for the current sources. After changing an annotated class, regenerate:
-//   dart run dartnest_cli gen
+//   dart run grund_cli gen
 import 'dart:io';
 
-import 'package:dartnest_cli/dartnest_cli.dart';
+import 'package:grund_cli/grund_cli.dart';
 import 'package:test/test.dart';
 
 import 'helpers/example_sources.dart';
@@ -28,7 +28,7 @@ void main() {
     expect(
       File(copy.resolve(ExampleSources.generatedLibrary)).readAsStringSync(),
       await ExampleSources.committedLibrary(),
-      reason: 'Run `dart run dartnest_cli gen` in example/ and commit.',
+      reason: 'Run `dart run grund_cli gen` in example/ and commit.',
     );
   });
 }

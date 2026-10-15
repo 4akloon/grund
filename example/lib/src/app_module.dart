@@ -1,4 +1,4 @@
-import 'package:dartnest_annotations/dartnest_annotations.dart';
+import 'package:grund_annotations/grund_annotations.dart';
 
 import 'common/timing_interceptor.dart';
 import 'config/config_module.dart';

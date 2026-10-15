@@ -1,16 +1,16 @@
 # Dev mode and hot reload
 
 ```sh
-dartnest dev                          # runs bin/main.dart
-dartnest dev -t bin/server.dart -- --port 9090
+grund dev                          # runs bin/main.dart
+grund dev -t bin/server.dart -- --port 9090
 ```
 
 `dev` does what `gen --watch` does and also runs the application. After
-every save it regenerates `lib/<package>.dartnest.dart` and then, in the
+every save it regenerates `lib/<package>.grund.dart` and then, in the
 running process:
 
 1. **hot reloads** the changed libraries (the Dart VM's `reloadSources`);
-2. **reassembles** every dartnest application in the process: the module
+2. **reassembles** every grund application in the process: the module
    functions run again, the new graph is validated, providers that already
    exist keep their instances, new providers are created, removed ones are
    dropped, and controllers and the route table are rebuilt. The swap is
@@ -77,10 +77,10 @@ it closed gracefully; `SIGTERM` sent to `dev` alone closes it first.
   the `Started` line).
 - **Only for development.** `dev` runs the application with the VM service
   enabled on loopback. The service extensions `dev` uses
-  (`ext.dartnest.reassemble`, `ext.dartnest.close`) are registered only
+  (`ext.grund.reassemble`, `ext.grund.close`) are registered only
   outside product mode, so AOT builds (`dart compile exe`) contain none of
   it.
 
-The [`dartnest_cli` README](../packages/dartnest_cli/README.md#dev) has
+The [`grund_cli` README](../packages/grund_cli/README.md#dev) has
 every rule, timeout and exit code; the [example](../example/README.md#hot-reload)
 walks through a session.

@@ -1,6 +1,6 @@
 # Testing
 
-Everything in dartnest is a value, so tests need no special module and no
+Everything in grund is a value, so tests need no special module and no
 server. The example's `test/` directory uses each technique below.
 
 ## Services: plain classes
@@ -43,7 +43,7 @@ usual way to let tests replace a dependency of a real module.
 
 ## The HTTP layer without a socket
 
-`TestClient` from `package:dartnest/testing.dart` sends requests through
+`TestClient` from `package:grund/testing.dart` sends requests through
 `app.handle`, the full pipeline (middleware, guards, interceptors, pipes,
 filters, serialization) without a server:
 
@@ -86,7 +86,7 @@ and `example/test/e2e_test.dart` runs one suite on both. Pass an
 Check in a test (or in CI) that the committed library matches the sources:
 
 ```sh
-dartnest gen && git diff --exit-code lib/my_app.dartnest.dart
+grund gen && git diff --exit-code lib/my_app.grund.dart
 ```
 
 `example/test/generated_library_test.dart` does it in Dart: it copies the

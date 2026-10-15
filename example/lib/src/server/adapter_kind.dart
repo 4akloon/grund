@@ -1,8 +1,8 @@
 /// Which adapter `bin/main.dart` serves with.
 enum AdapterKind {
-  /// `IoAdapter` from `dartnest_io`.
+  /// `IoAdapter` from `grund_io`.
   io,
 
-  /// `ShelfAdapter` from `dartnest_shelf`.
+  /// `ShelfAdapter` from `grund_shelf`.
   shelf,
 }

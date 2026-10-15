@@ -1,6 +1,6 @@
 # Releasing
 
-How a version of the dartnest packages reaches pub.dev. Every step that
+How a version of the grund packages reaches pub.dev. Every step that
 leaves this machine (creating the GitHub repository, pushing, publishing,
 tagging) is done by a maintainer by hand; nothing in this repository runs
 it automatically.
@@ -13,18 +13,18 @@ Seven packages are published, always together and with the same version
 
 | Order | Package | Depends on (published) |
 | --- | --- | --- |
-| 1 | `dartnest_annotations` | none |
-| 2 | `dartnest` | none |
-| 3 | `dartnest_io` | `dartnest` |
-| 4 | `dartnest_shelf` | `dartnest` |
-| 5 | `dartnest_generator` | none (dev: `dartnest`, `dartnest_annotations`) |
-| 6 | `dartnest_cli` | `dartnest_generator` |
-| 7 | `dartnest_build` | `dartnest_generator` |
+| 1 | `grund_annotations` | none |
+| 2 | `grund` | none |
+| 3 | `grund_io` | `grund` |
+| 4 | `grund_shelf` | `grund` |
+| 5 | `grund_generator` | none (dev: `grund`, `grund_annotations`) |
+| 6 | `grund_cli` | `grund_generator` |
+| 7 | `grund_build` | `grund_generator` |
 
 pub.dev rejects an upload whose `dependencies` are not on pub.dev yet, so
 publish in this order. It does not check `dev_dependencies`.
 
-Not published (`publish_to: none`): `dartnest_conformance` (the adapters'
+Not published (`publish_to: none`): `grund_conformance` (the adapters'
 test suite), the generator's fixture packages `cases_app` and `users_app`,
 and the example `tasks_api`. Published packages may list them as dev
 dependencies: pub.dev does not require them to exist (checked in the
@@ -33,16 +33,16 @@ and pub ignores the dev dependencies of a dependency.
 
 ## Before the first release
 
-1. **The name.** The packages are named `dartnest*`. On 2026-10-14 none of
+1. **The name.** The packages are named `grund*`. On 2026-10-14 none of
    the seven names was taken on pub.dev
    (`https://pub.dev/api/packages/<name>` answered 404). Check again right
    before publishing; a name is taken forever once published. To rename,
-   replace `dartnest` in every pubspec, import, README and doc
-   (`git grep -l dartnest`), then run every check below.
+   replace `grund` in every pubspec, import, README and doc
+   (`git grep -l grund`), then run every check below.
 2. **The repository.** Every pubspec points to
-   `https://github.com/4akLoon/dartnest` (branch `master`). Create that
+   `https://github.com/4akLoon/grund` (branch `master`). Create that
    repository and push `master`, or replace the URL everywhere:
-   `git grep -l 'github.com/4akLoon/dartnest'`.
+   `git grep -l 'github.com/4akLoon/grund'`.
 3. **CI.** Push, and wait for `.github/workflows/ci.yaml` to pass on both
    SDKs (3.8.0 and stable). Until it has run once, the SDK floor 3.8 is
    declared but not verified.
@@ -52,9 +52,9 @@ and pub ignores the dev dependencies of a dependency.
 
 ## Known risks / check before first publish
 
-- **Dev dependencies on unpublished packages.** `dartnest_generator` has dev
-  dependencies on `cases_app`/`users_app` (test fixtures) and `dartnest_io`
-  and `dartnest_shelf` on `dartnest_conformance`; none of them is published.
+- **Dev dependencies on unpublished packages.** `grund_generator` has dev
+  dependencies on `cases_app`/`users_app` (test fixtures) and `grund_io`
+  and `grund_shelf` on `grund_conformance`; none of them is published.
   `dart pub publish --dry-run` accepts this, but pub.dev scoring may fail to
   resolve them. After the first upload check the package's scoring page; if
   it reports a resolution failure, drop those dev dependencies from the
@@ -66,14 +66,14 @@ and pub ignores the dev dependencies of a dependency.
 
 1. Pick the version (see "Versions" below) and set it in all seven
    `pubspec.yaml` files and in every `^x.y.z` constraint between them,
-   including `example/`, `packages/dartnest_conformance` and the generator
-   fixtures. `packages/dartnest_cli/lib/src/init/project_template.dart`
-   (`dartnestVersion`) and the `^0.1.0` snippets in the READMEs and `docs/`
+   including `example/`, `packages/grund_conformance` and the generator
+   fixtures. `packages/grund_cli/lib/src/init/project_template.dart`
+   (`grundVersion`) and the `^0.1.0` snippets in the READMEs and `docs/`
    name the version users should depend on: update them too.
 2. Add a `## x.y.z` section at the top of each package's `CHANGELOG.md`.
    pub warns when the changelog does not mention the version being
    published. A package without changes gets "No changes; released with
-   the other dartnest packages."
+   the other grund packages."
 3. Run the checks on a clean `master`:
 
    ```sh
@@ -81,16 +81,16 @@ and pub ignores the dev dependencies of a dependency.
    dart format --output=none --set-exit-if-changed packages example
    dart analyze --fatal-infos
    for dir in packages/*/ example/; do (cd "$dir" && dart test) || break; done
-   (cd packages/dartnest_cli && dart test integration && dart test benchmark)
-   (cd packages/dartnest_build && dart test integration)
+   (cd packages/grund_cli && dart test integration && dart test benchmark)
+   (cd packages/grund_build && dart test integration)
    ```
 
 4. Dry-run every package, in the order above. Each must end with
    `Package has 0 warnings.` and exit with 0 (any warning exits with 65):
 
    ```sh
-   for package in dartnest_annotations dartnest dartnest_io dartnest_shelf \
-       dartnest_generator dartnest_cli dartnest_build; do
+   for package in grund_annotations grund grund_io grund_shelf \
+       grund_generator grund_cli grund_build; do
      (cd "packages/$package" && dart pub publish --dry-run) || break
    done
    ```
@@ -100,7 +100,7 @@ and pub ignores the dev dependencies of a dependency.
 6. Publish, in the same order, one package at a time:
 
    ```sh
-   cd packages/dartnest_annotations && dart pub publish
+   cd packages/grund_annotations && dart pub publish
    ```
 
    `dart pub publish` asks for confirmation and, the first time, for a
@@ -109,8 +109,8 @@ and pub ignores the dev dependencies of a dependency.
 7. Tag the commit, one tag per package, and push the tags:
 
    ```sh
-   for package in dartnest_annotations dartnest dartnest_io dartnest_shelf \
-       dartnest_generator dartnest_cli dartnest_build; do
+   for package in grund_annotations grund grund_io grund_shelf \
+       grund_generator grund_cli grund_build; do
      git tag "$package-vx.y.z"
    done
    git push origin --tags
@@ -124,9 +124,9 @@ and pub ignores the dev dependencies of a dependency.
 - Outside the repository, with no path overrides:
 
   ```sh
-  dart pub global activate dartnest_cli
-  dartnest init /tmp/release_check && cd /tmp/release_check
-  dart pub get && dartnest gen && dart run bin/main.dart
+  dart pub global activate grund_cli
+  grund init /tmp/release_check && cd /tmp/release_check
+  dart pub get && grund gen && dart run bin/main.dart
   curl 'localhost:8080/hello?name=you'    # {"message":"Hello, you!"}
   ```
 

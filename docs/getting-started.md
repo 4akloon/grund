@@ -1,34 +1,34 @@
 # Getting started
 
-dartnest needs the Dart SDK 3.8 or later (`dart --version`).
+grund needs the Dart SDK 3.8 or later (`dart --version`).
 
 ## Create an application
 
 ```sh
-dart pub global activate dartnest_cli   # installs the `dartnest` command
-dartnest init my_app
+dart pub global activate grund_cli   # installs the `grund` command
+grund init my_app
 cd my_app
 dart pub get
-dartnest gen
+grund gen
 dart run bin/main.dart
 ```
 
 Without a global activation every command also works as
-`dart run dartnest_cli <command>` inside a package that has `dartnest_cli`
+`dart run grund_cli <command>` inside a package that has `grund_cli`
 in its `dev_dependencies` (the scaffold has).
 
 `init` writes a package that uses annotations:
 
 ```text
 my_app/
-  pubspec.yaml            dartnest, dartnest_annotations, dartnest_io; dev: dartnest_cli
+  pubspec.yaml            grund, grund_annotations, grund_io; dev: grund_cli
   analysis_options.yaml
   .gitignore              .dart_tool/
   bin/main.dart           creates the application and listens on port 8080
   lib/src/hello.dart      HelloService, HelloController, AppModule
 ```
 
-`dartnest gen` reads `lib/` and writes `lib/my_app.dartnest.dart`. That
+`grund gen` reads `lib/` and writes `lib/my_app.grund.dart`. That
 file is ordinary Dart on the explicit API: `Module appModule()` for
 `AppModule` and `Controller<HelloController> helloController()` for the
 controller. Commit it; it changes only when the annotations do.
@@ -42,7 +42,7 @@ curl 'http://localhost:8080/nothing'          # 404: {"statusCode":404,"error":"
 ## Develop with hot reload
 
 ```sh
-dartnest dev
+grund dev
 ```
 
 `dev` runs `bin/main.dart`, regenerates the library on every save and hot
@@ -57,7 +57,7 @@ A feature is a module with its providers and controllers. Create
 `lib/src/todos.dart`:
 
 ```dart
-import 'package:dartnest_annotations/dartnest_annotations.dart';
+import 'package:grund_annotations/grund_annotations.dart';
 
 /// Keeps the todo items in memory.
 @Injectable()
@@ -116,12 +116,12 @@ curl -X POST -H 'content-type: application/json' -d '{"item": "milk"}' \
 ```
 
 A mistake is reported before anything runs. Remove `TodoList` from
-`providers` and `dartnest gen` prints, exits with 1 and leaves the
+`providers` and `grund gen` prints, exits with 1 and leaves the
 generated library as it was:
 
 ```text
 lib/src/todos.dart:19:24: error: No provider for TodoList in module "todos" (resolving: TodosController). [missing_provider]
-1 problem; lib/my_app.dartnest.dart was not changed.
+1 problem; lib/my_app.grund.dart was not changed.
 ```
 
 ## Without annotations

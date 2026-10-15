@@ -49,11 +49,11 @@ jobs:
 
       - name: Integration tests (dev, build_runner)
         run: |
-          (cd packages/dartnest_cli && dart test integration)
-          (cd packages/dartnest_build && dart test integration)
+          (cd packages/grund_cli && dart test integration)
+          (cd packages/grund_build && dart test integration)
 
       - name: Generation benchmark
-        run: cd packages/dartnest_cli && dart test benchmark
+        run: cd packages/grund_cli && dart test benchmark
 
   publish-dry-run:
     name: Publish dry-run
@@ -72,8 +72,8 @@ jobs:
       # In the order of docs/RELEASING.md; any warning fails the job.
       - name: dart pub publish --dry-run
         run: |
-          for package in dartnest_annotations dartnest dartnest_io dartnest_shelf \
-              dartnest_generator dartnest_cli dartnest_build; do
+          for package in grund_annotations grund grund_io grund_shelf \
+              grund_generator grund_cli grund_build; do
             echo "::group::$package"
             (cd "packages/$package" && dart pub publish --dry-run) || exit 1
             echo "::endgroup::"

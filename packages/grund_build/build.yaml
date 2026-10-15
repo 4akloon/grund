@@ -1,0 +1,8 @@
+builders:
+  grund_build:
+    import: package:grund_build/grund_build.dart
+    builder_factories: [grundBuilder]
+    build_extensions: {"$lib$": ["<package>.grund.dart"]}
+    required_inputs: [".dart"]
+    auto_apply: dependents
+    build_to: source

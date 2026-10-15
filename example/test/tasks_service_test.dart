@@ -1,7 +1,7 @@
 // Unit tests: the service is a plain class, and a test module written with
 // the explicit API swaps the store for a fake, even though the application
 // itself is wired with annotations.
-import 'package:dartnest/dartnest.dart';
+import 'package:grund/grund.dart';
 import 'package:tasks_api/tasks_api.dart';
 import 'package:test/test.dart';
 

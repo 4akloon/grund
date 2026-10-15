@@ -16,6 +16,6 @@ final class Task {
   Task copyWith({String? title, bool? done}) =>
       Task(id: id, title: title ?? this.title, done: done ?? this.done);
 
-  /// The JSON form; dartnest serializes results through `toJson()`.
+  /// The JSON form; grund serializes results through `toJson()`.
   Map<String, Object?> toJson() => {'id': id, 'title': title, 'done': done};
 }

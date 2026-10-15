@@ -6,7 +6,7 @@ adapted from the author's `typed_openapi` repository (`CLAUDE.md`,
 
 ## Project
 
-`dartnest` is a NestJS-style modular backend framework for Dart without
+`grund` is a NestJS-style modular backend framework for Dart without
 `dart:mirrors`: explicit typed core (modules, DI, controllers, request
 pipeline), optional annotations turned into that same API by a generator,
 pluggable HTTP adapters. It is a Dart pub workspace of pure-Dart packages.
@@ -22,7 +22,7 @@ pluggable HTTP adapters. It is a Dart pub workspace of pure-Dart packages.
 Minimum SDK: Dart 3.8 (`^3.8.0`), also for generated code.
 
 The `users_app` fixture has the dev dependency `build_runner: '>=2.10.5 <3.0.0'`
-for the `dartnest_build` integration test: pub picks 2.16 on Dart 3.11 or newer
+for the `grund_build` integration test: pub picks 2.16 on Dart 3.11 or newer
 and (expected, not verified here) 2.10 on Dart 3.8, so the workspace is
 expected to resolve on the `^3.8.0` floor. The integration test skips itself below build_runner
 2.16 (`--only-check` is missing there).
@@ -35,24 +35,24 @@ expected to resolve on the `^3.8.0` floor. The integration test skips itself bel
 ```sh
 dart pub get                          # repo root, once and after pubspec edits
 dart analyze                          # repo root; must print "No issues found!"
-cd packages/dartnest && dart test     # same for every package
+cd packages/grund && dart test     # same for every package
 dart format packages example          # a second run must change 0 files
 cd example && dart test               # the example: e2e on both adapters, golden check
 # the example, after changing its annotations (commit the result):
-cd example && dart run dartnest_cli gen
+cd example && dart run grund_cli gen
 # every published package, in release order, must print "0 warnings":
-cd packages/dartnest && dart pub publish --dry-run
-# packages/dartnest_generator, after a deliberate change of generated output:
-DARTNEST_UPDATE_GOLDENS=1 dart test test/golden
-# packages/dartnest_cli: the generation benchmark (not part of `dart test`):
+cd packages/grund && dart pub publish --dry-run
+# packages/grund_generator, after a deliberate change of generated output:
+GRUND_UPDATE_GOLDENS=1 dart test test/golden
+# packages/grund_cli: the generation benchmark (not part of `dart test`):
 dart test benchmark
-# packages/dartnest_cli: the dev integration tests (not part of `dart test`):
+# packages/grund_cli: the dev integration tests (not part of `dart test`):
 dart test integration
-# packages/dartnest_build: the real build_runner over the golden fixture
+# packages/grund_build: the real build_runner over the golden fixture
 # users_app (not part of `dart test`; about 20 s the first time):
 dart test integration
 # generate a package with the CLI, e.g. the generator's golden fixture:
-dart run dartnest_cli gen --directory ../dartnest_generator/test/fixtures/users_app
+dart run grund_cli gen --directory ../grund_generator/test/fixtures/users_app
 ```
 
 Git commands run from the repo root. Commit messages are Conventional Commits
@@ -88,12 +88,12 @@ only. It has not run yet.
 - **Deterministic generator output.** The same sources give byte-identical
   generated files: sort everything, no hash-ordered iteration when emitting.
   A change of generated output is a breaking change of the generator.
-- **The core has no codegen and no server.** `dartnest` depends only on the
+- **The core has no codegen and no server.** `grund` depends only on the
   Dart SDK and `package:meta`: no `dart:mirrors`, no `dart:io` server, no
   shelf, no analyzer. Annotations live in their own dependency-free package;
-  `analyzer` is allowed only in `dartnest_generator`/`dartnest_cli`/
-  `dartnest_build`, `vm_service` only in `dartnest_cli`, and `build` only
-  in `dartnest_build`. `dart:developer` (SDK) is allowed in the core for
+  `analyzer` is allowed only in `grund_generator`/`grund_cli`/
+  `grund_build`, `vm_service` only in `grund_cli`, and `build` only
+  in `grund_build`. `dart:developer` (SDK) is allowed in the core for
   the hot reload service extensions, which register only outside product
   mode.
 - **Generated code is ordinary code on the public API.** If the generator
@@ -102,18 +102,18 @@ only. It has not run yet.
 - **The user's HTTP stack is not ours.** Adapters never rewrite the user's
   server or client setup; `shelfHandler(app)` embeds into an existing shelf
   pipeline unchanged.
-- **The CLI owns only its output.** `dartnest_cli` writes
-  `lib/<package>.dartnest.dart` only when it changed, through a temporary
+- **The CLI owns only its output.** `grund_cli` writes
+  `lib/<package>.grund.dart` only when it changed, through a temporary
   file and a rename, never over a file without the generated header, and
   leaves it as it was while the sources have problems. Under build_runner
-  (`dartnest_build`) the output belongs to build_runner, which deletes a
+  (`grund_build`) the output belongs to build_runner, which deletes a
   conflicting file and the output of a failed step; the builder writes the
   same bytes and header as the CLI, so either accepts the other's file.
 - Escape every string taken from user sources at every interpolation site of
-  generated code (`DartString.literal` in `dartnest_generator`).
+  generated code (`DartString.literal` in `grund_generator`).
 - **Annotations share names with the explicit API** (`Module`,
   `Controller`): a library that uses both imports
-  `package:dartnest/dartnest.dart` with `hide Controller, Module`, and a
+  `package:grund/grund.dart` with `hide Controller, Module`, and a
   module written with the explicit API lives in a file without that `hide`.
 
 ## Code rules
@@ -126,21 +126,21 @@ only. It has not run yet.
   `lib/src`. Constants live in the class they belong to. Exception: functions
   that the spec defines as public API (dynamic-module factories such as
   `Module databaseModule({...})`, `env(...)`, `describeKey`), builder
-  factories that `build.yaml` names (`dartnestBuilder`, in the
-  `dartnest_build` library) and `main`.
+  factories that `build.yaml` names (`grundBuilder`, in the
+  `grund_build` library) and `main`.
 - Lints come from `analysis_options.yaml`; every public member has a `///`
   doc comment; `dart format` keeps the code formatted.
 - Tests do not touch the network; HTTP tests use ephemeral ports on
   loopback; temp files only through a `TempDir` test helper.
-  `dartnest_cli` tests build packages in a `TempDir` and resolve them
+  `grund_cli` tests build packages in a `TempDir` and resolve them
   against this workspace with `WorkspacePackageConfig` (no `pub get`); they
-  run the command line in-process (`CliRun`, `DartnestCli(out:, err:,
+  run the command line in-process (`CliRun`, `GrundCli(out:, err:,
   interruption:, keys:)`), never as a child process. The exceptions are
   `dev`'s: its tests start the user's application as a child process with
   the VM service on loopback (`AppProcess`, `DevSession`), and
   `integration/dev_test.dart` (run with `dart test integration`, not part
-  of `dart test`) also runs the real `dartnest dev` as a child process.
-  `dartnest_build` tests build in memory with `build_test`
+  of `dart test`) also runs the real `grund dev` as a child process.
+  `grund_build` tests build in memory with `build_test`
   (`TestReaderWriter` + `loadIsolateSources()`, no `pub get`), and compare
   with the CLI through `GenerationSession` on a `TempDir` package;
   `integration/build_runner_test.dart` (run with `dart test integration`)
@@ -171,7 +171,7 @@ file already over the limit never grows.
 (composition), each in its own file. `part`/`part of`, mixins used only to
 spread one class over files, and `utils`/`helpers`/`common` files are not
 decomposition. A class made public only to leave a file stays out of the
-barrel (`lib/dartnest.dart` uses `show` lists). No hidden state passed through
+barrel (`lib/grund.dart` uses `show` lists). No hidden state passed through
 fields: pass a parameter or a small immutable context object. A refactor
 changes no behaviour, keeps tests green and is its own commit. Do not
 abstract for a future need: three similar lines beat a premature interface;
@@ -232,7 +232,7 @@ producing a response):
   `HotReloadExtension.handle` turns any failure of `reassemble`/`close`
   (user module functions and factories run there) into a
   `ServiceExtensionResponse.error` carrying the error (plus the stack trace
-  unless it is a `DartnestError`), so `dev` prints it and the application
+  unless it is a `GrundError`), so `dev` prints it and the application
   keeps serving.
 `rethrow` keeps the stack trace. Never silence a lint: no `// ignore:`
 without a comment on why, and no rule removed from `analysis_options.yaml`
@@ -241,12 +241,12 @@ to make a change pass.
 **Tests.** Tests come in the same commit as the code; a new branch of logic
 has a test that fails without it. A test names the behaviour, builds its
 input in the test or a named helper, and checks one thing. Set-up of more
-than about 5 lines repeated becomes a helper. `packages/dartnest_conformance`
+than about 5 lines repeated becomes a helper. `packages/grund_conformance`
 is unpublished test support for the adapter packages: its `lib/` may import
 `package:test`, and the `register` methods of its test groups are held to the
 test-file limits, not to the 40-line method limit.
-The generator's fixture packages (`packages/dartnest_generator/test/fixtures/*`)
-are unpublished workspace members; `users_app.dartnest.dart` there is the
+The generator's fixture packages (`packages/grund_generator/test/fixtures/*`)
+are unpublished workspace members; `users_app.grund.dart` there is the
 golden file: generated, committed, never edited by hand.
 
 **Self-review before saying "done".**

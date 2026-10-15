@@ -132,4 +132,4 @@ Each type in `@UseGuards` and its siblings becomes `Use<T>()`, so it must be
 a provider visible to the controller's module (the example's `TasksModule`
 lists `TrimStringsPipe` and `TaskNotFoundFilter`, and imports `AuthModule`
 for the guards). The complete rules for handler parameters are in the
-[`dartnest_annotations` README](../packages/dartnest_annotations/README.md).
+[`grund_annotations` README](../packages/grund_annotations/README.md).

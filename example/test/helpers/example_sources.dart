@@ -6,7 +6,7 @@ import 'package:path/path.dart' as p;
 /// The `lib/` of this example package, read from the checkout.
 abstract final class ExampleSources {
   /// The generated library the CLI writes, relative to the package root.
-  static const generatedLibrary = 'lib/tasks_api.dartnest.dart';
+  static const generatedLibrary = 'lib/tasks_api.grund.dart';
 
   /// Every file of `lib/` except [generatedLibrary], by path relative to
   /// the package root with `/` separators (`lib/src/tasks/task.dart`).

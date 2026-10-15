@@ -5,8 +5,8 @@ import 'dart:isolate';
 import 'package:path/path.dart' as p;
 
 /// Writes `.dart_tool/package_config.json` for a package outside the
-/// workspace, so the analyzer resolves `package:dartnest`,
-/// `package:dartnest_annotations` and the rest from this checkout without
+/// workspace, so the analyzer resolves `package:grund`,
+/// `package:grund_annotations` and the rest from this checkout without
 /// `dart pub get` (tests do not touch the network).
 abstract final class WorkspacePackageConfig {
   /// Writes the config of package [name] at [root]: every package of the

@@ -1,4 +1,4 @@
-import 'package:dartnest_annotations/dartnest_annotations.dart';
+import 'package:grund_annotations/grund_annotations.dart';
 
 import 'create_task_dto.dart';
 import 'task.dart';

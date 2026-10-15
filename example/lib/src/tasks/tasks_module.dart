@@ -1,4 +1,4 @@
-import 'package:dartnest_annotations/dartnest_annotations.dart';
+import 'package:grund_annotations/grund_annotations.dart';
 
 import '../auth/auth_module.dart';
 import '../common/trim_strings_pipe.dart';

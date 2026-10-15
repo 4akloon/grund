@@ -1,16 +1,16 @@
-name: dartnest_workspace
+name: grund_workspace
 publish_to: none
 environment:
   sdk: ^3.8.0
 workspace:
   - example
-  - packages/dartnest
-  - packages/dartnest_annotations
-  - packages/dartnest_build
-  - packages/dartnest_cli
-  - packages/dartnest_conformance
-  - packages/dartnest_generator
-  - packages/dartnest_generator/test/fixtures/cases_app
-  - packages/dartnest_generator/test/fixtures/users_app
-  - packages/dartnest_io
-  - packages/dartnest_shelf
+  - packages/grund
+  - packages/grund_annotations
+  - packages/grund_build
+  - packages/grund_cli
+  - packages/grund_conformance
+  - packages/grund_generator
+  - packages/grund_generator/test/fixtures/cases_app
+  - packages/grund_generator/test/fixtures/users_app
+  - packages/grund_io
+  - packages/grund_shelf

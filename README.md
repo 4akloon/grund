@@ -1,4 +1,4 @@
-# dartnest
+# grund
 
 A NestJS-style modular backend framework for Dart, without `dart:mirrors`.
 
@@ -16,7 +16,7 @@ the graph at build time and writes one ordinary Dart file per package.
 - **Errors before the first request.** Typed `InjectionError`s with the
   resolution chain; with annotations, `path:line:column` diagnostics.
 - **Typed tokens** (`Token<String>('db.url')`) instead of strings.
-- **Hot reload that keeps state.** `dartnest dev` reloads code changes into
+- **Hot reload that keeps state.** `grund dev` reloads code changes into
   the running server; providers keep their instances, routes are rebuilt.
 - **Two servers, one contract.** `dart:io` or shelf, both checked by the
   same conformance suite on real sockets.
@@ -26,12 +26,12 @@ the graph at build time and writes one ordinary Dart file per package.
 ### With annotations
 
 ```sh
-dart pub global activate dartnest_cli
-dartnest init my_app
+dart pub global activate grund_cli
+grund init my_app
 cd my_app
 dart pub get
-dartnest gen          # writes lib/my_app.dartnest.dart
-dartnest dev          # runs bin/main.dart and hot reloads it
+grund gen          # writes lib/my_app.grund.dart
+grund dev          # runs bin/main.dart and hot reloads it
 curl 'http://localhost:8080/hello?name=you'    # {"message":"Hello, you!"}
 ```
 
@@ -60,13 +60,13 @@ and the generator turns `AppModule` into `Module appModule()`, which
 ```yaml
 # pubspec.yaml
 dependencies:
-  dartnest: ^0.1.0
-  dartnest_io: ^0.1.0
+  grund: ^0.1.0
+  grund_io: ^0.1.0
 ```
 
 ```dart
-import 'package:dartnest/dartnest.dart';
-import 'package:dartnest_io/dartnest_io.dart';
+import 'package:grund/grund.dart';
+import 'package:grund_io/grund_io.dart';
 
 final class Greeter {
   Map<String, String> greet(String name) => {'message': 'Hello, $name!'};
@@ -110,19 +110,19 @@ and the other way round.
 
 | Package | What it is |
 | --- | --- |
-| [`dartnest`](packages/dartnest) | The core: modules, DI, controllers, the request pipeline, `TestClient`, the hot reload hooks. No `dart:io`. |
-| [`dartnest_io`](packages/dartnest_io) | `IoAdapter`: serves an application on a `dart:io` `HttpServer`. |
-| [`dartnest_shelf`](packages/dartnest_shelf) | `ShelfAdapter`, and `shelfHandler(app)` to mount an application in a shelf pipeline. |
-| [`dartnest_annotations`](packages/dartnest_annotations) | `@Module`, `@Injectable`, `@Controller`, `@Get`, ... No dependencies. |
-| [`dartnest_generator`](packages/dartnest_generator) | Turns the annotations into code and validates the module graph. A library for the drivers below. |
-| [`dartnest_cli`](packages/dartnest_cli) | The `dartnest` command: `gen`, `gen --watch`, `dev` (hot reload), `init`. |
-| [`dartnest_build`](packages/dartnest_build) | The same generator as a build_runner builder. |
+| [`grund`](packages/grund) | The core: modules, DI, controllers, the request pipeline, `TestClient`, the hot reload hooks. No `dart:io`. |
+| [`grund_io`](packages/grund_io) | `IoAdapter`: serves an application on a `dart:io` `HttpServer`. |
+| [`grund_shelf`](packages/grund_shelf) | `ShelfAdapter`, and `shelfHandler(app)` to mount an application in a shelf pipeline. |
+| [`grund_annotations`](packages/grund_annotations) | `@Module`, `@Injectable`, `@Controller`, `@Get`, ... No dependencies. |
+| [`grund_generator`](packages/grund_generator) | Turns the annotations into code and validates the module graph. A library for the drivers below. |
+| [`grund_cli`](packages/grund_cli) | The `grund` command: `gen`, `gen --watch`, `dev` (hot reload), `init`. |
+| [`grund_build`](packages/grund_build) | The same generator as a build_runner builder. |
 
 Every package README lists the exact rules of that package.
 
 ## Coming from NestJS
 
-| NestJS | dartnest (explicit API) | dartnest (annotations) |
+| NestJS | grund (explicit API) | grund (annotations) |
 | --- | --- | --- |
 | `@Module({imports, providers, controllers, exports})` | `Module(id: ..., imports: ..., ...)` | `@Module(id: ..., ...)` on a class |
 | `@Global()` | `Module(global: true)` | `@Module(global: true)` |
@@ -140,10 +140,10 @@ Every package README lists the exact rules of that package.
 | `NestMiddleware`, `app.use` | `app.use(middleware)` | the same |
 | `NotFoundException`, `HttpException` | the same names | the same |
 | `NestFactory.create(AppModule)` | `Application.create(appModule, adapter: IoAdapter())` | the same, with the generated `appModule` |
-| platform-express / platform-fastify | `dartnest_io` / `dartnest_shelf` | the same |
+| platform-express / platform-fastify | `grund_io` / `grund_shelf` | the same |
 | `Test.createTestingModule`, supertest | `Container.create(testModule)`, `TestClient(app)` | the same |
-| `nest start --watch` | `dartnest dev` (reload, not restart) | the same |
-| `nest new` | `dartnest init` | the same |
+| `nest start --watch` | `grund dev` (reload, not restart) | the same |
+| `nest new` | `grund init` | the same |
 
 Not in 0.1.0: request-scoped providers, lifecycle hooks (`OnModuleInit`),
 WebSockets, SSE, GraphQL, microservice transports, OpenAPI generation. See

@@ -2,7 +2,7 @@
 
 Annotations are a shorter way to write the explicit API. They have no
 behavior: a generator reads them with the Dart analyzer and writes
-`lib/<package>.dartnest.dart`, one ordinary library per package, which you
+`lib/<package>.grund.dart`, one ordinary library per package, which you
 commit next to your code. Nothing else in your package is changed, and no
 `part` files are involved.
 
@@ -19,22 +19,22 @@ For each class the generator writes a function:
 They are functions rather than top-level `final`s so that a hot reload can
 build the graph again. Pass the root module's function to
 `Application.create(appModule)`. The example's committed
-[`lib/tasks_api.dartnest.dart`](../example/lib/tasks_api.dartnest.dart)
+[`lib/tasks_api.grund.dart`](../example/lib/tasks_api.grund.dart)
 shows the whole output for a real application.
 
 ## Running the generator
 
 | Driver | Command | Use it when |
 | --- | --- | --- |
-| `dartnest_cli` | `dartnest gen`, `dartnest gen --watch`, `dartnest dev` | the default; fast incremental analysis, hot reload |
-| `dartnest_build` | `dart run build_runner build` / `watch` | the package already uses build_runner (see [build-runner.md](build-runner.md)) |
+| `grund_cli` | `grund gen`, `grund gen --watch`, `grund dev` | the default; fast incremental analysis, hot reload |
+| `grund_build` | `dart run build_runner build` / `watch` | the package already uses build_runner (see [build-runner.md](build-runner.md)) |
 
 Both produce the same bytes. Run one driver per package.
 
 To keep the committed file honest in CI:
 
 ```sh
-dartnest gen && git diff --exit-code lib/my_app.dartnest.dart
+grund gen && git diff --exit-code lib/my_app.grund.dart
 ```
 
 The example does the same in a test (`example/test/generated_library_test.dart`).
@@ -52,7 +52,7 @@ lib/src/todos.dart:19:24: error: No provider for TodoList in module "todos" (res
 It finds missing and circular dependencies, duplicate module ids and
 providers, invalid exports, import cycles, handler parameters it cannot
 bind, private types the generated library cannot name, and more; the
-[`dartnest_generator` README](../packages/dartnest_generator/README.md)
+[`grund_generator` README](../packages/grund_generator/README.md)
 lists every code. What it cannot see is checked again by
 `Application.create` at startup, so a mistake never reaches a request.
 
@@ -61,7 +61,7 @@ lists every code. What it cannot see is checked again by
 - `Module` and `Controller` are names of both the annotations and the
   explicit API. A file that uses annotations and also needs the explicit
   API (for `Guard`, `ExecutionContext`, `Token`, ...) imports
-  `package:dartnest/dartnest.dart` with `hide Controller, Module`.
+  `package:grund/grund.dart` with `hide Controller, Module`.
 - Set `@Module(id:)` explicitly. It defaults to the class name, so a rename
   would change the id.
 - Injection uses the unnamed public constructor. Every parameter is a
@@ -78,7 +78,7 @@ lists every code. What it cannot see is checked again by
   placed on the method or the class, like `@Roles([Role.editor])`.
 
 The full list is in the
-[`dartnest_annotations` README](../packages/dartnest_annotations/README.md).
+[`grund_annotations` README](../packages/grund_annotations/README.md).
 
 ## One application, two styles
 

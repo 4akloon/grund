@@ -1,0 +1,14 @@
+name: grund_annotations
+description: >-
+  Annotations for grund applications; grund_generator turns them into
+  the explicit grund API. No dependencies.
+version: 0.1.0
+repository: https://github.com/4akLoon/grund/tree/master/packages/grund_annotations
+issue_tracker: https://github.com/4akLoon/grund/issues
+topics: [server, framework, annotations, codegen]
+environment:
+  sdk: ^3.8.0
+resolution: workspace
+dev_dependencies:
+  lints: ^5.1.0
+  test: ^1.25.0

@@ -1,5 +1,5 @@
-import 'package:dartnest/dartnest.dart' hide Controller, Module;
-import 'package:dartnest_annotations/dartnest_annotations.dart';
+import 'package:grund/grund.dart' hide Controller, Module;
+import 'package:grund_annotations/grund_annotations.dart';
 
 /// Trims surrounding whitespace from string arguments and from the string
 /// fields of a JSON object body, before they are converted or decoded.

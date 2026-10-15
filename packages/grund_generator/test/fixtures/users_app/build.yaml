@@ -1,0 +1,8 @@
+# grund_build writes lib/users_app.grund.dart; build_runner does not
+# tell a builder the package name before it builds, so it is named here.
+targets:
+  $default:
+    builders:
+      grund_build:
+        options:
+          package: users_app

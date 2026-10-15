@@ -1,6 +1,6 @@
 # Adapters: dart:io and shelf
 
-`package:dartnest` has no server. An application answers an `HttpRequest`
+`package:grund` has no server. An application answers an `HttpRequest`
 with `app.handle(request)`; an adapter connects that to a real HTTP server.
 
 ```dart
@@ -10,7 +10,7 @@ await app.listen(port: 8080);                  // address: 'localhost' by defaul
 await app.close();                             // graceful; close(force: true) drops connections
 ```
 
-| | `IoAdapter` (`dartnest_io`) | `ShelfAdapter` (`dartnest_shelf`) |
+| | `IoAdapter` (`grund_io`) | `ShelfAdapter` (`grund_shelf`) |
 | --- | --- | --- |
 | Server | `dart:io` `HttpServer` | `shelf_io` |
 | HTTPS | `IoAdapter(securityContext: ...)` | through your own shelf server |
@@ -28,7 +28,7 @@ client that went away, a body stream that fails halfway) go to the
 adapter's `onError`, by default stderr.
 
 Both pass the same conformance suite on real sockets
-(`packages/dartnest_conformance`), so an application behaves the same on
+(`packages/grund_conformance`), so an application behaves the same on
 either; the example's end-to-end tests run on both.
 
 ## Choosing
@@ -80,8 +80,8 @@ injected. Never put unchecked user input into a header; see
 
 ## Writing an adapter
 
-Implement `HttpAdapter` from `package:dartnest` (`listen` and `close`; the
+Implement `HttpAdapter` from `package:grund` (`listen` and `close`; the
 class documentation states the contract) and run
-`AdapterConformance.run` from `dartnest_conformance` against it, as
-`packages/dartnest_io/test/io_adapter_conformance_test.dart` does.
-`dartnest_conformance` is not published; depend on it by path or git.
+`AdapterConformance.run` from `grund_conformance` against it, as
+`packages/grund_io/test/io_adapter_conformance_test.dart` does.
+`grund_conformance` is not published; depend on it by path or git.

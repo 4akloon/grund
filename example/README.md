@@ -1,14 +1,14 @@
-# tasks_api — the dartnest example
+# tasks_api — the grund example
 
-A small tasks API that uses every part of dartnest: modules with imports,
+A small tasks API that uses every part of grund: modules with imports,
 exports and a global module, typed tokens, an interface bound to an
 implementation, controllers, a guard chain with route metadata, a pipe, an
 interceptor, an exception filter, middleware, both adapters and hot reload.
 
 The same application is wired twice:
 
-- with **annotations** (`lib/src/**`), turned by `dartnest_cli gen` into the
-  committed `lib/tasks_api.dartnest.dart`, which exports `appModule`;
+- with **annotations** (`lib/src/**`), turned by `grund_cli gen` into the
+  committed `lib/tasks_api.grund.dart`, which exports `appModule`;
 - with the **explicit API** by hand in `lib/explicit.dart`, which exports
   `explicitAppModule` and reuses the same classes.
 
@@ -67,7 +67,7 @@ curl -X DELETE -H 'x-api-key: editor-key' localhost:8080/tasks/3
 After editing an annotated class, regenerate and commit the library:
 
 ```sh
-dart run dartnest_cli gen
+dart run grund_cli gen
 ```
 
 `test/generated_library_test.dart` fails while the committed file is out
@@ -76,7 +76,7 @@ of date.
 ## Hot reload
 
 ```sh
-dart run dartnest_cli dev                   # or: dart run dartnest_cli dev -- --shelf
+dart run grund_cli dev                   # or: dart run grund_cli dev -- --shelf
 ```
 
 `dev` generates, starts `bin/main.dart` and watches `lib/` and `bin/`:
@@ -104,4 +104,4 @@ dart test
 - `test/tasks_service_test.dart`: the service alone, and a test module
   with a fake store.
 - `test/generated_library_test.dart`: the committed generated library is
-  what `dartnest_cli gen` writes.
+  what `grund_cli gen` writes.

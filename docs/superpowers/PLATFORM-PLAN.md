@@ -9,7 +9,7 @@
 
 | Репозиторій | Роль у платформі | Роадмап | Мова документів |
 |---|---|---|---|
-| `dartnest` → `grund` | Фреймворк: ядро, HTTP, модулі (усі `grund_*` пакети) | `docs/superpowers/ROADMAP.md` (G1–G8) | українська (`docs/superpowers/`), англійська для користувача |
+| `grund` (колишній `dartnest`) | Фреймворк: ядро, HTTP, модулі (усі `grund_*` пакети) | `docs/superpowers/ROADMAP.md` (G1–G8) | українська (`docs/superpowers/`), англійська для користувача |
 | `basalt_dart` | ORM, міграції, `basalt` CLI | `docs/grund-roadmap.md` (B1–B5) | англійська |
 | `typed_openapi` | Клієнт-генератор із OpenAPI, рантайм клієнта | `docs/grund-roadmap.md` (T1–T5) | англійська |
 | `dart_token_manager` | Життєвий цикл токенів на клієнті | `docs/grund-roadmap.md` (K1, далі K2) | англійська |
@@ -101,8 +101,9 @@ dart2js і dart2wasm. Документи — англійською.
 
 ## 6. Перейменування і публікація
 
-1. **G1, перша задача:** `dartnest*` → `grund*` у пакетах, імпортах,
-   генераторі й документах (розділ 2 spec ядра).
+1. **Зроблено 2026-10-15** (гілка `grund-rename`): `dartnest*` → `grund*` у
+   пакетах, імпортах, генераторі й документах (розділ 2 spec ядра); тека
+   репозиторію — `~/projects/grund`.
 2. **Зовнішні кроки** (лише з явного «так» користувача): створення org
    `grund-dev` на GitHub, перейменування репозиторію, новий репозиторій
    `typed_sse`. Імена на pub.dev (`grund`, `grund_cli`, `grund_http`,

@@ -4,7 +4,7 @@ final class CreateTaskDto {
   const CreateTaskDto(this.title);
 
   /// Reads the body; a missing, empty or too long title is a
-  /// [FormatException], which dartnest answers with 400.
+  /// [FormatException], which grund answers with 400.
   factory CreateTaskDto.fromJson(Map<String, Object?> json) => switch (json) {
     {'title': final String title}
         when title.isNotEmpty && title.length <= maxTitleLength =>

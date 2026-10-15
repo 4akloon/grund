@@ -8,7 +8,7 @@ whole graph.
 ## Providers
 
 ```dart
-import 'package:dartnest/dartnest.dart';
+import 'package:grund/grund.dart';
 
 /// A typed token for a value that is not a class of its own.
 const dbUrl = Token<String>('db.url');
@@ -124,9 +124,9 @@ reported with the chain that needed it:
 MissingProviderError: No provider for Clock in module "users" (resolving: UsersService).
 ```
 
-With annotations most of these errors are found by `dartnest gen`, with a
+With annotations most of these errors are found by `grund gen`, with a
 file, a line and a column, before the program is compiled. The full list
-is in the [`dartnest` README](../packages/dartnest/README.md).
+is in the [`grund` README](../packages/grund/README.md).
 
 ## The same with annotations
 

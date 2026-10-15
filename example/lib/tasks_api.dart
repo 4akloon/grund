@@ -1,6 +1,6 @@
-/// The tasks API of the dartnest example: the classes both module graphs
+/// The tasks API of the grund example: the classes both module graphs
 /// share. The graphs themselves are `appModule` in
-/// `tasks_api.dartnest.dart` (generated from the annotations) and
+/// `tasks_api.grund.dart` (generated from the annotations) and
 /// `explicitAppModule` in `explicit.dart` (written by hand).
 library;
 

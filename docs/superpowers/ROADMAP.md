@@ -43,7 +43,7 @@ README і quick start для того, що вже є, приклад покри
 
 | # | Етап | Пакети цього репо | Залежить від інших репо | Готово, коли |
 |---|---|---|---|---|
-| G1 | **Ядро, HTTP, генератор** (spec `2026-10-15-grund-core-design.md`) | перейменування `dartnest*` → `grund*`; `grund`, `grund_http`, `grund_generator`, `grund_annotations`, `grund_cli`, `grund_build`, `grund_io`, `grund_shelf` | — | Приклад `tasks_api` у двох формах проходить ті самі e2e на обох адаптерах; `grund` без HTTP у залежностях; golden-фікстура на новій моделі |
+| G1 | **Ядро, HTTP, генератор** (spec `2026-10-15-grund-core-design.md`; перейменування `dartnest*` → `grund*` уже зроблено) | `grund`, `grund_http`, `grund_generator`, `grund_annotations`, `grund_cli`, `grund_build`, `grund_io`, `grund_shelf` | — | Приклад `tasks_api` у двох формах проходить ті самі e2e на обох адаптерах; `grund` без HTTP у залежностях; golden-фікстура на новій моделі |
 | G2 | **OpenAPI** | `grund_openapi`; аналіз DTO і валідація полів у генераторі | typed_openapi T1–T2 (контрактний тест) | `GET /openapi.json` з `ETag`, Scalar UI, `export` для CI; RFC 9457 у схемах; контрактний тест: `typed_openapi check` без діагностик, згенерований клієнт проходить e2e прикладу |
 | G3 | **Дані** | `grund_basalt`, `grund_basalt_postgres`, `grund_basalt_sqlite` | basalt B1–B3 | Кілька іменованих підключень; `transactionPerRequest`; health-check і метрики пулу; e2e прикладу на Postgres (контейнер у CI) і SQLite in-memory |
 | G4 | **Auth** | `grund_auth`, `grund_auth_oauth` | basalt B4; typed_openapi T3; token_manager K1 | Сесії + JWT-стратегія, refresh-ротація з reuse detection, email+password (argon2id), Google, Apple; хуки з `SecurityScheme`; Bearer і `httpOnly` cookie; e2e через згенерований клієнт із token_manager |

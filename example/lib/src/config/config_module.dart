@@ -5,8 +5,8 @@
 /// the tokens from the same place.
 library;
 
-import 'package:dartnest/dartnest.dart' hide Controller, Module;
-import 'package:dartnest_annotations/dartnest_annotations.dart';
+import 'package:grund/grund.dart' hide Controller, Module;
+import 'package:grund_annotations/grund_annotations.dart';
 
 import '../auth/role.dart';
 
