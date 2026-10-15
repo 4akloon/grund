@@ -72,8 +72,8 @@ void main() {
     'a module and an api in one library are a conflicting_outputs',
     () async {
       expect(await problems(['lib/apis/module_and_api.dart']), [
-        'lib/apis/module_and_api.dart:14:13 conflicting_outputs',
-        'lib/apis/module_and_api.dart:22:13 conflicting_outputs',
+        'lib/apis/module_and_api.dart:16:13 conflicting_outputs',
+        'lib/apis/module_and_api.dart:24:13 conflicting_outputs',
       ]);
     },
   );
