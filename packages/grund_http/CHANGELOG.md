@@ -9,3 +9,6 @@
   throw. Routes, the listener and shutdown are logged, and
   `HttpConfig.accessLog` (default `true`) logs each request on
   `grund.access`.
+- The HTTP annotations (`@Api`, `Get`, `Post`, `Put`, `Patch`, `Delete`,
+  `Path`, `Query`, `Header`, `Cookie`, `Body`, `Range`, `Length`, `Pattern`,
+  `OneOf`) in `package:grund_http/annotations.dart`.
