@@ -20,7 +20,7 @@ abstract final class ExportEntryReader {
             : KeyExport(
                 BindingKey(
                   TypeReader.read(type),
-                  Annotations.named(type.element),
+                  Annotations.core.named(type.element),
                 ),
               ),
       );

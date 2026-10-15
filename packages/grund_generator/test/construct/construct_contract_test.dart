@@ -189,12 +189,14 @@ void main() {
 
   test('construct annotations join their member annotations', () {
     const one = ConstructAnnotations(
+      libraries: {'package:app/src/jobs/'},
       classes: {
         'Job': {'Every'},
       },
       injectable: {'Job'},
     );
     const two = ConstructAnnotations(
+      libraries: {'package:app/src/channels/'},
       classes: {
         'Job': {'Once'},
         'Channel': {},
@@ -208,6 +210,10 @@ void main() {
       'Channel': <String>{},
     });
     expect(both.injectable, {'Job'});
+    expect(both.libraries, {
+      'package:app/src/jobs/',
+      'package:app/src/channels/',
+    });
     expect(both.names, {'Job', 'Every', 'Once', 'Channel'});
   });
 

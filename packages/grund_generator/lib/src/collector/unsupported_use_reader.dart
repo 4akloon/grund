@@ -9,13 +9,16 @@ import 'source_locations.dart';
 /// honour, so that nothing is dropped silently.
 final class UnsupportedUseReader {
   /// Creates the reader of the uses of [annotations].
-  UnsupportedUseReader(this.locations, this.annotations);
+  UnsupportedUseReader(this.locations, this.annotations)
+    : _source = Annotations(annotations.libraries);
 
   /// Locations of declarations.
   final SourceLocations locations;
 
   /// The annotations the generator reads.
   final ConstructAnnotations annotations;
+
+  final Annotations _source;
 
   /// The unsupported uses in [library]: class annotations on mixins,
   /// enums, extension types and extensions, and in every class unresolved
@@ -37,7 +40,7 @@ final class UnsupportedUseReader {
 
   Iterable<UnsupportedUse> _misplaced(Element element) sync* {
     final classAnnotations = annotations.classes.keys.toSet();
-    for (final annotation in Annotations.all(element, classAnnotations)) {
+    for (final annotation in _source.all(element, classAnnotations)) {
       final name = annotation.type?.element?.name;
       yield _use(
         element,
@@ -48,7 +51,7 @@ final class UnsupportedUseReader {
   }
 
   Iterable<UnsupportedUse> _unresolved(Element element) sync* {
-    for (final name in Annotations.unresolved(element, annotations.names)) {
+    for (final name in _source.unresolved(element, annotations.names)) {
       yield _use(
         element,
         'An argument of @$name on ${element.displayName} is not a constant '
@@ -61,12 +64,12 @@ final class UnsupportedUseReader {
     final names = {
       for (final MapEntry(key: name, value: members)
           in annotations.classes.entries)
-        if (Annotations.find(element, name) != null) ...members,
+        if (_source.find(element, name) != null) ...members,
     };
     if (names.isEmpty) return;
     for (final supertype in element.allSupertypes) {
       for (final method in supertype.element.methods) {
-        if (Annotations.all(method, names).isEmpty) continue;
+        if (_source.all(method, names).isEmpty) continue;
         yield _use(
           element,
           '${supertype.element.displayName}.${method.displayName} is '

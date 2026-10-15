@@ -29,9 +29,9 @@ final class ModuleReferenceReader {
 
   /// Whether [type] extends the core `Module`.
   static bool isModuleClass(InterfaceType type) =>
-      TypeReader.hasSupertype(type.element, 'Module', 'package:grund/');
+      TypeReader.extendsCoreModule(type.element);
 
   bool _isLocal(InterfaceType type) =>
-      Annotations.find(type.element, 'Module') != null &&
+      Annotations.core.find(type.element, 'Module') != null &&
       '${type.element.library.uri}'.startsWith('package:$packageName/');
 }

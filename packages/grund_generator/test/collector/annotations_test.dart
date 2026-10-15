@@ -17,36 +17,43 @@ void main() {
   String? typeName(DartObject? value) => value?.type?.element?.name;
 
   test('find returns the first annotation of that name', () {
-    expect(typeName(Annotations.find(holder, 'Api')), 'Api');
-    expect(Annotations.find(holder, 'Module'), isNull);
+    expect(typeName(Annotations.core.find(holder, 'Module')), 'Module');
+    expect(Annotations.core.find(holder, 'Injectable'), isNull);
   });
 
   test('all returns annotations of any given name in source order', () {
-    final found = Annotations.all(holder, {'Api', 'Named'});
+    final found = Annotations.core.all(holder, {'Module', 'Named'});
 
-    expect(found.map(typeName), ['Named', 'Api']);
+    expect(found.map(typeName), ['Named', 'Module']);
   });
 
   test('an annotation from another package is not matched by name', () {
-    expect(Annotations.all(holder, {'Tagged', 'Wrapped'}), isEmpty);
+    expect(Annotations.core.all(holder, {'Tagged', 'Wrapped'}), isEmpty);
+  });
+
+  test('a class of that name from an unlisted library is not matched', () {
+    const other = Annotations({'package:other/src/'});
+
+    expect(other.find(holder, 'Module'), isNull);
+    expect(other.named(holder), isNull);
   });
 
   test('named reads the name of @Named', () {
-    expect(Annotations.named(holder), 'db');
+    expect(Annotations.core.named(holder), 'db');
   });
 
   test('field reads a field declared on the annotation class', () {
-    final api = Annotations.find(holder, 'Api')!;
+    final named = Annotations.core.find(holder, 'Named')!;
 
-    expect(Annotations.field(api, 'path')?.toStringValue(), '/holder');
-    expect(Annotations.field(api, 'missing'), isNull);
+    expect(Annotations.field(named, 'name')?.toStringValue(), 'db');
+    expect(Annotations.field(named, 'missing'), isNull);
   });
 
   test('describe names a type and falls back to the value type', () {
-    final api = Annotations.find(holder, 'Api')!;
-    final use = Annotations.field(api, 'use')?.toListValue();
+    final module = Annotations.core.find(holder, 'Module')!;
+    final imports = Annotations.field(module, 'imports')?.toListValue();
 
-    expect(Annotations.describe(use!.single), 'a value of type Symbol');
-    expect(Annotations.describe(api), 'a value of type Api');
+    expect(Annotations.describe(imports!.single), 'a value of type Symbol');
+    expect(Annotations.describe(module), 'a value of type Module');
   });
 }

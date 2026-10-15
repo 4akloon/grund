@@ -103,6 +103,7 @@ void main() {
     expect(broken.invalidEntries, [
       'imports: String is not a const instance of a Module.',
       'imports: a value of type String is not a const instance of a Module.',
+      'imports: a value of type Module is not a const instance of a Module.',
       'providers: a value of type int is not a class or Bind<I, C>().',
       'providers: a value of type Label is not a class or Bind<I, C>().',
       'exports: a value of type int is not a class, a Key<T>() or an '

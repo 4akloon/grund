@@ -37,6 +37,7 @@ final class PackageCollector {
 
   /// The annotations the collector reads itself.
   static const coreAnnotations = ConstructAnnotations(
+    libraries: {Annotations.coreLibrary},
     classes: {
       'Injectable': {},
       'Module': {'Provides'},
@@ -110,12 +111,12 @@ final class PackageCollector {
     _Readers readers,
     _Parts parts,
   ) {
-    if (Annotations.find(element, 'Module') case final module?) {
+    if (readers.source.find(element, 'Module') case final module?) {
       parts.modules.add(readers.modules.read(element, module));
     } else {
       parts.strayProvides.addAll(readers.provides.read(element));
     }
-    if (Annotations.all(element, readers.injectable).isNotEmpty) {
+    if (readers.source.all(element, readers.injectable).isNotEmpty) {
       parts.injectables.add(readers.injectables.read(element));
     }
   }
@@ -135,12 +136,14 @@ final class _Readers {
     SourceLocations locations,
     ConstructAnnotations annotations,
   ) : injectable = annotations.injectable,
-      injectables = InjectableReader(locations, annotations.injectable),
-      modules = ModuleReader(packageName, locations, annotations.injectable),
+      source = Annotations(annotations.libraries),
+      injectables = InjectableReader(locations, annotations),
+      modules = ModuleReader(packageName, locations, annotations),
       provides = ProvidesReader(locations),
       unsupported = UnsupportedUseReader(locations, annotations);
 
   final Set<String> injectable;
+  final Annotations source;
   final InjectableReader injectables;
   final ModuleReader modules;
   final ProvidesReader provides;

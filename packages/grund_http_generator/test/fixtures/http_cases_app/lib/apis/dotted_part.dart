@@ -1,5 +1,5 @@
 // A library whose part directive is written with a redundant `./`.
-import 'package:grund_annotations/grund_annotations.dart';
+import 'package:grund_http/annotations.dart';
 import 'package:grund_http/grund_http.dart' as http;
 
 part './dotted_part_api.g.dart';

@@ -3,7 +3,8 @@
 // The unresolved identifier is the point of the fixture: the generator
 // must report it, not default.
 // ignore_for_file: undefined_identifier, const_with_non_constant_argument
-import 'package:grund_annotations/grund_annotations.dart';
+import 'package:grund_http/annotations.dart';
+import 'package:grund/annotations.dart';
 
 /// A route to mix in.
 mixin RouteMixin {

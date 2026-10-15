@@ -1,6 +1,7 @@
 import 'package:analyzer/dart/constant/value.dart';
 import 'package:analyzer/dart/element/element.dart';
 
+import '../construct/construct_annotations.dart';
 import '../model/module_model.dart';
 import '../model/module_reference.dart';
 import 'annotations.dart';
@@ -16,11 +17,16 @@ import 'type_reader.dart';
 /// Reads a `@Module` class into a [ModuleModel]. Entries it cannot read go
 /// to [ModuleModel.invalidEntries]; the module construct reports them.
 final class ModuleReader {
-  /// Creates the reader for package [packageName]; [injectable] are the
-  /// class annotations that make a provider class injectable.
-  ModuleReader(this.packageName, this.locations, Set<String> injectable)
-    : _references = ModuleReferenceReader(packageName),
-      _providers = ProviderEntryReader(InjectableReader(locations, injectable)),
+  /// Creates the reader for package [packageName]; the injectable
+  /// annotations of [annotations] make a provider class injectable.
+  ModuleReader(
+    this.packageName,
+    this.locations,
+    ConstructAnnotations annotations,
+  ) : _references = ModuleReferenceReader(packageName),
+      _providers = ProviderEntryReader(
+        InjectableReader(locations, annotations),
+      ),
       _provides = ProvidesReader(locations);
 
   /// The package being generated.
@@ -52,11 +58,7 @@ final class ModuleReader {
       provides: _provides.read(element),
       exports: EntryRead.values(exports),
       isGlobal: Annotations.field(annotation, 'global')?.toBoolValue() ?? false,
-      extendsModule: TypeReader.hasSupertype(
-        element,
-        'Module',
-        'package:grund/',
-      ),
+      extendsModule: TypeReader.extendsCoreModule(element),
       invalidEntries: EntryRead.problems([
         ...imports,
         ...providers,

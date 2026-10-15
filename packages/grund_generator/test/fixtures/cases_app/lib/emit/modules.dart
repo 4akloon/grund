@@ -1,6 +1,6 @@
 // Valid modules that exercise every binding form the emitter writes.
 import 'package:grund/grund.dart' as grund;
-import 'package:grund_annotations/grund_annotations.dart';
+import 'package:grund/annotations.dart';
 
 /// Application settings.
 final class AppConfig {

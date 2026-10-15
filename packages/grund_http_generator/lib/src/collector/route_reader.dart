@@ -6,6 +6,7 @@ import '../model/route_model.dart';
 import 'hook_reader.dart';
 import 'param_reader.dart';
 import 'return_reader.dart';
+import 'http_annotations.dart';
 
 /// Reads the route methods of a class.
 final class RouteReader {
@@ -24,7 +25,7 @@ final class RouteReader {
   /// declaration order.
   List<RouteModel> read(ClassElement owner) => [
     for (final method in owner.methods)
-      if (Annotations.all(method, annotations) case [
+      if (HttpAnnotations.reader.all(method, annotations) case [
         final first,
         ...final rest,
       ])

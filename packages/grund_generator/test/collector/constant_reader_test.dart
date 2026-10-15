@@ -82,10 +82,10 @@ void main() {
   });
 
   test('a list of symbols is unsupported', () {
-    final api = ConstantReader.read(annotation('Api')) as ObjectConstant;
-    final use = api.named['use'] as ListConstant;
+    final module = ConstantReader.read(annotation('Module')) as ObjectConstant;
+    final imports = module.named['imports'] as ListConstant;
 
-    expect(use.elements.single, isA<UnsupportedConstant>());
+    expect(imports.elements.single, isA<UnsupportedConstant>());
   });
 
   test('locations are relative to the package root', () {

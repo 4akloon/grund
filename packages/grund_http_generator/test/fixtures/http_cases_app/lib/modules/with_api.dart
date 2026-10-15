@@ -1,6 +1,6 @@
 // A module that provides an API and its service.
 import 'package:grund/grund.dart' as grund;
-import 'package:grund_annotations/grund_annotations.dart';
+import 'package:grund/annotations.dart';
 
 import '../apis/tasks.dart';
 

@@ -1,5 +1,5 @@
 // An API whose routes the generator rejects, one problem per method.
-import 'package:grund_annotations/grund_annotations.dart';
+import 'package:grund_http/annotations.dart';
 
 import 'tasks.dart';
 

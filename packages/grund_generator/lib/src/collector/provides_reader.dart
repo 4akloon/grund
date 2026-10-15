@@ -24,7 +24,7 @@ final class ProvidesReader {
   /// The `@Provides` methods of [owner], in declaration order.
   List<ProvidesModel> read(ClassElement owner) => [
     for (final method in owner.methods)
-      if (Annotations.find(method, 'Provides') case final annotation?)
+      if (Annotations.core.find(method, 'Provides') case final annotation?)
         _read(owner, method, annotation),
   ];
 
@@ -43,7 +43,10 @@ final class ProvidesReader {
       location: locations.of(method),
       key: problem != null || provided == null
           ? null
-          : BindingKey(TypeReader.read(provided), Annotations.named(method)),
+          : BindingKey(
+              TypeReader.read(provided),
+              Annotations.core.named(method),
+            ),
       lifetime: scope.lifetime,
       isAsync: _isAsync(method.returnType),
       dependencies: [

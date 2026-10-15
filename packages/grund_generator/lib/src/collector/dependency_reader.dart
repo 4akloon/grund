@@ -41,7 +41,7 @@ final class DependencyReader {
       location: locations.of(parameter),
       key: BindingKey(
         TypeReader.read(parameter.type),
-        Annotations.named(parameter),
+        Annotations.core.named(parameter),
       ),
     );
   }

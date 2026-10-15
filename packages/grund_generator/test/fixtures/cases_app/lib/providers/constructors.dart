@@ -1,5 +1,5 @@
 // Classes whose constructors dependency injection cannot or can call.
-import 'package:grund_annotations/grund_annotations.dart';
+import 'package:grund/annotations.dart';
 
 import '../modules/basic.dart';
 

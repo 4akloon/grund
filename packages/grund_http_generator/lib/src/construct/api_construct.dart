@@ -1,6 +1,7 @@
 import 'package:grund_generator/grund_generator.dart';
 
 import '../collector/api_collector.dart';
+import '../collector/http_annotations.dart';
 import '../collector/route_reader.dart';
 import '../emit/api_emitter.dart';
 import '../model/api_names.dart';
@@ -23,6 +24,7 @@ final class ApiConstruct extends Construct {
 
   @override
   ConstructAnnotations get annotations => const ConstructAnnotations(
+    libraries: {HttpAnnotations.library},
     classes: {'Api': RouteReader.annotations},
     injectable: {'Api'},
   );

@@ -4,7 +4,7 @@
 // must report them, not default.
 // ignore_for_file: undefined_identifier, const_with_non_constant_argument, const_eval_method_invocation
 import 'package:grund/grund.dart' as grund;
-import 'package:grund_annotations/grund_annotations.dart';
+import 'package:grund/annotations.dart';
 
 import 'modules/basic.dart';
 

@@ -6,7 +6,7 @@ import 'package:test/test.dart';
 /// Words that belong to `grund_http_generator`, never to the core.
 const _forbidden = ['grund_http', 'HttpApi', 'HttpCtx', 'HookRef', 'Route'];
 
-/// The HTTP annotations of `grund_annotations`; the core never reads them,
+/// The HTTP annotations of `grund_http`; the core never reads them,
 /// neither as `@Name` nor as a quoted name.
 const _annotations = [
   'Api',

@@ -4,6 +4,7 @@ import 'package:analyzer/dart/element/type.dart';
 
 import '../model/type_kind.dart';
 import '../model/type_model.dart';
+import 'annotations.dart';
 
 /// Converts analyzer types to [TypeModel]s.
 abstract final class TypeReader {
@@ -36,16 +37,16 @@ abstract final class TypeReader {
       type.element.name == name &&
       _isIn(type.element.library, uriPrefix);
 
-  /// Whether [element] or one of its supertypes is the class [name] of a
-  /// library under [uriPrefix].
-  static bool hasSupertype(
-    InterfaceElement element,
-    String name,
-    String uriPrefix,
-  ) => [element.thisType, ...element.allSupertypes].any(
-    (type) =>
-        type.element.name == name && _isIn(type.element.library, uriPrefix),
-  );
+  /// Whether [element] is, or extends, the base class `Module` of
+  /// `package:grund`. The `Module` annotation lives in the same package and
+  /// has the same name, so its library does not count.
+  static bool extendsCoreModule(InterfaceElement element) =>
+      [element.thisType, ...element.allSupertypes].any(
+        (type) =>
+            type.element.name == 'Module' &&
+            _isIn(type.element.library, 'package:grund/') &&
+            !_isIn(type.element.library, Annotations.coreLibrary),
+      );
 
   static bool _isIn(LibraryElement library, String uriPrefix) =>
       '${library.uri}'.startsWith(uriPrefix);

@@ -1,7 +1,8 @@
 // A valid API with every kind of route parameter and result.
 import 'dart:typed_data';
 
-import 'package:grund_annotations/grund_annotations.dart';
+import 'package:grund_http/annotations.dart';
+import 'package:grund/annotations.dart';
 import 'package:grund_http/grund_http.dart';
 import 'package:grund_http/grund_http.dart' as http;
 

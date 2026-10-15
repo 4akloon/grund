@@ -11,6 +11,7 @@ import '../model/value_kind.dart';
 import 'body_kind_reader.dart';
 import 'validator_reader.dart';
 import 'value_kind_reader.dart';
+import 'http_annotations.dart';
 
 /// Reads where a parameter of a route handler gets its value from.
 final class ParamReader {
@@ -42,7 +43,7 @@ final class ParamReader {
 
   ParamSource _source(FormalParameterElement parameter) {
     final type = parameter.type;
-    final annotations = Annotations.all(parameter, _sources);
+    final annotations = HttpAnnotations.reader.all(parameter, _sources);
     final shown = '${parameter.displayName} (${type.getDisplayString()})';
     if (annotations.length > 1) {
       return InvalidSource(
@@ -96,7 +97,7 @@ final class ParamReader {
       return CallScopeSource(
         BindingKey(
           TypeReader.read(type).nonNullable,
-          Annotations.named(parameter),
+          HttpAnnotations.reader.named(parameter),
         ),
       );
     }

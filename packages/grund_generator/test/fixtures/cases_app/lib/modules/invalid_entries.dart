@@ -1,10 +1,15 @@
 // Module entries the generator cannot read.
-import 'package:grund_annotations/grund_annotations.dart';
+import 'package:grund/annotations.dart';
 
 import 'basic.dart';
 
-/// Every list holds something wrong.
-@Module(imports: [String, 'db'], providers: [42, Label()], exports: [3])
+/// Every list holds something wrong; `Module()` is the annotation, not the
+/// base class a module extends.
+@Module(
+  imports: [String, 'db', Module()],
+  providers: [42, Label()],
+  exports: [3],
+)
 class BrokenModule {}
 
 /// Not a Module.

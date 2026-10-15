@@ -24,7 +24,7 @@ final class ProviderEntryReader {
     }
     final type = entry.type;
     if (type is InterfaceType &&
-        Annotations.isAnnotation(type, const {'Bind'})) {
+        Annotations.core.isAnnotation(type, const {'Bind'})) {
       return _bind(type);
     }
     return InvalidEntry(

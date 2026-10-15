@@ -10,6 +10,7 @@ import 'api_host_reader.dart';
 import 'api_reader.dart';
 import 'dto_reader.dart';
 import 'route_reader.dart';
+import 'http_annotations.dart';
 
 /// Reads the `@Api` classes of a package, the route methods outside them
 /// and the bodies their routes take and return.
@@ -25,7 +26,7 @@ abstract final class ApiCollector {
     for (final library in context.libraries) {
       final declared = apiModels.length;
       for (final element in library.classes) {
-        if (Annotations.find(element, 'Api') case final api?) {
+        if (HttpAnnotations.reader.find(element, 'Api') case final api?) {
           apiModels.add(apis.read(element, api));
           dtoRoots.addAll(_dtoRoots(element));
         } else {
@@ -52,10 +53,13 @@ abstract final class ApiCollector {
 
   static List<DartType> _dtoRoots(ClassElement api) => [
     for (final method in api.methods)
-      if (Annotations.all(method, RouteReader.annotations).isNotEmpty) ...[
+      if (HttpAnnotations.reader
+          .all(method, RouteReader.annotations)
+          .isNotEmpty) ...[
         method.returnType,
         for (final parameter in method.formalParameters)
-          if (Annotations.find(parameter, 'Body') != null) parameter.type,
+          if (HttpAnnotations.reader.find(parameter, 'Body') != null)
+            parameter.type,
       ],
   ];
 }

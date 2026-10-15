@@ -33,7 +33,8 @@ abstract base class Construct {
   String get name;
 
   /// The annotations this construct reads; none by default.
-  ConstructAnnotations get annotations => const ConstructAnnotations();
+  ConstructAnnotations get annotations =>
+      const ConstructAnnotations(libraries: {});
 
   /// The model of this construct's annotations in [context], or `null`
   /// when it keeps none (the default).

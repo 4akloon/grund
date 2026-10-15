@@ -1,7 +1,7 @@
 // Written by hand (another tool may own such a name): it has no generator
 // header, so it must be collected.
 import 'package:grund/grund.dart' as grund;
-import 'package:grund_annotations/grund_annotations.dart';
+import 'package:grund/annotations.dart';
 
 /// A module in a file that only looks like generator output.
 @Module()

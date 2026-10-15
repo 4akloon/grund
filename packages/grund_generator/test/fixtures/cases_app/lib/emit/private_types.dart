@@ -4,7 +4,7 @@
 // A module that names private classes: generated code in another library
 // cannot reach them.
 import 'package:grund/grund.dart' as grund;
-import 'package:grund_annotations/grund_annotations.dart';
+import 'package:grund/annotations.dart';
 
 @Injectable()
 final class _Hidden {}

@@ -3,6 +3,7 @@ import 'package:analyzer/dart/element/element.dart';
 import 'package:grund_generator/grund_generator.dart';
 
 import '../model/validator_model.dart';
+import 'http_annotations.dart';
 
 /// Reads `@Range`, `@Length`, `@Pattern` and `@OneOf` of a parameter.
 abstract final class ValidatorReader {
@@ -10,7 +11,7 @@ abstract final class ValidatorReader {
 
   /// The validators of [parameter], in source order.
   static List<ValidatorModel> read(Element parameter) => [
-    for (final annotation in Annotations.all(parameter, _names))
+    for (final annotation in HttpAnnotations.reader.all(parameter, _names))
       _validator(annotation),
   ];
 

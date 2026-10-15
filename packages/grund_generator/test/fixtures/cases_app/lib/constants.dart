@@ -1,7 +1,7 @@
 // Constants for ConstantReader tests: each annotation on [Holder] is read
 // by name.
 import 'package:grund/grund.dart' show Key;
-import 'package:grund_annotations/grund_annotations.dart';
+import 'package:grund/annotations.dart';
 
 /// A value object with a public constant.
 final class Label {
@@ -104,7 +104,7 @@ final class _Hidden {
 @Wrapped(_secret)
 @Wrapped(Ref<Holder>.instance(Holder()))
 @Wrapped(Key<Holder>('main'))
-@Api('/holder', use: [#guard])
+@Module(imports: [#guard])
 class Holder {
   /// Creates the holder.
   const Holder();
