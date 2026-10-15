@@ -35,6 +35,29 @@ void main() {
     }
   });
 
+  test('a typo that looks like a generated file of another package '
+      'deletes nothing', () async {
+    final package = await TempPackage.create('shop', ShopSources.files);
+    await _gen(package);
+    final before = {
+      for (final output in ShopSources.outputs)
+        output: package.dir.read(output),
+    };
+    package.dir.write(
+      'lib/src/clock.dart',
+      ShopSources.clock.replaceFirst('annotations.dart', 'annotations.g.dart'),
+    );
+
+    final run = await _gen(package);
+
+    expect(run.exitCode, CliExitCode.problems.code);
+    expect(run.err, contains('[unresolved_uri]'));
+    expect(run.out, isNot(contains('Deleted')));
+    for (final output in ShopSources.outputs) {
+      expect(package.dir.read(output), before[output]);
+    }
+  });
+
   test(
     'a mistyped import in the only annotated file deletes nothing',
     () async {

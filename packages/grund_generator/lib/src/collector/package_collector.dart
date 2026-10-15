@@ -162,7 +162,7 @@ final class _Readers {
       modules = ModuleReader(packageName, locations, annotations),
       provides = ProvidesReader(locations),
       unsupported = UnsupportedUseReader(locations, annotations),
-      unresolved = UnresolvedUriReader(locations);
+      unresolved = UnresolvedUriReader(packageName, locations);
 
   final SourceLocations locations;
   final Set<String> injectable;

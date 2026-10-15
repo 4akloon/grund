@@ -88,9 +88,10 @@ private class, which the file generated into another library cannot reach;
 `import`, `export` or `part` of a source library that does not resolve; the
 annotations it would bring cannot be read, so the library's outputs would be
 dropped silently. It is reported at the directive and blocks writing and
-deleting like any problem. A URI with a double extension (`x.g.dart`) is
-exempt: a host library importing or including its own output has none on a
-fresh checkout.
+deleting like any problem. A relative URI or a `package:` URI of the
+package being generated with a double extension (`x.g.dart`) is exempt: a
+host library importing or including its own output has none on a fresh
+checkout. The same name in another package is a typo.
 
 `module_in_part` is a `@Module` class declared in a `part of` file: its
 output would be named after the part, which no library can import, so declare

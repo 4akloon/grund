@@ -7,17 +7,23 @@ import 'source_locations.dart';
 /// typo in an import cannot silently hide the annotations that import
 /// provided.
 final class UnresolvedUriReader {
-  /// Creates the reader whose locations come from [locations].
-  const UnresolvedUriReader(this.locations);
+  /// Creates the reader of the libraries of [packageName] whose locations
+  /// come from [locations].
+  const UnresolvedUriReader(this.packageName, this.locations);
+
+  /// The package being generated: its own outputs may be missing.
+  final String packageName;
 
   /// Locations of directives.
   final SourceLocations locations;
 
   /// The unresolved directives of [library], in source order per kind.
   ///
-  /// A URI of a file with a double extension (`x.g.dart`) is skipped: it is
-  /// a file some generator writes, missing on a fresh checkout, and
-  /// `import`ing or `part`ing it is how its host library is wired.
+  /// A relative URI or a `package:` URI of [packageName] of a file with a
+  /// double extension (`x.g.dart`) is skipped: it is a file some generator
+  /// writes, missing on a fresh checkout, and `import`ing or `part`ing it is
+  /// how its host library is wired. The same name in another package, or
+  /// behind any other scheme, is a typo.
   List<UnresolvedUri> read(LibraryElement library) => [
     for (final fragment in library.fragments) ...[
       for (final directive in fragment.libraryImports)
@@ -45,7 +51,7 @@ final class UnresolvedUriReader {
     if (uri is DirectiveUriWithSource && uri.source.exists()) return null;
     if (uri is! DirectiveUriWithRelativeUriString) return null;
     final written = uri.relativeUriString;
-    if (_isGeneratedName(written)) return null;
+    if (_isOwnGeneratedFile(written)) return null;
     return UnresolvedUri(
       uri: written,
       directive: keyword,
@@ -53,8 +59,18 @@ final class UnresolvedUriReader {
     );
   }
 
-  static bool _isGeneratedName(String uri) {
-    final name = uri.split('/').last;
+  bool _isOwnGeneratedFile(String uri) {
+    final parsed = Uri.tryParse(uri);
+    if (parsed == null) return false;
+    final isOwn = switch (parsed.scheme) {
+      '' => true,
+      'package' =>
+        parsed.pathSegments.isNotEmpty &&
+            parsed.pathSegments.first == packageName,
+      _ => false,
+    };
+    if (!isOwn) return false;
+    final name = parsed.pathSegments.lastOrNull ?? '';
     return name.endsWith('.dart') && '.'.allMatches(name).length > 1;
   }
 }

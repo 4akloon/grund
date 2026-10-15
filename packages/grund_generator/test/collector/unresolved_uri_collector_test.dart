@@ -40,4 +40,27 @@ void main() {
 
     expect(package.unresolvedUris, isEmpty);
   });
+
+  test('a generated-looking file of another package is a problem', () async {
+    final package = await collect('lib/uris/foreign_generated_name.dart');
+
+    expect(
+      package.unresolvedUris.single.uri,
+      'package:grund/annotations.g.dart',
+    );
+  });
+
+  test('a generated-looking file of an unknown package is a problem', () async {
+    final package = await collect(
+      'lib/uris/unknown_package_generated_name.dart',
+    );
+
+    expect(package.unresolvedUris.single.uri, 'package:nope/x.g.dart');
+  });
+
+  test('a not yet generated file of the own package is no problem', () async {
+    final package = await collect('lib/uris/own_package_fresh_checkout.dart');
+
+    expect(package.unresolvedUris, isEmpty);
+  });
 }
