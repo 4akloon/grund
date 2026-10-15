@@ -1,83 +1,80 @@
 import 'package:grund_annotations/grund_annotations.dart';
 import 'package:test/test.dart';
 
-final class _Roles extends RouteMetadata {
-  const _Roles(this.names);
-  final List<String> names;
-}
-
 void main() {
-  test('Module defaults to an empty, non-global module named by its class', () {
+  test('Module defaults to an empty, non-global module', () {
     const module = Module();
 
-    expect(module.id, isNull);
     expect(module.imports, isEmpty);
     expect(module.providers, isEmpty);
-    expect(module.controllers, isEmpty);
     expect(module.exports, isEmpty);
     expect(module.global, isFalse);
   });
 
-  test('route annotations carry their HTTP method and path', () {
+  test('Injectable and Provides default to the singleton scope', () {
+    expect(const Injectable().scope, Scope.singleton);
+    expect(const Provides().scope, Scope.singleton);
+    expect(const Injectable(scope: Scope.call).scope, Scope.call);
+    expect(const Provides(scope: Scope.transient).scope, Scope.transient);
+  });
+
+  test('Api keeps its path and hooks; Named keeps its name', () {
+    const api = Api('/tasks', use: [#hook]);
+
+    expect(api.path, '/tasks');
+    expect(api.use, [#hook]);
+    expect(const Named('primary').name, 'primary');
+  });
+
+  test('route annotations carry method, path, status and hooks', () {
     const routes = <RouteAnnotation>[
       Get('/:id'),
-      Post(),
+      Post('/', status: 201, use: [#roles]),
       Put('/a'),
       Patch('/b'),
       Delete('/c'),
     ];
 
     expect(
-      [for (final route in routes) '${route.method} ${route.path}'],
-      ['GET /:id', 'POST ', 'PUT /a', 'PATCH /b', 'DELETE /c'],
+      [for (final r in routes) '${r.method} ${r.path} ${r.status} ${r.use}'],
+      [
+        'GET /:id null []',
+        'POST / 201 [Symbol("roles")]',
+        'PUT /a null []',
+        'PATCH /b null []',
+        'DELETE /c null []',
+      ],
     );
   });
 
-  test('argument annotations name the request part', () {
-    const arguments = <ArgumentAnnotation>[
-      Param('id'),
-      Query('limit'),
-      Header('authorization'),
+  test('parameter annotations name the request part', () {
+    const parameters = <ParameterAnnotation>[
+      Path(),
+      Query(name: 'page_size'),
+      Header(name: 'x-key'),
+      Cookie(),
       Body(),
     ];
 
-    final names = [
-      for (final argument in arguments)
-        switch (argument) {
-          Param(:final name) => 'param $name',
-          Query(:final name) => 'query $name',
-          Header(:final name) => 'header $name',
-          Body() => 'body',
-        },
-    ];
-    expect(names, ['param id', 'query limit', 'header authorization', 'body']);
-  });
-
-  test('component annotations keep the types in order', () {
-    const guards = UseGuards([int, String]);
-    const filters = UseFilters([double]);
-
-    expect(guards.types, [int, String]);
-    expect(filters.types, [double]);
-  });
-
-  test('provider annotations hold their constants', () {
-    const value = Value('postgres://localhost', token: #db);
-    const inject = Inject(#db);
-
     expect(
-      (value.value, value.token, inject.token),
-      ('postgres://localhost', #db, #db),
+      [for (final parameter in parameters) parameter.name],
+      [null, 'page_size', 'x-key', null, null],
     );
+  });
+
+  test('validator annotations hold their bounds', () {
+    const range = Range(min: 1, max: 100);
+    const length = Length(max: 8);
+
+    expect((range.min, range.max, length.min, length.max), (1, 100, null, 8));
+    expect(const Pattern(r'^\d+$').regex, r'^\d+$');
+    expect(const OneOf(['a', 'b']).values, ['a', 'b']);
+  });
+
+  test('Bind has the interface and the implementation as type arguments', () {
     expect(
       const Bind<Object, String>().runtimeType.toString(),
       'Bind<Object, String>',
     );
-  });
-
-  test('Controller defaults to an empty path; RouteMetadata is const', () {
-    expect(const Controller().path, '');
-    expect(const Controller('/users').path, '/users');
-    expect(const _Roles(['admin']).names, ['admin']);
   });
 }

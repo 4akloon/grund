@@ -1,10 +1,12 @@
-/// A provider for the key [K] created by the `Injectable` class [I].
+/// A binding of the interface [I] created by the `Injectable` class [C].
 ///
 /// ```dart
 /// @Module(providers: [Bind<Clock, SystemClock>()])
-/// class TimeModule {}
+/// final class TimeModule extends grund.Module with $TimeModule {
+///   const TimeModule();
+/// }
 /// ```
-final class Bind<K extends Object, I extends K> {
+final class Bind<I extends Object, C extends I> {
   /// Creates the binding.
   const Bind();
 }

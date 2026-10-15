@@ -1,48 +1,46 @@
-/// Declares a module; the generator writes a function that returns the
-/// explicit `Module` (`UsersModule` → `Module usersModule()`).
+/// Declares a module; the generator writes the mixin `$X` that implements
+/// `imports`, `bindings` and `exports` of the class `X`.
+///
+/// The class extends the core `Module` (imported with a prefix, because the
+/// names are the same) and mixes in the generated half. It declares a
+/// `const` constructor itself.
 ///
 /// ```dart
+/// import 'package:grund/grund.dart' as grund;
+///
 /// @Module(
-///   imports: [DatabaseModule],
-///   providers: [UsersService, Bind<Clock, SystemClock>(), Value(appConfig)],
-///   controllers: [UsersController],
-///   exports: [UsersService],
+///   imports: [AuthModule()],
+///   providers: [TasksService, TasksApi, Bind<TaskStore, InMemoryTaskStore>()],
+///   exports: [TasksService],
 /// )
-/// class UsersModule {}
+/// final class TasksModule extends grund.Module with $TasksModule {
+///   const TasksModule();
+/// }
 /// ```
 ///
-/// [imports] takes classes annotated with [Module] and tear-offs of
-/// functions that return an explicit `Module` and need no arguments
-/// (`imports: [metricsModule]`); the generator calls them. [providers]
-/// takes classes annotated with `Injectable`, [Bind] and [Value].
-/// [exports] takes provider classes, `Token` constants, and imported
-/// modules (re-export).
+/// [imports] takes `const` module instances. [providers] takes classes
+/// annotated with `Injectable` or `Api`, and `Bind<I, C>()`. [exports] takes
+/// types (the binding of that type), `Key<T>('name')` constants (a named
+/// binding) and the types of imported modules (re-export).
 final class Module {
-  /// Creates the annotation. [id] defaults to the class name.
+  /// Creates the annotation.
   const Module({
-    this.id,
     this.imports = const [],
     this.providers = const [],
-    this.controllers = const [],
     this.exports = const [],
     this.global = false,
   });
 
-  /// Module id; `null` means the class name.
-  final String? id;
-
-  /// Imported modules.
+  /// Imported modules, as `const` instances.
   final List<Object> imports;
 
-  /// Providers declared by the module.
+  /// Classes and `Bind`s the module owns.
   final List<Object> providers;
-
-  /// Classes annotated with `Controller`.
-  final List<Type> controllers;
 
   /// What importers of the module can see.
   final List<Object> exports;
 
-  /// Whether the exports are visible to every module.
+  /// Whether the exports are visible to every module; the generated mixin
+  /// overrides `Module.global`.
   final bool global;
 }
