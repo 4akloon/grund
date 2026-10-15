@@ -1,4 +1,4 @@
-// Shared builders for HTTP tests.
+// Shared builders for pipeline and HTTP tests.
 import 'dart:convert';
 
 import 'package:grund_http/grund_http.dart';
@@ -19,3 +19,7 @@ HttpRequest requestFor(
 /// The JSON value in the body of [response].
 Future<Object?> jsonOf(HttpResponse response) async =>
     jsonDecode(utf8.decode(await response.body.readAll()));
+
+/// The body of [response] as text.
+Future<String> textOf(HttpResponse response) async =>
+    utf8.decode(await response.body.readAll());

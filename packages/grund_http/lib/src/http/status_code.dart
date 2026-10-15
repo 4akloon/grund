@@ -31,6 +31,9 @@ abstract final class StatusCode {
   /// 409 Conflict.
   static const conflict = 409;
 
+  /// 413.
+  static const payloadTooLarge = 413;
+
   /// 422 Unprocessable Content.
   static const unprocessableContent = 422;
 

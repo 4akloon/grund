@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'http_exception.dart';
+import 'problem_code.dart';
 
 /// The body of an `HttpRequest`: a byte stream that is read at most once.
 ///
@@ -44,6 +45,8 @@ final class RequestBody {
     } on FormatException catch (error) {
       throw BadRequestException(
         message: 'Request body is not valid UTF-8: ${error.message}',
+        code: ProblemCode.bodyInvalid,
+        pointer: ProblemCode.bodyPointer,
       );
     }
   }
@@ -70,6 +73,8 @@ final class RequestBody {
     if (source.trim().isEmpty) {
       throw const BadRequestException(
         message: 'Request body is empty; expected JSON.',
+        code: ProblemCode.bodyInvalid,
+        pointer: ProblemCode.bodyPointer,
       );
     }
     try {
@@ -77,6 +82,8 @@ final class RequestBody {
     } on FormatException catch (error) {
       throw BadRequestException(
         message: 'Request body is not valid JSON: ${error.message}',
+        code: ProblemCode.bodyInvalid,
+        pointer: ProblemCode.bodyPointer,
       );
     }
   }

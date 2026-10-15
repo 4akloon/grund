@@ -62,6 +62,27 @@ void main() {
       );
     });
 
+    test('body errors carry the code and the pointer of the body', () async {
+      await expectLater(
+        RequestBody.bytes(utf8.encode('{"a":')).json(),
+        throwsA(
+          isA<BadRequestException>()
+              .having((e) => e.code, 'code', 'body_invalid')
+              .having((e) => e.pointer, 'pointer', '/body'),
+        ),
+      );
+      await expectLater(
+        RequestBody.bytes(const [0xff, 0xfe]).text(),
+        throwsA(
+          isA<BadRequestException>().having(
+            (e) => e.code,
+            'code',
+            'body_invalid',
+          ),
+        ),
+      );
+    });
+
     test('malformed UTF-8 is a 400', () async {
       await expectLater(
         RequestBody.bytes(const [0xff, 0xfe]).text(),

@@ -19,7 +19,25 @@ void main() {
       expect(const ForbiddenException().status, 403);
       expect(const NotFoundException().status, 404);
       expect(MethodNotAllowedException(const ['GET']).status, 405);
+      expect(const PayloadTooLargeException().status, 413);
+      expect(const UnprocessableContentException().status, 422);
       expect(const ServiceUnavailableException().status, 503);
+    });
+
+    test('code and pointer are kept for the problem body', () {
+      const error = BadRequestException(
+        code: 'parameter_invalid',
+        pointer: '/query/page',
+      );
+      const unprocessable = UnprocessableContentException(
+        code: 'title_taken',
+        pointer: '/body/title',
+      );
+
+      expect(error.code, 'parameter_invalid');
+      expect(error.pointer, '/query/page');
+      expect(unprocessable.pointer, '/body/title');
+      expect(const NotFoundException().code, isNull);
     });
 
     test('405 lists the allowed methods in the allow header', () {
@@ -47,8 +65,8 @@ void main() {
         'Method Not Allowed',
       );
       expect(
-        StatusCode.reasonPhrase(StatusCode.serviceUnavailable),
-        'Service Unavailable',
+        StatusCode.reasonPhrase(StatusCode.payloadTooLarge),
+        'Content Too Large',
       );
     });
   });

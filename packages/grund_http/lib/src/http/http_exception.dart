@@ -1,18 +1,17 @@
 /// [HttpException] and the built-in subclasses the framework throws itself.
 ///
 /// The subclasses are one family with their base and share this file, like
-/// the error families in `errors.dart`; the base stays open (not sealed) so
-/// that applications can add their own statuses.
+/// the error families in the core; the base stays open (not sealed) so that
+/// applications can add their own statuses.
 library;
 
 import 'status_code.dart';
 
-/// An error that the default exception filter turns into an HTTP error
-/// response: `{"statusCode": status, "error": reason phrase,
-/// "message": message}`, plus `"details"` when given.
+/// An error that `ProblemResponder` turns into an `application/problem+json`
+/// response (RFC 9457) with the same status.
 ///
-/// Throw it from guards, interceptors, pipes, handlers and filters. Extend it
-/// for statuses that have no built-in subclass:
+/// Throw it from hooks and handlers. Extend it for statuses that have no
+/// built-in subclass:
 ///
 /// ```dart
 /// class PaymentRequiredException extends HttpException {
@@ -25,6 +24,8 @@ class HttpException implements Exception {
   const HttpException(
     this.status, {
     String? message,
+    this.code,
+    this.pointer,
     this.details,
     this.headers = const {},
   }) : _message = message;
@@ -34,11 +35,20 @@ class HttpException implements Exception {
 
   final String? _message;
 
-  /// Human-readable message sent to the client.
+  /// Human-readable message sent to the client as `detail`.
   String get message => _message ?? StatusCode.reasonPhrase(status);
 
-  /// Extra data sent as `"details"`: a JSON value (`Map`, `List`, `String`,
-  /// `num`, `bool`); any other object is sent as its `toString()`.
+  /// Stable machine-readable identifier of the failure (`parameter_invalid`),
+  /// sent as `code`; clients switch on it, never on [message].
+  final String? code;
+
+  /// JSON pointer to the offending input (`/query/page`, `/body/title`),
+  /// sent as an entry of `errors`.
+  final String? pointer;
+
+  /// Extra data sent as `details`: a JSON value (`Map`, `List`, `String`,
+  /// `num`, `bool`), any other object as its `toString()`. A list of
+  /// `ProblemError`s is sent as `errors` instead.
   final Object? details;
 
   /// Headers added to the error response (for example `allow` or
@@ -52,29 +62,36 @@ class HttpException implements Exception {
 /// 400: the request is malformed (bad JSON, a parameter of the wrong type).
 class BadRequestException extends HttpException {
   /// Creates the exception.
-  const BadRequestException({super.message, super.details})
-    : super(StatusCode.badRequest);
+  const BadRequestException({
+    super.message,
+    super.code,
+    super.pointer,
+    super.details,
+  }) : super(StatusCode.badRequest);
 }
 
 /// 401: the request lacks valid credentials.
 class UnauthorizedException extends HttpException {
   /// Creates the exception.
-  const UnauthorizedException({super.message, super.details, super.headers})
-    : super(StatusCode.unauthorized);
+  const UnauthorizedException({
+    super.message,
+    super.code,
+    super.details,
+    super.headers,
+  }) : super(StatusCode.unauthorized);
 }
 
-/// 403: the credentials are valid but not sufficient; also thrown when a
-/// guard returns `false`.
+/// 403: the credentials are valid but not sufficient.
 class ForbiddenException extends HttpException {
   /// Creates the exception.
-  const ForbiddenException({super.message, super.details})
+  const ForbiddenException({super.message, super.code, super.details})
     : super(StatusCode.forbidden);
 }
 
 /// 404: no route matches the path, or the requested entity does not exist.
 class NotFoundException extends HttpException {
   /// Creates the exception.
-  const NotFoundException({super.message, super.details})
+  const NotFoundException({super.message, super.code, super.details})
     : super(StatusCode.notFound);
 }
 
@@ -82,7 +99,7 @@ class NotFoundException extends HttpException {
 /// the `allow` header.
 class MethodNotAllowedException extends HttpException {
   /// Creates the exception for the [allowed] methods.
-  MethodNotAllowedException(this.allowed, {super.message})
+  MethodNotAllowedException(this.allowed, {super.message, super.code})
     : super(
         StatusCode.methodNotAllowed,
         headers: {'allow': allowed.join(', ')},
@@ -92,9 +109,28 @@ class MethodNotAllowedException extends HttpException {
   final List<String> allowed;
 }
 
+/// 413: the request body is larger than the configured limit.
+class PayloadTooLargeException extends HttpException {
+  /// Creates the exception.
+  const PayloadTooLargeException({super.message, super.code, super.details})
+    : super(StatusCode.payloadTooLarge);
+}
+
+/// 422: the request is well-formed but its content is not acceptable (a
+/// business rule, a failed validation of the body).
+class UnprocessableContentException extends HttpException {
+  /// Creates the exception.
+  const UnprocessableContentException({
+    super.message,
+    super.code,
+    super.pointer,
+    super.details,
+  }) : super(StatusCode.unprocessableContent);
+}
+
 /// 503: the application is shutting down or temporarily unable to serve.
 class ServiceUnavailableException extends HttpException {
   /// Creates the exception.
-  const ServiceUnavailableException({super.message, super.details})
+  const ServiceUnavailableException({super.message, super.code, super.details})
     : super(StatusCode.serviceUnavailable);
 }
