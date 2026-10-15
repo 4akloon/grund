@@ -31,7 +31,7 @@ README і quick start для того, що вже є, приклад покри
 
 | Реліз | Етапи | Пакети, що додаються | Має бути опубліковано заздалегідь | Готово, коли |
 |---|---|---|---|---|
-| **0.1.0** — REST з контрактом | G1, G2 | `grund`, `grund_annotations`, `grund_generator`, `grund_build`, `grund_cli`, `grund_http`, `grund_io`, `grund_shelf`, `grund_openapi` | — (typed_openapi T1–T2 потрібні лише контрактним тестам у неопублікованому `example/`) | Етапи G1 і G2 здані; крок випуску |
+| **0.1.0** — REST з контрактом | G1, G2 | `grund`, `grund_http`, `grund_io`, `grund_shelf`, `grund_generator`, `grund_http_generator`, `grund_cli`, `grund_build`, `grund_openapi` | — (typed_openapi T1–T2 потрібні лише контрактним тестам у неопублікованому `example/`) | Етапи G1 і G2 здані; крок випуску |
 | **0.2.0** — дані | G3 | `grund_basalt`, `grund_basalt_postgres`, `grund_basalt_sqlite` | basalt з B1–B3 | G3 здано; крок випуску |
 | **0.3.0** — auth | G4 | `grund_auth`, `grund_auth_oauth` | basalt з B4; token_manager K1 | G4 здано; крок випуску |
 | **0.4.0** — realtime | G5 | `grund_sse`, `grund_redis`, `grund_pubsub` | typed_sse 0.1.0 (S1); typed_openapi з T4 | G5 здано; крок випуску |
@@ -43,7 +43,7 @@ README і quick start для того, що вже є, приклад покри
 
 | # | Етап | Пакети цього репо | Залежить від інших репо | Готово, коли |
 |---|---|---|---|---|
-| G1 | **Ядро, HTTP, генератор** (spec `2026-10-15-grund-core-design.md`; перейменування `dartnest*` → `grund*` уже зроблено) | `grund`, `grund_http`, `grund_generator`, `grund_annotations`, `grund_cli`, `grund_build`, `grund_io`, `grund_shelf` | — | Приклад `tasks_api` у двох формах проходить ті самі e2e на обох адаптерах; `grund` без HTTP у залежностях; golden-фікстура на новій моделі |
+| G1 ✅ | **Ядро, HTTP, генератор** (spec `2026-10-15-grund-core-design.md`, вивід `2026-10-15-grund-generated-output-layout-design.md`; плани `2026-10-15-grund-g1-core-http-generator.md` і `...-g1-1-output-layout.md`; перейменування `dartnest*` → `grund*` зроблено) | `grund`, `grund_http`, `grund_generator`, `grund_http_generator`, `grund_cli`, `grund_build`, `grund_io`, `grund_shelf` (анотації: `package:grund/annotations.dart` і `package:grund_http/annotations.dart`) | — | Здано: приклад `tasks_api` у двох формах проходить ті самі e2e на обох адаптерах; `grund` без HTTP у залежностях; golden-фікстура `users_app` на новій моделі (плоский `X.g.dart`, `part` для `@Api`) |
 | G2 | **OpenAPI** | `grund_openapi`; аналіз DTO і валідація полів у генераторі | typed_openapi T1–T2 (контрактний тест) | `GET /openapi.json` з `ETag`, Scalar UI, `export` для CI; RFC 9457 у схемах; контрактний тест: `typed_openapi check` без діагностик, згенерований клієнт проходить e2e прикладу |
 | G3 | **Дані** | `grund_basalt`, `grund_basalt_postgres`, `grund_basalt_sqlite` | basalt B1–B3 | Кілька іменованих підключень; `transactionPerRequest`; health-check і метрики пулу; e2e прикладу на Postgres (контейнер у CI) і SQLite in-memory |
 | G4 | **Auth** | `grund_auth`, `grund_auth_oauth` | basalt B4; typed_openapi T3; token_manager K1 | Сесії + JWT-стратегія, refresh-ротація з reuse detection, email+password (argon2id), Google, Apple; хуки з `SecurityScheme`; Bearer і `httpOnly` cookie; e2e через згенерований клієнт із token_manager |

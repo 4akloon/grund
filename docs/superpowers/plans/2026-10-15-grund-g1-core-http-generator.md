@@ -29009,3 +29009,27 @@ RF-2: `container_scopes_test.dart` (3 тести, див. задачу 5). RF-4:
 - **A:** `Key<HttpAdapter>` в `dependsOn` `HttpServer`; `App.container.root<T>()`; `RunnerError` з `SocketException` при зайнятому порті; `ApplicationStateError`; `ReassembleReport.toJson` = `{applications, added, removed}` (відповідь розширення збирає `HotReloadExtension`); `StopSignals().wait()` можна викликати до `start`.
 - **B:** `ErrorLogger` (див. відхилення 1) або його заміна; `HttpServer.stop` не чекає вічно на обірвані handler-и після `adapter.close(force)`; `ErrorLog`, що кидає, не валить відповідь (адаптер лишає 500 без тіла) — підтверджено `lifecycle_conformance`; `TestClient.of`; `HttpModule(use: [HookRef<T>.instance(...)], middleware:)`.
 - **C:** форма виводу з узгодженою формою анотацій і згенерованого коду (задачі 13, 16, 17) (`mixin $X on grund.Module`, `XRoutes`), константи-вирази `const` модулів у `imports` (`HttpModule()`, `AuthModule()`) повторюються в `imports => [...]` генерованого коду як `non-const` екземпляри; `@Provides` статичні методи; `@Api(use: [HookRef<...>...])` та `@Post(status:, use:)`; код діагностики `missing_provider`; сигнатури `GrundGenerator.core()`/`PackageCollector` (`GenerationSession`, `GrundBuilder`); голден `users_app` для `grund_build` integration; модуль `UsersModule`, що не підключений до кореня, не повинен давати помилку (зразок `ShopSources.users`).
+
+## Додатки, внесені під час виконання
+
+Рішення користувача, прийняті після написання плану; код і тести є джерелом правди там, де текст вище відрізняється.
+
+### Задача 11a: логування на `package:logging`
+
+- `grund` залежить від SDK, `meta` і `logging` (правило в `CLAUDE.md` змінено). Фреймворк пише в іменовані логери `Logger('grund.<area>')` (`grund.app`, `grund.modules`, `grund.routes`, `grund.http`, `grund.access`) і сам ніколи не налаштовує `Logger.root`.
+- Вивід підключає `LogOutput` (`console`, `json`, `none`; `App.run(log:)`); `App.start` і `TestApp` нічого не підключають.
+- Обсяг: старт (модулі з часом ініціалізації, `Mapped {METHOD, /path}`, сервер слухає, reassemble added/removed), помилки через `Logger.severe`, access-лог кожного запиту (`HttpConfig.accessLog`). `trace_id`/request-id лишається в G6.
+
+### Задача 14a: `ErrorLog` вилучено
+
+- Помилки, що стають 500, пише `ProblemResponder` на `Logger('grund.http')` (`SEVERE`, помилка й stack trace); окремого `ErrorLog` немає. `ErrorLogger` (тип колбека `onError` адаптерів) лишається в `grund_http`.
+- Слухач логів, що кидає, не валить відповідь, але його помилка йде в зону слухача: без `runZonedGuarded` це необроблена асинхронна помилка, що завершує isolate. Слухачі не повинні кидати.
+
+### Задача 15a: розділення генератора
+
+- Два пакети: `grund_generator` (модулі, DI, контракт `Construct`, `ModuleConstruct`; не знає HTTP, `boundary_test.dart`) і `grund_http_generator` (`ApiConstruct`, `StandardGenerator.instance`). Анотації не в окремому пакеті: DI-анотації в `package:grund/annotations.dart`, HTTP-анотації в `package:grund_http/annotations.dart`.
+- Новий код діагностики `conflicting_provider_claim`; клас з `@Module` і `@Api` тепер повідомляє успадковані `@Provides` (раніше вони мовчки губилися).
+
+### Зміни після G1.1
+
+Зміни після G1.1: див. `2026-10-15-grund-g1-1-output-layout.md`, задачі 18a, 20a–20c (плоский вивід `X.g.dart`, `part` для `@Api`, коротка форма хуків у анотаціях, збереження `cause` у `HttpException`).
