@@ -1,4 +1,7 @@
+import 'package:grund_generator/src/construct/grund_generator.dart';
 import 'package:grund_generator/src/diagnostic/source_location.dart';
+import 'package:grund_generator/src/model/api_model.dart';
+import 'package:grund_generator/src/model/hook_model.dart';
 import 'package:grund_generator/src/model/binding_key.dart';
 import 'package:grund_generator/src/model/constant_value.dart';
 import 'package:grund_generator/src/model/constructor_model.dart';
@@ -78,6 +81,8 @@ abstract final class GraphModels {
     List<ProvidesModel> provides = const [],
     List<ModuleExport> exports = const [],
     bool isGlobal = false,
+    bool extendsModule = true,
+    List<String> invalidEntries = const [],
   }) => ModuleModel(
     type: type(name),
     location: SourceLocation('lib/app.dart', 3, name.length),
@@ -86,6 +91,8 @@ abstract final class GraphModels {
     provides: provides,
     exports: exports,
     isGlobal: isGlobal,
+    extendsModule: extendsModule,
+    invalidEntries: invalidEntries,
   );
 
   /// A reference to the module [name] from this package.
@@ -100,12 +107,40 @@ abstract final class GraphModels {
   static KeyExport export(String name, [String? qualifier]) =>
       KeyExport(key(name, qualifier));
 
-  /// A package of [modules].
-  static PackageModel package(List<ModuleModel> modules) => PackageModel(
+  /// A package of [modules] and [apis].
+  static PackageModel package(
+    List<ModuleModel> modules, {
+    List<ApiModel> apis = const [],
+    List<InjectableModel> injectables = const [],
+  }) => PackageModel(
     packageName: 'app',
     languageVersion: Version(3, 8, 0),
     modules: modules,
+    apis: apis,
+    injectables: injectables,
   );
+
+  /// The diagnostic codes of the core constructs over [package], sorted by
+  /// location.
+  static List<String> codes(PackageModel package) => [
+    for (final d in const GrundGenerator.core().generate(package).diagnostics)
+      d.code.id,
+  ];
+
+  /// A reference to the module [name] whose constant cannot be written.
+  static LocalModuleReference unwritable(String name) => LocalModuleReference(
+    type(name),
+    const UnsupportedConstant('it calls a private constructor'),
+  );
+
+  /// An api class [name] at [path].
+  static ApiModel api(String name, {List<HookModel> use = const []}) =>
+      ApiModel(
+        type: type(name),
+        path: '/',
+        location: const SourceLocation('lib/app.dart', 9, 1),
+        use: use,
+      );
 
   static ObjectConstant _instance(String name) =>
       ObjectConstant(type: type(name), constructorName: '');
