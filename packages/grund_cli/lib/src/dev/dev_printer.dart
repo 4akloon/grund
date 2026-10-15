@@ -51,10 +51,18 @@ final class DevPrinter {
           ..writeln(error)
           ..writeln(
             '${_summary(result)}, but the application could not be '
-            'reassembled; it keeps its previous modules and routes.',
+            'reassembled; it keeps its previous modules.',
           );
-      case Reloaded(changedRoutes: final routes?):
-        out.writeln('${_summary(result)}, ${_count(routes, 'route')} changed.');
+      case Reloaded(:final changes?):
+        out
+          ..writeln(
+            '${_summary(result)}, ${changes.added.length} added, '
+            '${changes.removed.length} removed.',
+          )
+          ..writeAll([
+            for (final entry in changes.added) '  + $entry\n',
+            for (final entry in changes.removed) '  - $entry\n',
+          ]);
       case Reloaded():
         out.writeln('${_summary(result)}.');
       case ReloadFailed(:final message):

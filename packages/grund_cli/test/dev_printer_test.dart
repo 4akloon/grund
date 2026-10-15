@@ -1,5 +1,6 @@
 import 'package:grund_cli/src/dev/dev_printer.dart';
 import 'package:grund_cli/src/dev/reload_result.dart';
+import 'package:grund_cli/src/dev/served_changes.dart';
 import 'package:test/test.dart';
 
 /// What [print] wrote to stdout and stderr through a [DevPrinter].
@@ -13,18 +14,46 @@ import 'package:test/test.dart';
 const _elapsed = Duration(milliseconds: 180);
 
 void main() {
-  test('a reload with a reassemble prints one line with the routes', () {
+  test('a reload with a reassemble counts and lists what changed', () {
     expect(
       printed(
         (printer) => printer.reloaded(
-          const Reloaded(libraries: 3, elapsed: _elapsed, changedRoutes: 2),
+          const Reloaded(
+            libraries: 3,
+            elapsed: _elapsed,
+            changes: ServedChanges(
+              added: ['GET /hello/bye', 'GET /hello/hi'],
+              removed: ['GET /hello/old'],
+            ),
+          ),
         ),
       ),
-      ('Reloaded 3 libraries in 180 ms, 2 routes changed.\n', ''),
+      (
+        'Reloaded 3 libraries in 180 ms, 2 added, 1 removed.\n'
+            '  + GET /hello/bye\n'
+            '  + GET /hello/hi\n'
+            '  - GET /hello/old\n',
+        '',
+      ),
     );
   });
 
-  test('a reload without a grund application has no route count', () {
+  test('a reassemble that changed nothing says so in one line', () {
+    expect(
+      printed(
+        (printer) => printer.reloaded(
+          const Reloaded(
+            libraries: 1,
+            elapsed: _elapsed,
+            changes: ServedChanges(),
+          ),
+        ),
+      ),
+      ('Reloaded 1 library in 180 ms, 0 added, 0 removed.\n', ''),
+    );
+  });
+
+  test('a reload without a grund application has no change counts', () {
     expect(
       printed(
         (printer) =>
@@ -50,7 +79,7 @@ void main() {
       err,
       'MissingProviderError: ...\n'
       'Reloaded 1 library in 180 ms, but the application could not be '
-      'reassembled; it keeps its previous modules and routes.\n',
+      'reassembled; it keeps its previous modules.\n',
     );
   });
 

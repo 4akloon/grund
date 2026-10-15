@@ -77,7 +77,7 @@ void main() {
     final result = await client.reload();
 
     expect(result, isA<Reloaded>());
-    expect((result as Reloaded).changedRoutes, isNull);
+    expect((result as Reloaded).changes, isNull);
     expect(result.reassembleError, isNull);
   });
 }

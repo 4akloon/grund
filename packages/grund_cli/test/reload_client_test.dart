@@ -60,7 +60,7 @@ void main() {
     expect(result, isA<Reloaded>());
     final reloaded = result as Reloaded;
     expect(reloaded.libraries, greaterThan(0));
-    expect(reloaded.changedRoutes, 0);
+    expect(reloaded.changes?.count, 0);
     expect(reloaded.reassembleError, isNull);
     expect(await HelloApp.get(running.port, '/hello'), {
       'text': 'hello v2',
@@ -99,7 +99,7 @@ void main() {
   test('a failing reassemble is reported and the old state serves', () async {
     final running = await Running.start();
     running.app.package.dir.write('lib/src/broken.dart', '''
-import 'package:grund_annotations/grund_annotations.dart';
+import 'package:grund/annotations.dart';
 
 @Injectable()
 final class Broken {
@@ -110,8 +110,8 @@ final class Broken {
 ''');
     running.app.edit(
       'lib/src/app_module.dart',
-      '[Greeter]',
-      '[Greeter, Broken]',
+      '[Greeter, HelloApi]',
+      '[Greeter, HelloApi, Broken]',
     );
     running.app.edit(
       'lib/src/app_module.dart',

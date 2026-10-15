@@ -1,3 +1,5 @@
+import 'served_changes.dart';
+
 /// The outcome of one hot reload of the application process.
 sealed class ReloadResult {
   const ReloadResult();
@@ -9,7 +11,7 @@ final class Reloaded extends ReloadResult {
   const Reloaded({
     required this.libraries,
     required this.elapsed,
-    this.changedRoutes,
+    this.changes,
     this.reassembleError,
   });
 
@@ -19,9 +21,9 @@ final class Reloaded extends ReloadResult {
   /// How long the reload and the reassemble took.
   final Duration elapsed;
 
-  /// How many routes were added or removed; `null` when no grund
-  /// application was reassembled.
-  final int? changedRoutes;
+  /// What the reassemble added to and removed from what the application
+  /// serves; `null` when no grund application was reassembled.
+  final ServedChanges? changes;
 
   /// Why the reassemble failed (the previous application state keeps
   /// serving); `null` when it succeeded or did not run.

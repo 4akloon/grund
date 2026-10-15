@@ -6,6 +6,7 @@ import 'package:vm_service/vm_service_io.dart';
 
 import 'reload_result.dart';
 import 'reload_timeouts.dart';
+import 'served_changes.dart';
 
 /// Drives the application process through its VM service: hot reload
 /// followed by the `ext.grund.reassemble` extension, and the
@@ -75,13 +76,13 @@ final class ReloadClient {
     if (target == null) return const ReloadFailed('No isolate to reload.');
     final report = await _service.reloadSources(target);
     if (report.success != true) return _failure(report);
-    final (changedRoutes, error) = grund == null
+    final (changes, error) = grund == null
         ? (null, null)
         : await _reassemble(grund);
     return Reloaded(
       libraries: _loadedLibraries(report),
       elapsed: stopwatch.elapsed,
-      changedRoutes: changedRoutes,
+      changes: changes,
       reassembleError: error,
     );
   }
@@ -143,22 +144,15 @@ final class ReloadClient {
     }
   }
 
-  /// The changed routes, or the error, of the reassemble in [isolate]. The
-  /// reload itself succeeded, so a failure here is the reassemble's.
-  Future<(int?, String?)> _reassemble(String isolate) async {
+  /// The changes, or the error, of the reassemble in [isolate]. The reload
+  /// itself succeeded, so a failure here is the reassemble's.
+  Future<(ServedChanges?, String?)> _reassemble(String isolate) async {
     try {
       final response = await _service.callServiceExtension(
         reassembleMethod,
         isolateId: isolate,
       );
-      return switch (response.json) {
-        {
-          'addedRoutes': final List<Object?> added,
-          'removedRoutes': final List<Object?> removed,
-        } =>
-          (added.length + removed.length, null),
-        _ => (0, null),
-      };
+      return (ServedChanges.fromResponse(response.json), null);
     } on RPCError catch (error) {
       return (null, error.details ?? error.message);
     } on SentinelException catch (error) {

@@ -11,7 +11,7 @@ import 'package:analyzer/dart/ast/visitor.dart';
 /// The shape of a file is the source (without comments and formatting) of
 /// its top-level variables, fields, constructors and enum values. A
 /// changed field or constructor would leave instances created before the
-/// reload (the providers kept by `Container.reassemble`) with fields that
+/// reload (the singletons kept by `App.reassemble`) with fields that
 /// were never initialized; a changed initializer of a top-level or static
 /// variable, or a changed `const`, is not applied by a reload at all. A
 /// change of anything else (method bodies, functions, annotations of
