@@ -10,6 +10,9 @@ Initial release.
 - `App`, `Runner` and `Runners`: runners are found in the graph, selected with
   `--only`, prepared, started and stopped in order; `close` is idempotent and
   collects every failure in a `ShutdownError`.
+- Logging on `package:logging`: `LogOutput` (`console`, `json`, `none`) with
+  `ConsoleLogFormatter` and `JsonLogFormatter`, startup, module and shutdown
+  messages on `grund.app` / `grund.modules`, and `App.run(log:)`.
 - `App.reassemble()` and the `ext.grund.*` VM service extensions that
   `grund_cli dev` uses for hot reload.
 - `TestApp` in `package:grund/testing.dart`.

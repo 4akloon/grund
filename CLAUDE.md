@@ -89,13 +89,17 @@ only. It has not run yet.
   generated files: sort everything, no hash-ordered iteration when emitting.
   A change of generated output is a breaking change of the generator.
 - **The core has no codegen and no server.** `grund` depends only on the
-  Dart SDK and `package:meta`: no `dart:mirrors`, no `dart:io` server, no
+  Dart SDK, `package:meta` and `package:logging`: no `dart:mirrors`, no `dart:io` server, no
   shelf, no analyzer. Annotations live in their own dependency-free package;
   `analyzer` is allowed only in `grund_generator`/`grund_cli`/
   `grund_build`, `vm_service` only in `grund_cli`, and `build` only
   in `grund_build`. `dart:developer` (SDK) is allowed in the core for
   the hot reload service extensions, which register only outside product
   mode.
+- **Logging goes through `package:logging`.** The framework logs on named
+  loggers `Logger('grund.<area>')` and never configures `Logger.root` itself;
+  output is attached explicitly with `LogOutput` (`App.run(log:)`). `App.start`
+  and `TestApp` attach nothing. See `docs/logging.md`.
 - **Generated code is ordinary code on the public API.** If the generator
   needs something the explicit API cannot express, extend the explicit API
   first.
