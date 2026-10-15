@@ -345,11 +345,13 @@ final class _Cyclic extends StubModule {
   _Cyclic(this.label);
 
   final String label;
-  late Object next;
+
+  /// Set right after construction, before the graph is built, to close a cycle.
+  late StubModule next;
 
   @override
   Object? get qualifier => label;
 
   @override
-  List<StubModule> get imports => [next as StubModule];
+  List<StubModule> get imports => [next];
 }

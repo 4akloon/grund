@@ -8,6 +8,10 @@ import 'injector.dart';
 ///
 /// Write one by hand (override the getters you need) or annotate it with
 /// `@Module` and mix in the generated `$Name`, which overrides them for you.
+///
+/// Instances with one identity (class and [qualifier]) are one module: when
+/// two of them reach the graph with different declarations, the first one
+/// found wins.
 abstract class Module {
   /// Creates the module.
   const Module();
