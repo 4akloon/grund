@@ -44,7 +44,7 @@ final class GrundBuilder implements Builder {
   /// build_runner accepts.
   @override
   Map<String, List<String>> get buildExtensions => const {
-    '.dart': [GeneratedOutputs.suffix],
+    '.dart': [GeneratedNames.outputSuffix],
   };
 
   @override

@@ -5,6 +5,9 @@
 /// `users.g.dart` next to `users.dart`. Another package's module is not
 /// imported by this library: its mixin is applied in its own source.
 abstract final class GeneratedNames {
+  /// The file name ending of generated files: `X.g.dart` for `x.dart`.
+  static const outputSuffix = '.g.dart';
+
   /// The mixin of `@Module` class [className].
   static String module(String className) => '\$$className';
 
@@ -20,6 +23,6 @@ abstract final class GeneratedNames {
     final stem = sourcePath.endsWith('.dart')
         ? sourcePath.substring(0, sourcePath.length - '.dart'.length)
         : sourcePath;
-    return '$stem.g.dart';
+    return '$stem$outputSuffix';
   }
 }

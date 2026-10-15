@@ -14,7 +14,7 @@ final _packageWithTasks = PackageModel(
   libraryPaths: const ['lib/src/tasks.dart'],
 );
 
-const _library = 'lib/app.grund.dart';
+const _library = 'lib/app.dart';
 
 /// A construct with fixed output.
 final class _FixedConstruct extends Construct {

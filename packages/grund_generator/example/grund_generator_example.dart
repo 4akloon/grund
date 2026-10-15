@@ -35,7 +35,7 @@ List<String> _sourceFiles(String lib) {
       .whereType<File>()
       .map((file) => file.path)
       .where((path) => path.endsWith('.dart'))
-      .where((path) => !path.endsWith('.grund.dart'))
+      .where((path) => !path.endsWith(GeneratedNames.outputSuffix))
       .toList();
   return files..sort();
 }

@@ -51,7 +51,8 @@ output that is not written).
   is fine it logs `<path> was not generated: <libraries> have problems`, so a
   missing file always has a message, even when that library is not a build
   input.
-- Generated files (name `*.g.dart` and the generator's header) and part files are not inputs.
+- Generated files (name `*.g.dart` and the generator's header) and part
+  files are not inputs.
 - **`X.g.dart` has one owner.** build_runner checks declared outputs, not
   written ones: `source_gen`'s combining builder (the `.g.dart` of
   `json_serializable`) declares `x.g.dart` for every input, so in a package

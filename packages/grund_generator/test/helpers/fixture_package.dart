@@ -4,12 +4,13 @@ import 'package:analyzer/dart/analysis/analysis_context_collection.dart';
 import 'package:analyzer/dart/analysis/results.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:grund_generator/src/construct/grund_generator.dart';
+import 'package:grund_generator/src/model/generated_names.dart';
 import 'package:grund_generator/src/model/package_model.dart';
 import 'package:path/path.dart' as p;
 
 /// A fixture package under `test/fixtures/<name>`, resolved with the
 /// analyzer the way a driver would: every library of its `lib/` except the
-/// generated `*.grund.dart`.
+/// generated `*.g.dart`.
 ///
 /// One instance holds one analysis context; open it once per test file
 /// (`setUpAll`), because resolving the SDK takes a few seconds.
@@ -60,7 +61,7 @@ final class FixturePackage {
         .whereType<File>()
         .map((file) => file.path)
         .where((path) => path.endsWith('.dart'))
-        .where((path) => !path.endsWith('.grund.dart'))
+        .where((path) => !path.endsWith(GeneratedNames.outputSuffix))
         .toList();
     return files..sort();
   }

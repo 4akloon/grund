@@ -5,6 +5,7 @@ import '../construct/construct.dart';
 import '../construct/construct_annotations.dart';
 import '../emit/library_writer.dart';
 import '../model/extension_model.dart';
+import '../model/generated_names.dart';
 import '../model/injectable_model.dart';
 import '../model/module_model.dart';
 import '../model/package_model.dart';
@@ -24,8 +25,9 @@ import 'unsupported_use_reader.dart';
 /// `AnalysisContextCollection`, build_runner with its resolver) and passes
 /// them here; the generator's own outputs (`*.g.dart` libraries with the
 /// generator header) are skipped, so a re-run never reads its previous
-/// output. The collector reads modules, injectables and `@Provides` itself, and lets each of
-/// [constructs] read its own annotations ([Construct.collect]).
+/// output. The collector reads modules, injectables and `@Provides` itself,
+/// and lets each of [constructs] read its own annotations
+/// ([Construct.collect]).
 final class PackageCollector {
   /// Creates the collector of package [packageName] rooted at
   /// [packageRoot] (an absolute path; locations are relative to it).
@@ -54,9 +56,10 @@ final class PackageCollector {
   final SourceLocations _locations;
 
   /// Whether [library] is a file this generator wrote: the name alone is not
-  /// enough (json_serializable or freezed may own a `foo.g.dart`), so the header decides.
+  /// enough (json_serializable or freezed may own a `foo.g.dart`), so the
+  /// header decides.
   static bool _isGeneratorOutput(LibraryElement library) =>
-      '${library.uri}'.endsWith('.g.dart') &&
+      '${library.uri}'.endsWith(GeneratedNames.outputSuffix) &&
       library.firstFragment.source.contents.data.startsWith(
         LibraryWriter.header,
       );
