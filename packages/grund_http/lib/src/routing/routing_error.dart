@@ -1,7 +1,7 @@
 import 'package:grund/grund.dart' show GrundError;
 
-/// Errors in the declared routes, raised by `Application.create` before any
-/// provider is created.
+/// Errors in the declared routes, raised when the HTTP server builds its
+/// route table at start, before it listens.
 sealed class RoutingError extends GrundError {
   /// Creates a routing error.
   const RoutingError();

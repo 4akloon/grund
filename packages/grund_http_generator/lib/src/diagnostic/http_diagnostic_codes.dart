@@ -11,7 +11,8 @@ abstract final class HttpDiagnosticCodes {
   /// An `@Api` class is provided by more than one module.
   static const duplicateApi = DiagnosticCode('duplicate_api');
 
-  /// An entry of `use:` is not a `HookRef`.
+  /// An entry of `use:` is not a hook class, a const hook instance or a
+  /// `HookRef` constant.
   static const invalidHook = DiagnosticCode('invalid_hook');
 
   /// A route annotation is on a method that cannot handle requests.

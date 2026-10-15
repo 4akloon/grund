@@ -20,9 +20,9 @@ final class RequestDispatcher {
   /// Answers the requests that match no route.
   final ProblemResponder problems;
 
-  /// Answers [request] with [table]: 404 for an unknown path, 405 with
-  /// `allow` for a known path with another method, otherwise the route's
-  /// response. Path segments are percent-decoded and empty segments are
+  /// Answers [request] with [table]: 400 for a malformed percent-encoding in
+  /// the path, 404 for an unknown path, 405 with `allow` for a known path
+  /// with another method, otherwise the route's response. Path segments are percent-decoded and empty segments are
   /// ignored, so `/users/` and `/users//1` match `/users` and `/users/1`.
   Future<HttpResponse> dispatch(
     HttpRequest request,
