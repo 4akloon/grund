@@ -1,56 +1,59 @@
-# dartnest — роадмап
+# grund — роадмап
 
-Спека: `docs/superpowers/specs/2026-10-13-dartnest-design.md`.
-Кожен етап — окремий план у `docs/superpowers/plans/`, який дає робоче й
-протестоване ПЗ сам по собі. План наступного етапу пишеться після
-завершення попереднього, на основі реального коду.
+Рамка: `docs/superpowers/specs/2026-10-15-grund-platform-design.md`.
+Загальний план по всіх репозиторіях: `docs/superpowers/PLATFORM-PLAN.md`.
+Кожен етап — окремий spec у `docs/superpowers/specs/` і план у
+`docs/superpowers/plans/`, що дає робоче й протестоване ПЗ сам по собі.
+Spec і план наступного етапу пишуться після здачі попереднього, на основі
+реального коду.
 
-## v1.0 — ядро, HTTP, адаптери, генератор
+## Історія: dartnest v1.0 ✅
 
-| # | Етап | Пакети | Готово, коли |
-|---|---|---|---|
-| 1 | **Ядро DI** (план `2026-10-13-dartnest-core-di.md`) ✅ | `dartnest` | `Container.create(module)` з модулями, провайдерами, токенами, областями видимості, жадібною async-ініціалізацією; всі помилки графа — типізовані, з ланцюжком |
-| 2 | **HTTP-конвеєр** (план `2026-10-13-dartnest-http-pipeline.md`) ✅ | `dartnest` | `HttpRequest/HttpResponse`, radix-роутер, `ExecutionContext`, `Controller<T>`/`Route` на `HandlerSpec`, guards → interceptors → pipes → handler → filters, серіалізація, `Application.create`, `app.handle`, `TestClient`; e2e без сервера |
-| 3 | **Адаптери** (план `2026-10-13-dartnest-adapters.md`) ✅ | `dartnest_io`, `dartnest_shelf` | Обидва проходять спільний conformance-набір на реальних сокетах; `shelfHandler(app)` вбудовується в shelf-пайплайн |
-| 4 | **Анотації та генератор** (план `2026-10-13-dartnest-annotations-generator.md`) ✅ | `dartnest_annotations`, `dartnest_generator` | `Collector` → `PackageModel` (з doc-коментарями, типами, `DtoModel`); `ModuleConstruct`, `ProviderConstruct`, `ControllerConstruct`; статична валідація з `path:line:col`; golden-тести; згенерований код проходить ті самі e2e, що явний |
-| 5 | **CLI** (план `2026-10-14-dartnest-cli.md`) ✅ | `dartnest_cli` | `gen`, `gen --watch`, `init`; analyzer-контекст у пам'яті; бенчмарк: інкремент < 1 с на 200 файлах, холодний старт < 10 с |
-| 5b | **Hot reload / hot restart** (план `2026-10-14-dartnest-hot-reload.md`) ✅ | `dartnest` (`Container.reassemble`, extension), `dartnest_cli` (`dev`) | `dartnest_cli dev` перезбирає генерований код і робить hot reload зі збереженням стану провайдерів або hot restart; інтеграційний тест: PID не змінюється при reload, змінюється при restart (спека, розділ 10) |
-| 6 | **build_runner-драйвер** (план `2026-10-14-dartnest-build-runner.md`) ✅ | `dartnest_build` | Агрегуючий builder на `lib/$lib$` видає байт-у-байт той самий файл, що CLI |
-| 7 | **Приклад, документація, готовність до випуску** (план `2026-10-14-dartnest-example-docs-release.md`) ✅ | `example/`, `README.md`, `docs/`, усі пакети | Один застосунок у двох стилях, e2e на обох адаптерах у CI; README з quick start для обох стилів; кожен публікований пакет проходить `dart pub publish --dry-run` без попереджень. Сама публікація `0.1.0` — ручні кроки мейнтейнера за `docs/RELEASING.md` |
+Етапи 1–7 (ядро DI, HTTP-конвеєр, адаптери, анотації та генератор, CLI, hot
+reload, build_runner-драйвер, приклад і документація) завершені за spec-ом
+`2026-10-13-dartnest-design.md`, плани в `docs/superpowers/plans/2026-10-1[34]-*`.
+`0.1.0` не публікувався; перша публікація буде вже під назвою grund.
+Попередні пункти v1.1/v2.0 (OpenAPI, lifecycle, GraphQL) поглинуті етапами
+нижче.
 
-Вимоги до ядра заради hot reload (спека, 10.1) діють з етапу 2: `Application.create`
-приймає `Module Function()`, `close()` повторюваний, таблиця роутів
-підміняється атомарно; `Container.reassemble` додається в етапі 5b, але
-етап 1 не повинен ускладнювати його (екземпляри зберігаються за
-`(moduleId, key)`).
+## grund: релізи 0.x → 1.0
 
-Ризики v1 та де їх знімаємо:
+Випускаємо частинами: кожен реліз дає робочу платформу з тим, що вже є, і
+публікується на pub.dev. Обсяг 1.0 — увесь v1 з рамки (auth, realtime,
+infra); 0.x — шлях до нього. До 1.0 несумісні зміни дозволені в мінорній
+версії й позначаються `**Breaking:**` у CHANGELOG.
 
-- Виведення типів у `Provider((i) => X(i.get()))` — перевіряється першими
-  тестами етапу 1; якщо Dart не виводить, API міняється до `Provider<X>`.
-- Стабільність `analyzer` при власному watch-режимі (досвід Revali) —
-  етап 5 тримає той самий діапазон analyzer, що й генератор
-  (`'>=8.1.1 <15.0.0'`, обидва краї перевірено), і має тест «зміна файлу
-  без перезапуску» (`packages/dartnest_cli/test/gen_watch_test.dart`).
-- Швидкість генерації — бенчмарк етапу 5
-  (`cd packages/dartnest_cli && dart test benchmark`) входить у CI.
+Кожен реліз закінчується однаковим кроком випуску: CHANGELOG усіх пакетів,
+README і quick start для того, що вже є, приклад покриває всі опубліковані
+модулі, `publish --dry-run` без попереджень; публікацію й теги робить
+мейнтейнер вручну за `docs/RELEASING.md`. Версія lockstep: усі `grund_*`
+мають одну версію; новий пакет зʼявляється з версією свого релізу.
 
-## v1.1 — документація API
+| Реліз | Етапи | Пакети, що додаються | Має бути опубліковано заздалегідь | Готово, коли |
+|---|---|---|---|---|
+| **0.1.0** — REST з контрактом | G1, G2 | `grund`, `grund_annotations`, `grund_generator`, `grund_build`, `grund_cli`, `grund_http`, `grund_io`, `grund_shelf`, `grund_openapi` | — (typed_openapi T1–T2 потрібні лише контрактним тестам у неопублікованому `example/`) | Етапи G1 і G2 здані; крок випуску |
+| **0.2.0** — дані | G3 | `grund_basalt`, `grund_basalt_postgres`, `grund_basalt_sqlite` | basalt з B1–B3 | G3 здано; крок випуску |
+| **0.3.0** — auth | G4 | `grund_auth`, `grund_auth_oauth` | basalt з B4; token_manager K1 | G4 здано; крок випуску |
+| **0.4.0** — realtime | G5 | `grund_sse`, `grund_redis`, `grund_pubsub` | typed_sse 0.1.0 (S1); typed_openapi з T4 | G5 здано; крок випуску |
+| **0.5.0** — інфраструктура | G6 | `grund_jobs`, `grund_cache`, `grund_storage`, `grund_storage_s3`, `grund_observability` | — (basalt B2 вийшов у 0.2.0) | G6 здано; крок випуску |
+| **0.6.0** — WebSocket, Jaspr, init | G7 | `grund_ws`, `grund_jaspr`, шаблони `grund_cli init` | — | G7 здано; крок випуску |
+| **1.0.0** — стабілізація | G8 | — | typed_openapi 0.1.0 (T5) | Публічний API заморожено, застарілі члени прибрано, сайт документації, гайд міграції з 0.x, відгуки з 0.x закриті або перенесені |
 
-| # | Етап | Пакети | Готово, коли |
-|---|---|---|---|
-| 8 | **OpenAPI** | `dartnest_openapi` | `OpenApiConstruct` будує OpenAPI 3.1 без додаткових анотацій; статичний `openapi.json` + `openApiModule(ui: ...)` зі Scalar/Swagger UI |
-| 9 | **Lifecycle-хуки** | `dartnest` | `OnModuleInit`, `OnAppShutdown` на провайдерах; graceful shutdown через адаптер |
+Етапи:
 
-## v2.0 — GraphQL
+| # | Етап | Пакети цього репо | Залежить від інших репо | Готово, коли |
+|---|---|---|---|---|
+| G1 | **Ядро, HTTP, генератор** (spec `2026-10-15-grund-core-design.md`) | перейменування `dartnest*` → `grund*`; `grund`, `grund_http`, `grund_generator`, `grund_annotations`, `grund_cli`, `grund_build`, `grund_io`, `grund_shelf` | — | Приклад `tasks_api` у двох формах проходить ті самі e2e на обох адаптерах; `grund` без HTTP у залежностях; golden-фікстура на новій моделі |
+| G2 | **OpenAPI** | `grund_openapi`; аналіз DTO і валідація полів у генераторі | typed_openapi T1–T2 (контрактний тест) | `GET /openapi.json` з `ETag`, Scalar UI, `export` для CI; RFC 9457 у схемах; контрактний тест: `typed_openapi check` без діагностик, згенерований клієнт проходить e2e прикладу |
+| G3 | **Дані** | `grund_basalt`, `grund_basalt_postgres`, `grund_basalt_sqlite` | basalt B1–B3 | Кілька іменованих підключень; `transactionPerRequest`; health-check і метрики пулу; e2e прикладу на Postgres (контейнер у CI) і SQLite in-memory |
+| G4 | **Auth** | `grund_auth`, `grund_auth_oauth` | basalt B4; typed_openapi T3; token_manager K1 | Сесії + JWT-стратегія, refresh-ротація з reuse detection, email+password (argon2id), Google, Apple; хуки з `SecurityScheme`; Bearer і `httpOnly` cookie; e2e через згенерований клієнт із token_manager |
+| G5 | **SSE, Redis, pub/sub** | `grund_sse`, `grund_redis`, `grund_pubsub` | typed_sse S1; typed_openapi T4 | `Stream<T>` з API як SSE з `Last-Event-ID`; fan-out між двома інстансами через Redis; `InMemoryBus`; клієнт typed_openapi читає стрім |
+| G6 | **Jobs, cache, storage, observability** | `grund_jobs`, `grund_cache`, `grund_storage`, `grund_storage_s3`, `grund_observability` | basalt B2 (`QueryObserver`) | Redis Streams-черга з retry/DLQ/cron; кеш з тегами; S3 (RustFS у CI); один трейс від HTTP до SQL і джоба в OTLP; `DevExporter` через MCP і `tail` |
+| G7 | **WebSocket, Jaspr, init** | `grund_ws`, `grund_jaspr`, шаблони `grund_cli init` | — | JSON-RPC 2.0 канали з AsyncAPI 3; Jaspr SSR у тому ж процесі з cookie-сесією; `init` створює api- і fullstack-проєкт, що проходить свої тести |
+| G8 | **Стабілізація 1.0** | усі пакети, сайт документації | typed_openapi T5 | Див. рядок 1.0.0 вище |
 
-| # | Етап | Пакети | Готово, коли |
-|---|---|---|---|
-| 10 | **Адаптер над typed_graphql** | `dartnest_graphql` | Виконавець GraphQL не пишемо: беремо окремий проєкт `typed_graphql` (`typed_graphql_server`). Пакет `dartnest_graphql` — тонкий адаптер: HTTP-маршрут у звичайному контролері перетворює `HttpRequest` на `HttpRequestData`, викликає обробник `typed_graphql_server` і повертає `HttpResponse`; guards/interceptors/filters працюють як для будь-якого маршруту. Обмеження читання тіла (`bodyAs` без ліміту). SDK-поріг пакета `^3.13.0` (поріг `typed_graphql`) — перевірити змішані пороги в workspace |
-| 11 | **Контекст і помилки** | `dartnest_graphql` | Guard кладе користувача в `ExecutionContext.items`, фабрика GraphQL-контексту копіює його; сервіси DI доступні резолверам через контекст (резолвери — замикання, бібліотека не інстанціює їх); хук `onError` до маскування помилок; `CancelSignal` з закриття застосунку/таймауту; відповідь на збіг імен `Token`/`@Query` (`as`/`hide`, документація) |
-| 12 | **Subscriptions** | `dartnest_graphql` + `typed_graphql_shelf` | WebSocket (`graphql-ws`) монтується з `typed_graphql_shelf` поруч із `shelfHandler(app)` в одному shelf-роутері (в `HttpAdapter` немає апґрейду); автентифікація в `connection_init`; `Transport` розширюємо лише якщо знадобиться конвеєр на рівні полів |
+## Після 1.0
 
-## Пізніше (без терміну)
-
-Request-scoped провайдери, адаптер `relic`, мікросервісний транспорт,
-scaffolding-CLI.
+`start` зі стеком (TUI, hot reload, підняття Postgres/Redis), GraphQL-адаптер
+над typed_graphql (Q1 у роадмапі graphql_dart), 2FA/passkeys/magic links,
+Dart WS-клієнт, адаптер `relic`.
