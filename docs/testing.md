@@ -14,93 +14,119 @@ test('list filters by state', () {
 });
 ```
 
-## A test module
+## `TestApp`: the graph without a server
 
-To test several providers together, or to swap one for a fake, write a
-module for the test with the explicit API, also when the application uses
-annotations:
+`TestApp` from `package:grund/testing.dart` builds and validates the module
+graph and creates the singletons, but starts no runner, so no port is
+opened. To swap one dependency for a fake, either write a module for the
+test on the explicit API (also when the application uses annotations):
 
 ```dart
-test('a test module provides a fake store through DI', () async {
-  final container = await Container.create(
-    Module(
-      id: 'test',
-      providers: [
-        Provider<TaskStore>((i) => _EmptyStore()),
-        Provider((i) => TasksService(i.get())),
-      ],
-    ),
-  );
-  addTearDown(container.close);
+final class _FakeStoreModule extends Module {
+  const _FakeStoreModule();
 
-  expect(container.root.get<TasksService>().list(), isEmpty);
+  @override
+  List<Binding<Object>> get bindings => [
+    Singleton<TaskStore>((_) => _EmptyStore(), dependsOn: const []),
+    Singleton<TasksService>(
+      (i) => TasksService(i<TaskStore>()),
+      dependsOn: const [Key<TaskStore>()],
+    ),
+  ];
+}
+
+test('a test module provides a fake store through DI', () async {
+  final app = await TestApp.start(root: const _FakeStoreModule());
+  addTearDown(app.close);
+
+  expect(app<TasksService>().list(), isEmpty);
 });
 ```
 
-There is no `overrideProvider`: compose the graph you want instead. A
-module function with parameters (`tasksModule({TaskStore? store})`) is the
-usual way to let tests replace a dependency of a real module.
+or keep the real graph and override one binding:
+`TestApp.start(root: AppModule(), overrides: [Singleton<TaskStore>((_) =>
+_EmptyStore(), dependsOn: const [])])`. An override replaces the bindings
+with the same key wherever they are declared; one that matches no binding is
+an `UnusedOverrideError`, so a typo fails loudly. `app<T>()` resolves a value
+visible to the root module.
 
 ## The HTTP layer without a socket
 
-`TestClient` from `package:grund/testing.dart` sends requests through
-`app.handle`, the full pipeline (middleware, guards, interceptors, pipes,
-filters, serialization) without a server:
+`TestClient` from `package:grund_http/testing.dart` sends requests straight to
+the `HttpServer` of a `TestApp`: the whole pipeline (middleware, hooks, the
+handler, serialization, problem responses) without an adapter listening:
 
 ```dart
-test('GET /health', () async {
-  final app = await Application.create(appModule);
-  addTearDown(app.close);
+late TestApp app;
+late TestClient client;
 
-  final response = await TestClient(app).get('/health');
+setUp(() async {
+  app = await TestApp.start(
+    root: ServingModule(const AppModule(), AdapterKind.io),
+  );
+  client = TestClient.of(app);
+});
+tearDown(() => app.close());
 
-  expect(response.status, 200);
-  expect(response.json, {'status': 'ok', 'name': 'tasks_api'});
+test('an editor creates a task', () async {
+  final created = await client.post(
+    '/tasks',
+    json: {'title': 'Ship 0.1.0'},
+    headers: {'x-api-key': 'editor-key'},
+  );
+  expect(created.status, 201);
 });
 ```
 
-`TestClient` has `get`, `post`, `put`, `patch`, `delete` and `request`;
-`json:` sends a JSON body, `headers:` adds headers. A `TestResponse` has
-`status`, `headers`, `bytes`, `text` and `json`. Unlike a real server it
-keeps the body of a `HEAD` response.
+The root module must import `HttpModule` and an adapter module (the
+adapter never listens in a `TestApp`). `TestClient` has `get`, `post`, `put`,
+`patch`, `delete` and `request`; `json:` sends a JSON body, `headers:` adds
+headers. A `TestResponse` has `status`, `headers`, `bytes`, `text` and
+`json`. Unlike a real server it keeps the body of a `HEAD` response.
 
 ## End to end on a real socket
 
-To test an adapter as well, listen on an ephemeral loopback port and use
-`HttpClient`:
+To test an adapter as well, start the application with `HttpConfig(port: 0)`
+on loopback and use `HttpClient`:
 
 ```dart
-final adapter = IoAdapter();
-final app = await Application.create(appModule, adapter: adapter);
-await app.listen(port: 0, address: InternetAddress.loopbackIPv4);
+final app = App(
+  root: ServingModule(
+    const AppModule(),
+    AdapterKind.io,
+    address: InternetAddress.loopbackIPv4,
+    port: 0,
+  ),
+);
+await app.start();
+final adapter = app.container.all<HttpAdapter>().first as IoAdapter;
 final uri = Uri.http('127.0.0.1:${adapter.port}', '/health');
 ```
 
-`example/test/helpers/loopback_server.dart` wraps this for both adapters,
-and `example/test/e2e_test.dart` runs one suite on both. Pass an
-`onError` that collects errors and expect the list to be empty in
-`tearDown`: a failure that never reached a response is otherwise invisible.
+`example/test/helpers/loopback_server.dart` wraps this for both adapters, and
+`example/test/e2e_test.dart` runs one suite on both. Pass an `onError` to the
+adapter module that collects errors and attach a `LogOutput` with a `sink` at
+`Level.WARNING` (see [logging.md](logging.md)); expect both lists to be empty
+in `tearDown`: a failure that never reached a response is otherwise
+invisible. `TestApp` and `App.start` attach no log output, so tests stay
+silent.
 
-## The generated library
+## The generated files
 
-Check in a test (or in CI) that the committed library matches the sources:
+Check in a test (or in CI) that the committed `*.g.dart` files match the
+sources:
 
 ```sh
-grund gen && git diff --exit-code lib/my_app.grund.dart
+grund gen && git diff --exit-code
 ```
 
 `example/test/generated_library_test.dart` does it in Dart: it copies the
-package to a temporary directory, generates there, and compares the
-result with the committed file.
+sources to a temporary directory, runs the CLI's `GenerationSession` there and
+compares the result with the committed files.
 
 ## Both styles, one suite
 
 When a package keeps a hand-written graph next to the annotations (as the
-example does to document them), run the same tests against both module
-functions:
-
-```dart
-for (final (name, root) in [('annotations', appModule), ('explicit', explicitAppModule)]) {
-  group(name, () { /* ... */ });
-}
-```
+example does to document them), run the same tests against both root modules:
+`example/test/e2e_test.dart` loops over the module style and the adapter and
+runs one suite for every combination.
