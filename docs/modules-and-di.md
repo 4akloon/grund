@@ -132,8 +132,9 @@ singleton is disposed. `App(root: ..., overrides: [...])` replaces the
 bindings with the same keys wherever they are declared; an override that
 matches no binding is an `UnusedOverrideError`.
 
-Every failure is a subclass of the sealed `GrundError`, so a test or a
-startup script can match on it. Before any factory runs, the graph is
+Every failure is a subclass of `GrundError` (an abstract base class), and its families
+(`GraphError`, `ResolutionError`, `AppError`) are sealed, so a test or a
+startup script can match on them. Before any factory runs, the graph is
 checked for import cycles, conflicting modules, duplicate bindings, exports
 of something the module does not have, ambiguous exports, missing or
 invisible providers, dependency cycles and captive dependencies. A missing

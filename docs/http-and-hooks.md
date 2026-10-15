@@ -221,11 +221,16 @@ throw NotFoundException(message: 'No user 7.', code: 'user_not_found');
 `BadRequestException`, `UnauthorizedException`, `ForbiddenException`,
 `NotFoundException`, `MethodNotAllowedException`, `PayloadTooLargeException`,
 `UnprocessableContentException` and `ServiceUnavailableException` are
-built in; extend `HttpException` for another status. An exception takes a
+built in; extend `HttpException` for another status. `HttpException` takes a
 `message` (the `detail`), a stable machine-readable `code` (clients switch
 on it, never on the message), a `pointer` (a JSON pointer to the bad input,
 sent as an entry of `errors`), `details` (a JSON value; a list of
-`ProblemError`s is sent as `errors`), `headers` and the `cause` above.
+`ProblemError`s is sent as `errors`), `headers` and the `cause` above. The
+built-in subclasses take a subset: `pointer` only on `BadRequestException`
+and `UnprocessableContentException`, `headers` only on
+`UnauthorizedException` (`MethodNotAllowedException` sets `allow` from its
+list of allowed methods); the others take `message`, `code`, `details` and
+`cause`.
 
 Anything else that is thrown is a 500 with the detail `Internal server
 error`. It is logged as `SEVERE` on `grund.http` (message `Unhandled

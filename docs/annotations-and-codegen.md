@@ -19,14 +19,18 @@ base class `Module`, `Pattern` with `dart:core` and `Cookie` with `dart:io`.
 The import block of a host library therefore looks like this (from
 `example/lib/src/tasks/tasks_api.dart` and `tasks_module.dart`):
 
+A library with an `@Api` class (`tasks_api.dart`):
+
 ```dart
-// A library with an @Api class:
 import 'package:grund_http/annotations.dart';
 import 'package:grund_http/grund_http.dart' as http;
 
 part 'tasks_api.g.dart';
+```
 
-// A library with a @Module class:
+A library with a `@Module` class (`tasks_module.dart`):
+
+```dart
 import 'package:grund/annotations.dart';
 import 'package:grund/grund.dart' as grund;
 
@@ -81,7 +85,8 @@ the whole output for a real module and API. A generated file starts with
   configuration enters the graph. `@Named('x')` on a class, a method or a
   parameter selects the key's name. `Scope.call` gives a `Scoped` binding.
 - **Injection** uses the unnamed public constructor; every parameter is
-  resolved by its type (and `@Named`), named parameters must be `required`.
+  resolved by its type (and `@Named`), required positional and required named parameters only (an optional
+  parameter is rejected).
 - **Routes.** `@Api('/tasks', use: [...])` on a class, `@Get('/:id')`, `@Post`,
   `@Put`, `@Patch`, `@Delete` on its methods (`status:` and `use:` as in the
   explicit `Route`). A handler returns what the explicit one returns,
@@ -164,9 +169,9 @@ a request.
   restrict `grund_build` with `generate_for` in `build.yaml`, as described in
   [build-runner.md](build-runner.md#json_serializable-and-freezed).
 - Several packages: `gen` handles one package per run. A `@Module` class from
-  another package (and `HttpModule` itself) is opaque to the generator, which
-  then leaves `missing_provider` and `circular_dependency` for the whole
-  package to the start of the application. See [faq.md](faq.md#known-limitations).
+  another package (and `HttpModule` itself) is opaque to the generator: while one is imported, a dependency that no
+  module of the package binds is not reported as `missing_provider` (the
+  opaque module might export it). See [faq.md](faq.md#known-limitations).
 
 ## One application, two styles
 

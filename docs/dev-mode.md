@@ -68,8 +68,8 @@ it closed gracefully; `SIGTERM` sent to `dev` alone closes it first.
 ## Things to know
 
 - **A reload does not run `main` again.** Changes to the server setup in
-  `main` (the adapter, the port, middleware added with `app.use`) take
-  effect after `R`.
+  `main` (the adapter module, the port in `HttpConfig`, the `middleware` list of
+  `HttpModule`, all built in `main` or the root module) take effect after `R`.
 - **A kept singleton keeps its old state**, also a configuration value it
   read in its factory. A changed value needs a restart.
 - **Only `lib/` and the directory of the target are watched.** A change in

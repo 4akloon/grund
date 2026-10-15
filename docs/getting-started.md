@@ -158,10 +158,11 @@ lib/src/todos.dart:30:32: error: The path /todos has no parameter :id for id; it
 
 What the generator cannot see, the application checks before it serves.
 `AppModule` imports `HttpModule`, a module from another package, which the
-generator treats as opaque, so it leaves `missing_provider` and
-`circular_dependency` to the start of the application
-([faq.md](faq.md#known-limitations)). Remove `TodoList` from `providers`
-and `dart run bin/main.dart` fails at once, before it listens:
+generator treats as opaque, so it does not report `missing_provider` for a
+dependency that no module of the package binds (the opaque module might
+export it; [faq.md](faq.md#known-limitations)). Remove `TodoList` from
+`providers` and `grund gen` stays silent, but `dart run bin/main.dart` fails
+at once, before it listens:
 
 ```text
 MissingProviderError: No provider for TodoList is visible in module TodosModule, required by TodosApi. Declare it there, or import a module that exports it.

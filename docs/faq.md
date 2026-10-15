@@ -58,8 +58,9 @@ Yes. Nothing uses `dart:mirrors`. The hot reload hooks are registered only
 outside product mode, so an AOT binary contains none of them.
 
 **Can I use Flutter's `dart:ui` or run in the browser?**
-`package:grund` and `grund_http` do not import `dart:io`, but both adapters
-do, and the framework is built and tested as a server framework only.
+Not supported. `package:grund` imports `dart:io` for the console log output
+and the stop signals, the adapters for the server, and the framework is built
+and tested as a server framework only.
 
 **How do I override a provider in a test?**
 `TestApp.start(root: ..., overrides: [...])` replaces bindings by key, or build
@@ -111,10 +112,14 @@ routes. Import the type without a prefix in the library that declares the
 
 **The generator cannot see into a module from another package.** A `@Module`
 class from another package, `HttpModule` and the adapter modules included, and
-a module that a function returns are opaque to the generator. For the whole
-package that references one, `missing_provider` and `circular_dependency` are
-not reported by `grund gen`; the application still reports them at start,
-before it serves, with the resolution chain.
+a module that a function returns are opaque to the generator. While a package imports one, a dependency that
+no module of the package binds is not reported as `missing_provider` by
+`grund gen`, because the opaque module might export it. A key that a module
+of the package binds but does not export to the module that needs it is
+still reported, and cycles and captive dependencies among the package's own
+bindings are still found. The application start validates the whole graph
+before it serves and reports what the generator could not, with the
+resolution chain.
 
 **`dev` may restart when a reload would have been enough.** The check that
 decides between a reload and a restart compares fields, constructors,
