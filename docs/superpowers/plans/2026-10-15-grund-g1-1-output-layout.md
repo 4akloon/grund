@@ -7,8 +7,8 @@
 
 **Спек (обов'язковий):** `docs/superpowers/specs/2026-10-15-grund-generated-output-layout-design.md`
 (розділи 2–8). Рішення користувача, на яких він стоїть: вивід по вихідних
-бібліотеках; модулі — бібліотека `X.module.g.dart`, `@Api` — `part`
-`X.api.g.dart`; суфікс `.g.dart`; HTTP-частина генератора — окремий пакет
+бібліотеках; модулі — бібліотека `X_module.g.dart`, `@Api` — `part`
+`X_api.g.dart`; суфікс `.g.dart`; HTTP-частина генератора — окремий пакет
 `grund_http_generator` (анотації лишаються в `grund_annotations`); `grund_cli`
 і `grund_build` знають обидва пакети статично.
 
@@ -22,7 +22,7 @@
 - `grund_http_generator` залежить від `grund_generator`, `analyzer`, `path`;
   `grund_generator` не залежить від нього. `analyzer` дозволений і тут.
 - Усі файли виводу мають заголовок генератора, суфікс `.g.dart`, імена
-  `X.module.g.dart` і `X.api.g.dart` (поруч із `X.dart`). Плейн `X.g.dart` не
+  `X_module.g.dart` і `X_api.g.dart` (поруч із `X.dart`). Плейн `X.g.dart` не
   використовується.
 - Англійська мова для коду, `///`, діагностик, README, CHANGELOG, комітів.
 
@@ -71,10 +71,10 @@
 Модель: opus (архітектура, перенесення між пакетами). Рев'ю: sonnet, діф як
 файл; перевірити межу `grep`-ом, а не на слово.
 
-## Задача 16 (змінена): емісія модулів у `X.module.g.dart`
+## Задача 16 (змінена): емісія модулів у `X_module.g.dart`
 
 Правила емісії 1–9 з G1 лишаються. Зміни: вивід йде **по вихідних
-бібліотеках**: для кожної `X.dart` з `@Module` генерується `X.module.g.dart`
+бібліотеках**: для кожної `X.dart` з `@Module` генерується `X_module.g.dart`
 (бібліотека з міксинами `$M`); `ImportAllocator` — на файл; `GenerationResult`
 — набір файлів; бібліотека без `@Module` виводу не має. Binding провайдера, що
 його заявив конструкт-розширення (`claimsProvider`), бере в нього
@@ -82,12 +82,12 @@
 в `providers` — діагностика (недосяжні з іншої бібліотеки). Тести: файл на
 бібліотеку; нічого для бібліотеки без модуля; префікси `i1…` у межах файла.
 
-## Задача 17 (змінена): емісія `@Api` у `grund_http_generator` (`X.api.g.dart`)
+## Задача 17 (змінена): емісія `@Api` у `grund_http_generator` (`X_api.g.dart`)
 
 Правила емісії `HttpApi`-адаптерів з G1 (задача 17) лишаються, але: вони живуть
-у `grund_http_generator`; вивід — `part of 'X.dart'` у `X.api.g.dart`, без
+у `grund_http_generator`; вивід — `part of 'X.dart'` у `X_api.g.dart`, без
 власних імпортів (імена беруться з області видимості хоста); хост зобов'язаний
-мати `part 'X.api.g.dart';` і префіксні імпорти, що їх вимагає емітер
+мати `part 'X_api.g.dart';` і префіксні імпорти, що їх вимагає емітер
 (мінімум `package:grund_http/grund_http.dart as http`; точний перелік задає
 емітер і називає в діагностиці). Нові діагностики `missing_part_directive` і
 `missing_required_import` (з `path:line:col`, перевірка по `LibraryElement`
@@ -96,7 +96,7 @@
 
 ## Задача 18 (змінена): golden-набір, діагностики, еквівалентність
 
-Golden `users_app` — **набір файлів** (`*.module.g.dart`, `*.api.g.dart`) у
+Golden `users_app` — **набір файлів** (`*_module.g.dart`, `*_api.g.dart`) у
 `lib/`, перевіряється всім набором (зайвих файлів немає); `users_app` хост-файли
 мають `part` і потрібні префіксні імпорти. Решта задачі 18 (cases_app,
 еквівалентність з явною формою, детермінізм двох прогонів, e2e) без змін по суті.
@@ -107,9 +107,9 @@ Golden `users_app` — **набір файлів** (`*.module.g.dart`, `*.api.g.
 `[ModuleConstruct(), ApiConstruct()]` статично; CLI знає HTTP-пакет, бо має
 шаблони (`grund init`). CLI: запис лише змінених файлів через тимчасовий файл
 і rename; ніколи поверх файла без заголовка; при помилках джерел не пишеться
-жоден файл; застарілі `*.module.g.dart`/`*.api.g.dart` із заголовком
+жоден файл; застарілі `*_module.g.dart`/`*_api.g.dart` із заголовком
 видаляються, чужі — ні. `grund_build`: один `grundBuilder` з
-`buildExtensions` `.dart` → [`.module.g.dart`, `.api.g.dart`]; білдер
+`buildExtensions` `.dart` → [`_module.g.dart`, `_api.g.dart`]; білдер
 файла резолвить досяжні модулі й видає діагностики лише для власних;
 CLI і білдер пишуть однакові байти. `GenerationSession` повертає набір файлів.
 

@@ -27,7 +27,7 @@ void generate(String packageRoot, List<LibraryElement> libraries) {
 Output, one file per source library (`result.files`, path to content):
 
 - A library `lib/users.dart` with `@Module` classes gets
-  `lib/users.module.g.dart` next to it: for each module `UsersModule` a
+  `lib/users_module.g.dart` next to it: for each module `UsersModule` a
   `mixin $UsersModule on grund.Module` with the `imports`, `bindings`,
   `exports` and `global` overrides. The module class applies it with
   `with $UsersModule`. A library without a module gets no file.
