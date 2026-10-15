@@ -2,6 +2,10 @@
 
 - Initial release.
 - Logging: an unhandled error is logged as `SEVERE` on `grund.http` (error and
-  stack trace); subscribe to `Logger.root.onRecord` to forward it. Routes, the listener and
-  shutdown are logged, and `HttpConfig.accessLog` (default `true`) logs each request on
+  stack trace); subscribe to `Logger.root.onRecord` to forward it. The
+  response is still produced when a listener throws, but the listener's
+  failure is reported to its own zone: without `runZonedGuarded` it is an
+  uncaught asynchronous error that ends the isolate, so listeners must not
+  throw. Routes, the listener and shutdown are logged, and
+  `HttpConfig.accessLog` (default `true`) logs each request on
   `grund.access`.

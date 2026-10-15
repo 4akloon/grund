@@ -148,6 +148,7 @@ void main() {
         'detail': 'Internal server error',
       });
       expect(log.unhandledErrors, [same(error)]);
+      expect(log.records.single.stackTrace, isNotNull);
     });
 
     test('debug mode includes the error and the stack', () async {

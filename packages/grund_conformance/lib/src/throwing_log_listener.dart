@@ -4,11 +4,13 @@ import 'package:logging/logging.dart';
 import 'package:test/test.dart';
 
 /// A listener of `Logger.root.onRecord` that throws on every record, to prove
-/// that a failing log listener (user code) does not touch the responses.
+/// that a failing log listener (user code) does not change the responses.
 ///
-/// `package:logging` delivers records synchronously but reports a listener's
-/// exception to the zone the listener was registered in, so it is collected
-/// in [failures] by a guarded zone instead of failing the test.
+/// The framework does not contain the failure: `package:logging` delivers
+/// records through a stream, so a listener's exception goes to the zone the
+/// listener was registered in (an uncaught asynchronous error in a plain
+/// `main`). Here a guarded zone collects it in [failures] instead of failing
+/// the test.
 final class ThrowingLogListener {
   ThrowingLogListener._();
 

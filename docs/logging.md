@@ -56,5 +56,10 @@ An error that becomes a 500 response is logged as `SEVERE` on `grund.http`
 (message `Unhandled error`) with the error and its stack trace; the response
 body shows neither (unless `HttpConfig.debug`). To send them elsewhere (an
 error tracker), subscribe to `Logger.root.onRecord` and pick the records of
-that logger. A listener that throws fails on its own; the response is still
-sent.
+that logger. The response of the request is
+still produced, but a listener that throws is not contained: `package:logging`
+delivers records through a stream, so the failure goes to the zone the
+listener was registered in. In a plain `main` without `runZonedGuarded` it is
+an uncaught asynchronous error that ends the isolate. Listeners must not
+throw (wrap the code of an error tracker in `try/catch`), or the application
+must run inside `runZonedGuarded`.

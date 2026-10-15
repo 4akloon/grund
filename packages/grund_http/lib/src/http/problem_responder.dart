@@ -17,8 +17,9 @@ import 'status_code.dart';
 ///   and `pointer` (as an entry of `errors`) are kept, `details` becomes the
 ///   extension `details` (a list of [ProblemError]s becomes `errors`).
 /// - anything else: logged as `SEVERE` on the logger `grund.http` with the
-///   error and its stack trace (a throwing record listener is user code and
-///   fails on its own, outside this call), then 500 with `detail` `Internal
+///   error and its stack trace (a record listener that throws is not
+///   contained here: the failure goes to the zone it was registered in, and
+///   this call still returns the response), then 500 with `detail` `Internal
 ///   server error`; with [debug] the detail is the error's `toString()` and
 ///   the extension `stack` holds the stack trace.
 final class ProblemResponder {
