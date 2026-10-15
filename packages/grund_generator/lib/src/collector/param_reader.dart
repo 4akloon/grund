@@ -6,6 +6,7 @@ import '../model/binding_key.dart';
 import '../model/constant_value.dart';
 import '../model/param_location.dart';
 import '../model/param_model.dart';
+import '../model/invalid_source_reason.dart';
 import '../model/param_source.dart';
 import '../model/value_kind.dart';
 import 'annotations.dart';
@@ -50,6 +51,7 @@ final class ParamReader {
     final shown = '${parameter.displayName} (${type.getDisplayString()})';
     if (annotations.length > 1) {
       return InvalidSource(
+        InvalidSourceReason.ambiguous,
         'Parameter $shown has more than one of @Path, @Query, @Header, '
         '@Cookie and @Body.',
       );
@@ -73,6 +75,7 @@ final class ParamReader {
     if (kind == ValueKind.unsupported ||
         (isList && location == ParamLocation.path)) {
       return InvalidSource(
+        InvalidSourceReason.unsupportedType,
         'Parameter $shown: @${annotation.type?.element?.name} supports '
         'String, int, double, bool, DateTime, Uri and enums, and '
         'List<String> except for @Path.',
@@ -103,6 +106,7 @@ final class ParamReader {
       );
     }
     return InvalidSource(
+      InvalidSourceReason.missing,
       'Parameter $shown has no source: annotate it with @Path, @Query, '
       '@Header, @Cookie or @Body, or give it the class type of a value of '
       'the call scope.',

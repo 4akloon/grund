@@ -58,13 +58,4 @@ final class RouteModel {
 
   /// Why the method cannot be a handler, as a sentence; `null` when it can.
   final String? problem;
-
-  /// Names of the `:name` parameters and the `*` wildcard of [path].
-  List<String> get pathParameters => [
-    for (final segment in path.split('/'))
-      if (segment.startsWith(':'))
-        segment.substring(1)
-      else if (segment == '*')
-        '*',
-  ];
 }

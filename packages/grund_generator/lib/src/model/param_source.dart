@@ -1,5 +1,6 @@
 import 'binding_key.dart';
 import 'body_kind.dart';
+import 'invalid_source_reason.dart';
 import 'param_location.dart';
 import 'value_kind.dart';
 
@@ -52,7 +53,10 @@ final class CallScopeSource extends ParamSource {
 /// A parameter that cannot be filled, because of [problem].
 final class InvalidSource extends ParamSource {
   /// Creates the source.
-  const InvalidSource(this.problem);
+  const InvalidSource(this.reason, this.problem);
+
+  /// The kind of problem; it selects the diagnostic code.
+  final InvalidSourceReason reason;
 
   /// Why the parameter has no source, as a sentence fragment.
   final String problem;

@@ -3,8 +3,6 @@ import 'package:grund_generator/src/diagnostic/diagnostic_code.dart';
 import 'package:grund_generator/src/diagnostic/source_location.dart';
 import 'package:grund_generator/src/model/binding_key.dart';
 import 'package:grund_generator/src/model/generated_names.dart';
-import 'package:grund_generator/src/model/return_kind.dart';
-import 'package:grund_generator/src/model/route_model.dart';
 import 'package:grund_generator/src/model/type_kind.dart';
 import 'package:grund_generator/src/model/type_model.dart';
 import 'package:test/test.dart';
@@ -90,19 +88,6 @@ void main() {
     ]..sort();
 
     expect([for (final k in keys) k.display], ['Clock', 'Repo', "Repo('b')"]);
-  });
-
-  test('route path parameters in declaration order', () {
-    final route = RouteModel(
-      method: 'GET',
-      path: '/:org/users/:id/*',
-      handlerName: 'find',
-      returnType: TypeModel.voidType,
-      returnKind: ReturnKind.none,
-      location: const SourceLocation('lib/a.dart', 1, 1),
-    );
-
-    expect(route.pathParameters, ['org', 'id', '*']);
   });
 
   test('generated names derive from class names', () {
