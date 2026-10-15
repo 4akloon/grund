@@ -92,6 +92,10 @@ deleting like any problem. A URI with a double extension (`x.g.dart`) is
 exempt: a host library importing or including its own output has none on a
 fresh checkout.
 
+`module_in_part` is a `@Module` class declared in a `part of` file: its
+output would be named after the part, which no library can import, so declare
+modules in a library file.
+
 `missing_provider` and `circular_dependency` need the whole graph: when a
 module is built by a function or comes from another package, the generator
 cannot see its providers and skips these two checks for the whole package,
