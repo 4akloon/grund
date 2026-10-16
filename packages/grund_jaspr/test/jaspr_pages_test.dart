@@ -58,7 +58,10 @@ void main() {
 
     final response = await client.get('/');
 
-    expect(response.headers.all('set-cookie'), hasLength(2));
+    final cookies = response.headers.all('set-cookie');
+    expect(cookies, hasLength(2));
+    expect(cookies[0], startsWith('a=1'));
+    expect(cookies[1], startsWith('b=2'));
     expect(response.headers['x-page'], 'yes');
   });
 

@@ -294,6 +294,55 @@ void main() {
       );
     });
 
+    test('a missing field is labelled as a form field', () async {
+      final c = contexts(requestFor('POST', '/', body: 'name=ann'));
+      final form = await c.form();
+
+      expect(
+        () => form.string('password'),
+        throwsA(
+          isA<BadRequestException>().having(
+            (e) => e.message,
+            'message',
+            'Missing form field "password".',
+          ),
+        ),
+      );
+    });
+
+    test('an empty body has no fields', () async {
+      final c = contexts(requestFor('POST', '/', body: ''));
+      final form = await c.form();
+
+      expect(form.all('name'), isEmpty);
+      expect(form.stringOrNull('name'), isNull);
+    });
+
+    test(
+      'a repeated field keeps every value, string reads the first',
+      () async {
+        final c = contexts(requestFor('POST', '/', body: 'tag=a&tag=b&tag=c'));
+        final form = await c.form();
+
+        expect(form.all('tag'), ['a', 'b', 'c']);
+        expect(form.string('tag'), 'a');
+      },
+    );
+
+    test('the content type is not checked: a JSON-typed body still parses '
+        'as a form', () async {
+      final c = contexts(
+        requestFor(
+          'POST',
+          '/',
+          body: 'name=ann',
+          headers: {'content-type': 'application/json'},
+        ),
+      );
+
+      expect((await c.form()).string('name'), 'ann');
+    });
+
     test('a bad escape is a 400 body_invalid', () async {
       final c = contexts(requestFor('POST', '/', body: 'name=%zz'));
 

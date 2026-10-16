@@ -104,6 +104,19 @@ void main() {
       ]);
     });
 
+    test('carries extra cookies as separate headers when it has none', () {
+      final extra = HeaderMap()
+        ..add('set-cookie', 'sid=a; Path=/')
+        ..add('set-cookie', 'theme=b; Path=/');
+
+      final response = HttpResponse.text('x').mergeHeaders(extra);
+
+      expect(response.headers.all('set-cookie'), [
+        'sid=a; Path=/',
+        'theme=b; Path=/',
+      ]);
+    });
+
     test('returns the same response when nothing is missing', () {
       final response = HttpResponse.text('x');
 

@@ -38,7 +38,10 @@ void main() {
 
     expect(rendered.statusCode, 200);
     expect(String.fromCharCodes(rendered.body), contains('url /a/b?x=1'));
-    expect(_values(rendered.headers, 'set-cookie'), hasLength(2));
+    final cookies = _values(rendered.headers, 'set-cookie');
+    expect(cookies, hasLength(2));
+    expect(cookies[0], startsWith('a=1'));
+    expect(cookies[1], startsWith('b=2'));
     expect(_values(rendered.headers, 'content-type').single, contains('html'));
   });
 
