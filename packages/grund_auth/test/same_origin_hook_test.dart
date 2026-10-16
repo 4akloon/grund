@@ -13,6 +13,8 @@ final class EchoApi extends HttpApi {
   List<Route> get routes => [
     Route.get('/echo', (_) => 'ok'),
     Route.post('/echo', (_) => 'ok'),
+    Route.put('/echo', (_) => 'ok'),
+    Route.patch('/echo', (_) => 'ok'),
     Route.delete('/echo', (_) => 'ok'),
   ];
 }
@@ -49,14 +51,17 @@ void main() {
     expect(await post({}), 200);
   });
 
-  test('a GET from another site passes', () async {
-    final response = await client.get(
-      '/echo',
-      headers: {'sec-fetch-site': 'cross-site'},
-    );
+  for (final method in ['GET', 'HEAD', 'OPTIONS']) {
+    test('a cross-site $method is not checked', () async {
+      final response = await client.request(
+        method,
+        '/echo',
+        headers: {'sec-fetch-site': 'cross-site'},
+      );
 
-    expect(response.status, 200);
-  });
+      expect(response.status, isNot(403));
+    });
+  }
 
   for (final site in ['same-origin', 'none']) {
     test('a POST with sec-fetch-site $site passes', () async {
@@ -70,14 +75,37 @@ void main() {
     });
   }
 
-  test('a DELETE from another site is a 403', () async {
-    final response = await client.delete(
-      '/echo',
-      headers: {'sec-fetch-site': 'cross-site'},
-    );
+  for (final method in ['POST', 'PUT', 'PATCH', 'DELETE']) {
+    test('a cross-site $method is a 403 cross_site_request', () async {
+      final response = await client.request(
+        method,
+        '/echo',
+        headers: {'sec-fetch-site': 'cross-site'},
+      );
 
-    expect(response.status, 403);
-  });
+      expect(response.status, 403);
+      expect(response.json, containsPair('code', 'cross_site_request'));
+    });
+  }
+
+  test(
+    'two origin headers are refused, even when both name the host',
+    () async {
+      final response = await client.send(
+        HttpRequest(
+          method: 'POST',
+          uri: Uri.parse('/echo'),
+          headers: HeaderMap()
+            ..add('host', 'example.test')
+            ..add('origin', 'http://example.test')
+            ..add('origin', 'http://example.test'),
+        ),
+      );
+
+      expect(response.status, 403);
+      expect(response.json, containsPair('code', 'cross_site_request'));
+    },
+  );
 
   test('an origin that names the host passes, in any case', () async {
     expect(
@@ -98,10 +126,12 @@ void main() {
   });
 
   test('an origin of another host or port is a 403', () async {
-    expect(
-      await post({'origin': 'http://evil.test', 'host': 'example.test'}),
-      403,
+    final response = await client.post(
+      '/echo',
+      headers: {'origin': 'http://evil.test', 'host': 'example.test'},
     );
+    expect(response.status, 403);
+    expect(response.json, containsPair('code', 'cross_site_request'));
     expect(
       await post({
         'origin': 'http://example.test:9',

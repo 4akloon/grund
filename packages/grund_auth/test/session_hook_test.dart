@@ -85,6 +85,21 @@ void main() {
     expect(response.json, containsPair('code', 'cross_site_request'));
   });
 
+  test('a cross-site POST with a live session is refused before the store is '
+      'read', () async {
+    final store = FrozenStore();
+    store.sessions[_token] = _session(endsIn: const Duration(hours: 1));
+    final client = await SessionApp.start(store: () => store);
+
+    final response = await client.post(
+      '/echo',
+      headers: {'sec-fetch-site': 'cross-site', 'cookie': 'grund_sid=$_token'},
+    );
+
+    expect(response.status, 403);
+    expect(store.reads, 0);
+  });
+
   test('lets a cross-site POST through with sameOrigin off', () async {
     final client = await SessionApp.start(
       config: const SessionConfig(sameOrigin: false),

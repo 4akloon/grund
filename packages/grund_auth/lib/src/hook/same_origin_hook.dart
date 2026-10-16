@@ -10,6 +10,11 @@ import 'package:grund_http/grund_http.dart';
 /// `SessionConfig.sameOrigin` is on; use this hook alone for an
 /// application without sessions.
 ///
+/// A request with more than one `origin` header is refused. Only the
+/// host and port of `origin` are compared, not its scheme: the scheme the
+/// browser used is not reliably known behind a TLS-terminating proxy.
+/// There is no `referer` fallback by design.
+///
 /// Behind a proxy that rewrites `host`, `origin` no longer matches; forward
 /// the original `host`.
 final class SameOriginHook extends HttpHook {
@@ -26,6 +31,8 @@ final class SameOriginHook extends HttpHook {
     if (site != null && site != 'same-origin' && site != 'none') {
       throw _refused('sec-fetch-site is $site');
     }
+    final origins = request.headers.all('origin');
+    if (origins.length > 1) throw _refused('more than one origin header');
     final origin = request.headers['origin'];
     if (origin != null && !_namesHost(origin, request.headers['host'])) {
       throw _refused('origin $origin is not the host');

@@ -15,10 +15,12 @@ final class CookieAttributes {
   });
 
   /// How long the browser keeps the cookie, in whole seconds; `null` keeps
-  /// it until the browser closes, [Duration.zero] deletes it.
+  /// it until the browser closes, [Duration.zero] deletes it. `SetCookie`
+  /// refuses a positive value under one second (it would delete the cookie).
   final Duration? maxAge;
 
-  /// The path prefix the browser sends the cookie for.
+  /// The path prefix the browser sends the cookie for; `SetCookie` refuses
+  /// one that does not start with `/`.
   final String path;
 
   /// Whether the browser sends the cookie over HTTPS only.

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:grund_auth/grund_auth.dart';
 import 'package:test/test.dart';
 
@@ -46,8 +48,20 @@ void main() {
     });
   }
 
-  for (final value in [' ', '"', ',', ';', r'\', '\t', '\x7f', 'ä']) {
-    test('the value ${Uri.encodeFull(value)} is refused', () {
+  for (final value in [
+    ' ',
+    '"',
+    ',',
+    ';',
+    r'\',
+    '\t',
+    '\x7f',
+    'ä',
+    '\r',
+    '\n',
+    '\x00',
+  ]) {
+    test('the value ${jsonEncode(value)} is refused', () {
       expect(() => SetCookie('n', value), throwsA(isA<CookieFormatError>()));
     });
   }
@@ -60,7 +74,13 @@ void main() {
   });
 
   test('a path with ; or a line break is refused (RF2)', () {
-    for (final path in ['/; Domain=evil.test', '/\r\nx: y']) {
+    for (final path in [
+      '/; Domain=evil.test',
+      '/\r\nx: y',
+      '/\x00',
+      '/\x7f',
+      '/ä',
+    ]) {
       expect(
         () => SetCookie('n', 'v', attributes: CookieAttributes(path: path)),
         throwsA(isA<CookieFormatError>()),
@@ -77,6 +97,36 @@ void main() {
       ),
       throwsA(isA<CookieFormatError>()),
     );
+  });
+
+  for (final path in ['', 'app', '.']) {
+    test('the path ${jsonEncode(path)} is refused', () {
+      expect(
+        () => SetCookie('n', 'v', attributes: CookieAttributes(path: path)),
+        throwsA(isA<CookieFormatError>()),
+      );
+    });
+  }
+
+  test('a positive maxAge under one second is refused', () {
+    expect(
+      () => SetCookie(
+        'n',
+        'v',
+        attributes: const CookieAttributes(maxAge: Duration(milliseconds: 999)),
+      ),
+      throwsA(isA<CookieFormatError>()),
+    );
+  });
+
+  test('a maxAge of exactly one second is written as Max-Age=1', () {
+    final cookie = SetCookie(
+      'n',
+      'v',
+      attributes: const CookieAttributes(maxAge: Duration(seconds: 1)),
+    );
+
+    expect(cookie.toHeader(), contains('Max-Age=1;'));
   });
 
   test('SameSite=None without Secure is refused', () {

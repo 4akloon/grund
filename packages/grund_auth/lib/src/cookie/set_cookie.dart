@@ -16,8 +16,10 @@ import 'same_site_policy.dart';
 final class SetCookie {
   /// The cookie [name] with [value]; throws [CookieFormatError] for a name
   /// that is not a token, a value with characters outside the cookie
-  /// octets, a path with `;` or control characters, a negative `maxAge`, or
-  /// `SameSite=None` without `Secure`.
+  /// octets, a path that is empty, does not start with `/` or has `;` or
+  /// control characters, a negative `maxAge`, a positive `maxAge` shorter
+  /// than one second (it would be written as `Max-Age=0` and delete the
+  /// cookie), or `SameSite=None` without `Secure`.
   SetCookie(
     this.name,
     this.value, {
@@ -54,14 +56,21 @@ final class SetCookie {
   ].join('; ');
 
   void _checkAttributes() {
-    if (!CookieSyntax.isAttributeValue(attributes.path)) {
+    final path = attributes.path;
+    if (!path.startsWith('/') || !CookieSyntax.isAttributeValue(path)) {
       throw CookieFormatError(
-        'the path of $name has ";" or a control '
+        'the path of $name must start with "/" and have no ";" or control '
         'character.',
       );
     }
     if (attributes.maxAge case final maxAge? when maxAge.isNegative) {
       throw CookieFormatError('the maxAge of $name is negative.');
+    }
+    if (attributes.maxAge case final maxAge?
+        when maxAge > Duration.zero && maxAge < const Duration(seconds: 1)) {
+      throw CookieFormatError(
+        'the maxAge of $name is under one second; it would delete the cookie.',
+      );
     }
     if (attributes.sameSite == SameSitePolicy.none && !attributes.secure) {
       throw CookieFormatError(

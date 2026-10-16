@@ -56,4 +56,24 @@ void main() {
 
     expect(await store.read('old'), isNull);
   });
+
+  test('create keeps the live sessions', () async {
+    await store.create(_session('live', lasts: const Duration(hours: 2)));
+    await store.create(_session('other'));
+
+    expect(await store.read('live'), isNotNull);
+  });
+
+  test('create with an existing id replaces the session', () async {
+    await store.create(_session('a'));
+    final replacement = Session(
+      id: 'a',
+      userId: 'bob',
+      createdAt: _start,
+      expiresAt: _start.add(const Duration(hours: 1)),
+    );
+    await store.create(replacement);
+
+    expect(await store.read('a'), same(replacement));
+  });
 }

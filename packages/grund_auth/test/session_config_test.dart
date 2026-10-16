@@ -1,3 +1,4 @@
+import 'package:grund/grund.dart';
 import 'package:grund/testing.dart';
 import 'package:grund_auth/grund_auth.dart';
 import 'package:test/test.dart';
@@ -65,4 +66,47 @@ void main() {
       throwsA(isA<SessionConfigError>()),
     );
   });
+
+  test('the config is validated before any runner starts', () async {
+    final runner = _RecordingRunner();
+
+    await expectLater(
+      TestApp.start(root: _RootWith(runner)),
+      throwsA(isA<SessionConfigError>()),
+    );
+
+    expect(runner.calls, isEmpty);
+  });
+}
+
+final class _RecordingRunner extends Runner {
+  final List<String> calls = [];
+
+  @override
+  String get name => 'recording';
+
+  @override
+  Future<void> prepare(Injector injector) async => calls.add('prepare');
+
+  @override
+  Future<void> start(Injector injector) async => calls.add('start');
+
+  @override
+  Future<void> stop() async => calls.add('stop');
+}
+
+final class _RootWith extends Module {
+  const _RootWith(this._runner);
+
+  final _RecordingRunner _runner;
+
+  @override
+  List<Module> get imports => const [
+    SessionModule(config: SessionConfig(cookieName: 'a b')),
+  ];
+
+  @override
+  List<Binding<Object>> get bindings => [
+    Singleton<_RecordingRunner>((_) => _runner, dependsOn: const []),
+  ];
 }

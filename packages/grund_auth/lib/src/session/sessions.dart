@@ -28,6 +28,11 @@ final class Sessions {
   /// a new one under a fresh token (a token known before the sign-in never
   /// becomes valid: no session fixation), sets its cookie on [c]'s response
   /// and puts the [CurrentUser] in [c]'s call scope.
+  ///
+  /// Call it at most once per request, and not together with [end]: a second
+  /// call creates another session (the first is left in the store until it
+  /// expires, because the request still carries the old token) and adds a
+  /// second `set-cookie` header.
   Future<Session> start(HttpCtx c, String userId) async {
     await _forget(c);
     final now = DateTime.now();
@@ -45,6 +50,10 @@ final class Sessions {
 
   /// Signs out: deletes the session of the request and tells the browser
   /// to delete the cookie (an empty value with `Max-Age=0`).
+  ///
+  /// Calling it twice in one request adds a second `set-cookie` header, and
+  /// after [start] it deletes the old session, not the one [start] created,
+  /// which is left in the store until it expires.
   Future<void> end(HttpCtx c) async {
     await _forget(c);
     _setCookie(c, '', Duration.zero);
