@@ -10,4 +10,7 @@ export 'src/cookie/set_cookie.dart';
 export 'src/current_user.dart';
 export 'src/session/in_memory_session_store.dart';
 export 'src/session/session.dart';
+export 'src/session/session_config.dart';
+export 'src/session/session_module.dart';
 export 'src/session/session_store.dart';
+export 'src/session/sessions.dart';

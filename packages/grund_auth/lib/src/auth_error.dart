@@ -1,6 +1,7 @@
 import 'package:grund/grund.dart';
 
-/// A failure of `grund_auth`: a cookie that cannot be written.
+/// A failure of `grund_auth`: a cookie that cannot be written, or a session
+/// configuration a browser would not honour.
 sealed class AuthError extends GrundError {
   /// Creates the error.
   const AuthError(this.reason);
@@ -17,4 +18,14 @@ final class CookieFormatError extends AuthError {
 
   @override
   String get message => 'Invalid cookie: $reason';
+}
+
+/// A `SessionConfig` that cannot work; thrown when `SessionModule` starts,
+/// before the server serves.
+final class SessionConfigError extends AuthError {
+  /// Creates the error; [reason] says what is wrong.
+  const SessionConfigError(super.reason);
+
+  @override
+  String get message => 'Invalid SessionConfig: $reason';
 }
