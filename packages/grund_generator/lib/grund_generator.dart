@@ -70,6 +70,7 @@ export 'src/model/module_reference.dart';
 export 'src/model/package_model.dart';
 export 'src/model/provider_model.dart';
 export 'src/model/provides_model.dart';
+export 'src/model/public_imports.dart';
 export 'src/model/type_kind.dart';
 export 'src/model/type_model.dart';
 export 'src/model/module_in_part.dart';

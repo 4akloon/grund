@@ -6,7 +6,9 @@ import '../diagnostic/diagnostic.dart';
 import '../diagnostic/diagnostic_code.dart';
 import '../diagnostic/source_location.dart';
 import '../emit/library_writer.dart';
+import '../model/generated_names.dart';
 import '../model/package_model.dart';
+import '../model/public_imports.dart';
 import 'file_unit.dart';
 import 'generated_unit.dart';
 import 'library_unit.dart';
@@ -57,6 +59,7 @@ final class OutputAssembler {
         packageName: package.packageName,
         languageVersion: package.languageVersion,
         declarations: [for (final unit in group) (unit as LibraryUnit).spec],
+        publicImports: _publicImports(path),
       );
     }
     final parts = group.whereType<PartUnit>().toList();
@@ -74,6 +77,15 @@ final class OutputAssembler {
       'The generated units for $path cannot form one file: '
       '${group.map((unit) => unit.runtimeType).join(', ')}.',
     );
+  }
+
+  // The library at [path] is the output of one source library.
+  PublicImports _publicImports(String path) {
+    for (final MapEntry(key: source, value: imports)
+        in package.publicImports.entries) {
+      if (GeneratedNames.outputPath(source) == path) return imports;
+    }
+    return PublicImports.none;
   }
 
   // A part of nothing, or of itself, is a construct bug, like the other

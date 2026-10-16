@@ -18,6 +18,7 @@ import 'collection_context.dart';
 import 'injectable_reader.dart';
 import 'module_reader.dart';
 import 'provides_reader.dart';
+import 'public_imports_reader.dart';
 import 'source_locations.dart';
 import 'unresolved_uri_reader.dart';
 import 'unsupported_use_reader.dart';
@@ -98,6 +99,13 @@ final class PackageCollector {
       unresolvedUris: parts.unresolved,
       extensions: _extensions(sorted),
       libraryPaths: [for (final library in sorted) _locations.pathOf(library)],
+      publicImports: {
+        for (final library in sorted)
+          _locations.pathOf(library): PublicImportsReader.read(
+            library,
+            packageName,
+          ),
+      },
     );
   }
 

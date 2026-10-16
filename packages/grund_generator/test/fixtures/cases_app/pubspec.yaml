@@ -7,3 +7,4 @@ environment:
 resolution: workspace
 dependencies:
   grund: ^0.1.0
+  other_pkg: ^0.1.0

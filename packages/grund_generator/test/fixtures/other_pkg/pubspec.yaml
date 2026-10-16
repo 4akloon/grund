@@ -1,0 +1,9 @@
+name: other_pkg
+description: A second package whose barrel re-exports a declaration of its src/, for grund_generator tests.
+version: 0.1.0
+publish_to: none
+environment:
+  sdk: ^3.8.0
+resolution: workspace
+dependencies:
+  grund: ^0.1.0

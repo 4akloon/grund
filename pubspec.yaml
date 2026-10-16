@@ -10,6 +10,7 @@ workspace:
   - packages/grund_conformance
   - packages/grund_generator
   - packages/grund_generator/test/fixtures/cases_app
+  - packages/grund_generator/test/fixtures/other_pkg
   - packages/grund_http
   - packages/grund_http_generator
   - packages/grund_http_generator/test/fixtures/http_cases_app

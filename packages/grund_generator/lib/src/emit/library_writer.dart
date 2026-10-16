@@ -3,6 +3,7 @@ import 'package:dart_style/dart_style.dart';
 import 'package:pub_semver/pub_semver.dart';
 
 import 'dart_string.dart';
+import '../model/public_imports.dart';
 import 'import_allocator.dart';
 
 /// Writes the formatted source of a generated library or part file from
@@ -16,7 +17,8 @@ abstract final class LibraryWriter {
 
   /// The source of a library of [packageName] holding [declarations], in
   /// order and separated by blank lines, formatted for [languageVersion].
-  /// Its imports are prefixed by an [ImportAllocator] of its own.
+  /// Its imports are prefixed by an [ImportAllocator] of its own, which
+  /// imports a declaration of [publicImports] from its public library.
   ///
   /// Throws [ArgumentError] when [packageName] is not a valid Dart package
   /// name: it reaches a doc comment and import URLs.
@@ -24,6 +26,7 @@ abstract final class LibraryWriter {
     required String packageName,
     required Version languageVersion,
     required List<Spec> declarations,
+    PublicImports publicImports = PublicImports.none,
   }) {
     if (!validPackageName.hasMatch(packageName)) {
       throw ArgumentError.value(
@@ -40,7 +43,7 @@ abstract final class LibraryWriter {
         )
         ..body.addAll(_body(declarations)),
     );
-    return _format(library, ImportAllocator(), languageVersion);
+    return _format(library, ImportAllocator(publicImports), languageVersion);
   }
 
   /// The source of a part file of the library at relative URI [partOf]

@@ -5,6 +5,7 @@ import 'injectable_model.dart';
 import 'module_in_part.dart';
 import 'module_model.dart';
 import 'provides_model.dart';
+import 'public_imports.dart';
 import 'unresolved_uri.dart';
 import 'unsupported_use.dart';
 
@@ -23,6 +24,7 @@ final class PackageModel {
     this.unresolvedUris = const [],
     this.extensions = const [],
     this.libraryPaths = const [],
+    this.publicImports = const {},
   });
 
   /// The package name; the output is an `X.g.dart` per source library
@@ -64,6 +66,10 @@ final class PackageModel {
   /// The package-relative paths of the source libraries (generated outputs
   /// excluded), in library-URI order: where a generated `part` may attach.
   final List<String> libraryPaths;
+
+  /// For each source library (by its path in [libraryPaths]), the public
+  /// libraries to import for declarations of other packages' `src/`.
+  final Map<String, PublicImports> publicImports;
 
   /// The extension model of type [T], or `null` when no construct collected
   /// one.
