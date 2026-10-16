@@ -51,6 +51,8 @@ void main() {
       '::',
       'http://evil.example/',
       'http://127.0.0.1.evil.example/',
+      'http://127.0.0.1@evil.example/',
+      'http://localhost.evil.example/',
       'http://[2001:db8::1]:1/',
       'http://<evil>/',
     ]) {

@@ -10,7 +10,7 @@ environment:
   sdk: ^3.8.0
 dependencies:
   grund: ^0.1.0
-  grund_http: ^0.1.0
+  grund_http: ^0.2.0
 dev_dependencies:
   build_runner: ^2.10.5
   grund_build: ^0.1.0

@@ -16,9 +16,8 @@ final class JasprConfig {
 
   /// The file extensions a page path may have, written without the dot
   /// (`xml`, not `.xml`; [validate] refuses a dotted entry, which would
-  /// never match); a path with
-  /// another extension that is not a static file is a 404 instead of a
-  /// page, the way Jaspr's own server does it.
+  /// never match); a path with another extension that is not a static file
+  /// is a 404 instead of a page, the way Jaspr's own server does it.
   final List<String> pageSuffixes;
 
   /// Where the live reload script of a page listens for `reload` events;

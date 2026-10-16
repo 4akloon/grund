@@ -3,7 +3,7 @@ description: >-
   The HTTP part of the grund generator: reads @Api classes, their routes,
   parameters, hooks and bodies, and validates them before the application
   starts.
-version: 0.1.1
+version: 0.1.0
 repository: https://github.com/4akLoon/grund/tree/master/packages/grund_http_generator
 issue_tracker: https://github.com/4akLoon/grund/issues
 topics: [codegen, analyzer, server, http]
