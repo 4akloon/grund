@@ -83,6 +83,12 @@ jobs:
       - name: Install dependencies (workspace)
         run: dart pub get
 
+      # Resolves the real `dependencies` outside the workspace, so a constraint
+      # on a workspace package that is not on pub.dev yet fails here, with a
+      # message, instead of in the publish step.
+      - name: Verify the dependencies are live on pub.dev
+        run: dart .github/scripts/check_published_dependencies.dart "${{ steps.meta.outputs.package }}"
+
       - name: Dry-run ${{ steps.meta.outputs.package }} ${{ steps.meta.outputs.version }}
         run: dart pub publish --dry-run
         working-directory: packages/${{ steps.meta.outputs.package }}
