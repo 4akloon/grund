@@ -72,7 +72,7 @@ jobs:
       - name: Install dependencies (workspace)
         run: dart pub get
 
-      # In the order of docs/RELEASING.md; any warning fails the job.
+      # Every published package (the list of docs/RELEASING.md); any warning fails the job.
       - name: dart pub publish --dry-run
         run: |
           for package in grund grund_http grund_io grund_shelf \

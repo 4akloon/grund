@@ -1,0 +1,92 @@
+# Publishes one package to pub.dev when its release tag is pushed.
+#
+# Tag convention: <package>-v<version> (e.g. `grund_cli-v0.1.1`). Only the
+# tagged package is published: packages are versioned independently, and only
+# a package that changed gets a new version.
+#
+# Auth is pub.dev's GitHub Actions OIDC flow (no secrets): `dart-lang/setup-dart`
+# mints a temporary pub.dev credential from the job's `id-token`. For it to be
+# accepted, every package needs automated publishing enabled on pub.dev
+# (package page, Admin, Automated publishing): repository `4akloon/grund`,
+# tag pattern `<package>-v{{version}}`, and the GitHub environment `pub.dev`
+# required.
+# pub.dev only allows this for existing packages: the first version of a new
+# package is published by hand (`dart pub publish`).
+# See docs/RELEASING.md.
+name: Publish
+
+on:
+  push:
+    tags:
+      - 'grund-v*'
+      - 'grund_http-v*'
+      - 'grund_io-v*'
+      - 'grund_shelf-v*'
+      - 'grund_generator-v*'
+      - 'grund_http_generator-v*'
+      - 'grund_cli-v*'
+      - 'grund_build-v*'
+
+jobs:
+  publish:
+    name: Publish to pub.dev
+    runs-on: ubuntu-latest
+    environment: pub.dev
+    permissions:
+      contents: read
+      id-token: write # pub.dev OIDC token exchange
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Parse package and version from the tag
+        id: meta
+        run: |
+          TAG="$GITHUB_REF_NAME"
+          echo "package=${TAG%-v*}" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG##*-v}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify the pubspec version matches the tag
+        env:
+          PACKAGE: ${{ steps.meta.outputs.package }}
+          VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          if ! grep -qx "version: $VERSION" "packages/$PACKAGE/pubspec.yaml"; then
+            echo "::error::packages/$PACKAGE/pubspec.yaml does not declare 'version: $VERSION'"
+            exit 1
+          fi
+
+      - name: Verify the changelog has a section for the version
+        env:
+          PACKAGE: ${{ steps.meta.outputs.package }}
+          VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          if ! grep -qx "## $VERSION" "packages/$PACKAGE/CHANGELOG.md"; then
+            echo "::error::packages/$PACKAGE/CHANGELOG.md has no '## $VERSION' heading"
+            exit 1
+          fi
+
+      - name: Verify the tagged commit is on master
+        run: |
+          git fetch origin master
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/master; then
+            echo "::error::$GITHUB_SHA is not an ancestor of origin/master"
+            exit 1
+          fi
+
+      # Mints the temporary pub.dev credential from the job's OIDC token.
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Install dependencies (workspace)
+        run: dart pub get
+
+      - name: Dry-run ${{ steps.meta.outputs.package }} ${{ steps.meta.outputs.version }}
+        run: dart pub publish --dry-run
+        working-directory: packages/${{ steps.meta.outputs.package }}
+
+      - name: Publish ${{ steps.meta.outputs.package }} ${{ steps.meta.outputs.version }}
+        run: dart pub publish --force
+        working-directory: packages/${{ steps.meta.outputs.package }}
