@@ -9,6 +9,7 @@ import '../dev/dev_printer.dart';
 import '../dev/dev_session.dart';
 import '../dev/dev_target.dart';
 import '../dev/live_reload_hub.dart';
+import '../dev/live_reload_start.dart';
 import '../dev/merged_watcher.dart';
 import '../dev/terminal_keys.dart';
 import '../generate/generation_session.dart';
@@ -70,26 +71,13 @@ final class DevCommand extends Command<int> {
     final target = _target(package, options.option('target') ?? '');
     // Open pages reconnect to the same endpoint across restarts; it ends
     // with dev.
-    final liveReload = await _startLiveReload();
+    final liveReload = await LiveReloadStart.run(LiveReloadHub.start);
     try {
       await _serve(package, target, options.rest, liveReload);
     } finally {
       await liveReload.close();
     }
     return CliExitCode.success.code;
-  }
-
-  Future<LiveReloadHub> _startLiveReload() async {
-    try {
-      return await LiveReloadHub.start();
-    } on SocketException catch (error) {
-      // The loopback port could not be bound: dev ends with a message and
-      // the software exit code, not an unmapped exception.
-      throw CliFailure(
-        CliExitCode.software,
-        'dev stopped: cannot start the live reload endpoint: $error',
-      );
-    }
   }
 
   Future<void> _serve(
