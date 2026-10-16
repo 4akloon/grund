@@ -78,15 +78,35 @@ void main() {
   );
 
   test('a page that throws answers a 500 problem without the detail', () async {
-    final client = await PagesApp.start([
-      const JasprModule(app: BrokenPage.new),
-    ]);
-
-    final response = await client.get('/');
+    final stderrText = StringBuffer();
+    final response = await IOOverrides.runZoned(() async {
+      final client = await PagesApp.start([
+        const JasprModule(app: BrokenPage.new),
+      ]);
+      return client.get('/');
+    }, stderr: () => _CapturedStderr(stderrText));
 
     expect(response.status, 500);
     expect(response.headers['content-type'], 'application/problem+json');
     expect(response.text, isNot(contains('secret detail')));
+    expect(stderrText.toString(), contains('secret detail'));
+  });
+
+  test('the application component is built again for every request', () async {
+    var built = 0;
+    final client = await PagesApp.start([
+      JasprModule(
+        app: () {
+          built++;
+          return const UrlPage();
+        },
+      ),
+    ]);
+
+    await client.get('/');
+    await client.get('/');
+
+    expect(built, 2);
   });
 
   test('HEAD answers with the headers of GET', () async {
@@ -226,4 +246,20 @@ void main() {
 
     expect(response.status, 404);
   });
+}
+
+/// Collects what Jaspr writes to stderr, where it prints a failed build.
+final class _CapturedStderr implements Stdout {
+  _CapturedStderr(this._text);
+
+  final StringBuffer _text;
+
+  @override
+  void write(Object? object) => _text.write(object);
+
+  @override
+  void writeln([Object? object = '']) => _text.writeln(object);
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => null;
 }
