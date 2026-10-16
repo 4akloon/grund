@@ -2,3 +2,5 @@
 /// serves the API and the pages, with one dependency injection and one
 /// lifecycle.
 library;
+
+export 'src/jaspr_config.dart';
