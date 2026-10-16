@@ -29,12 +29,10 @@ final class ImportAllocator implements Allocator {
         'A reference to library ${reference.url} has no symbol.',
       );
     }
-    final declaring = reference.url;
-    final url = switch (declaring == null
-        ? null
-        : _public.find(declaring, symbol) ?? declaring) {
+    final url = switch (reference.url) {
       final String url when url.startsWith('package:grund/') => grund,
-      final url => url,
+      final String url => _public.find(url, symbol) ?? url,
+      null => null,
     };
     if (url == null || url == 'dart:core') return symbol;
     final prefix = _prefixes.putIfAbsent(

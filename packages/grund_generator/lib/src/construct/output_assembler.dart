@@ -41,6 +41,10 @@ final class OutputAssembler {
       byPath.putIfAbsent(unit.path, () => []).add(unit);
     }
     final targets = byPath.keys.toSet();
+    final publicImports = {
+      for (final MapEntry(:key, :value) in package.publicImports.entries)
+        GeneratedNames.outputPath(key): value,
+    };
     final files = <String, String>{};
     final problems = <Diagnostic>[];
     for (final MapEntry(key: path, value: group) in byPath.entries) {
@@ -48,18 +52,25 @@ final class OutputAssembler {
       problems
         ..addAll(conflicts)
         ..addAll(_duplicateNames(group));
-      if (conflicts.isEmpty) files[path] = _write(path, group, targets);
+      if (conflicts.isEmpty) {
+        files[path] = _write(path, group, targets, publicImports);
+      }
     }
     return (files: files, problems: problems..sort());
   }
 
-  String _write(String path, List<GeneratedUnit> group, Set<String> targets) {
+  String _write(
+    String path,
+    List<GeneratedUnit> group,
+    Set<String> targets,
+    Map<String, PublicImports> publicImports,
+  ) {
     if (group.every((unit) => unit is LibraryUnit)) {
       return LibraryWriter.write(
         packageName: package.packageName,
         languageVersion: package.languageVersion,
         declarations: [for (final unit in group) (unit as LibraryUnit).spec],
-        publicImports: _publicImports(path),
+        publicImports: publicImports[path] ?? PublicImports.none,
       );
     }
     final parts = group.whereType<PartUnit>().toList();
@@ -77,15 +88,6 @@ final class OutputAssembler {
       'The generated units for $path cannot form one file: '
       '${group.map((unit) => unit.runtimeType).join(', ')}.',
     );
-  }
-
-  // The library at [path] is the output of one source library.
-  PublicImports _publicImports(String path) {
-    for (final MapEntry(key: source, value: imports)
-        in package.publicImports.entries) {
-      if (GeneratedNames.outputPath(source) == path) return imports;
-    }
-    return PublicImports.none;
   }
 
   // A part of nothing, or of itself, is a construct bug, like the other

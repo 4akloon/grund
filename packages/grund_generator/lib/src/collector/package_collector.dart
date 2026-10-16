@@ -81,12 +81,15 @@ final class PackageCollector {
     );
     final parts = _Parts();
     final read = _Readers(packageName, _locations, annotations);
+    final withModules = <LibraryElement>[];
     for (final library in sorted) {
+      final moduleCount = parts.modules.length;
       parts.unsupported.addAll(read.unsupported.read(library));
       parts.unresolved.addAll(read.unresolved.read(library));
       for (final element in library.classes) {
         _collectClass(library, element, read, parts);
       }
+      if (parts.modules.length > moduleCount) withModules.add(library);
     }
     return PackageModel(
       packageName: packageName,
@@ -100,7 +103,8 @@ final class PackageCollector {
       extensions: _extensions(sorted),
       libraryPaths: [for (final library in sorted) _locations.pathOf(library)],
       publicImports: {
-        for (final library in sorted)
+        // Only a library with modules has a generated library to import in.
+        for (final library in withModules)
           _locations.pathOf(library): PublicImportsReader.read(
             library,
             packageName,

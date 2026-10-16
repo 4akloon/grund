@@ -1,7 +1,3 @@
-## 0.1.1
-
-- Generated code imports a public library that exports a referenced declaration of another package instead of its `src/` file (fixes `implementation_imports` in generated files).
-
 ## 0.1.0
 
 Initial release.
