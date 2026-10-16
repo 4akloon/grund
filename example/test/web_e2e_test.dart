@@ -47,6 +47,15 @@ void _pages(LoopbackServer Function() server) {
     expect(css.headers['content-type'], 'text/css; charset=utf-8');
   });
 
+  test('GET /login renders the sign-in page beside the API POST', () async {
+    final page = await server().send('GET', '/login');
+
+    expect(page.status, 200);
+    expect(page.headers['content-type'], 'text/html; charset=utf-8');
+    expect(page.body, contains('<form'));
+    expect(page.body, contains('action="/login"'));
+  });
+
   test('a path without a page is the 404 of the site', () async {
     final page = await server().send('GET', '/nowhere');
 
@@ -170,6 +179,25 @@ void _signIn(LoopbackServer Function() server) {
       expect(login.setCookies, isEmpty);
     });
   }
+
+  test('a browser-style same-origin sign-in is accepted', () async {
+    final login = await signIn(
+      'ann',
+      headers: {
+        'origin': 'http://127.0.0.1:${server().port}',
+        'sec-fetch-site': 'same-origin',
+      },
+    );
+
+    expect(login.status, 303);
+    expect(login.setCookies, contains(startsWith('grund_sid=')));
+    final home = await server().send(
+      'GET',
+      '/',
+      headers: {'cookie': _cookieHeader(login)},
+    );
+    expect(home.body, contains('Signed in as ann.'));
+  });
 
   test('a form posted from another site is refused', () async {
     final login = await signIn(
