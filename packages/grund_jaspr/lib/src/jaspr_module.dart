@@ -1,9 +1,12 @@
+import 'dart:io';
+
 import 'package:grund/grund.dart';
 import 'package:jaspr/server.dart';
 
 import 'jaspr_config.dart';
 import 'jaspr_pages.dart';
 import 'jaspr_setup.dart';
+import 'live_reload_script.dart';
 
 /// Server-side rendered pages of the Jaspr component [app], served by the
 /// application's `HttpModule` next to its APIs.
@@ -38,17 +41,23 @@ final class JasprModule extends Module {
   @override
   final List<Module> imports;
 
-  /// The static directory and the page suffixes.
+  /// The static directory, the page suffixes and the live reload URL.
   final JasprConfig config;
 
   @override
   List<Binding<Object>> get bindings => [
     Singleton<JasprPages>(
-      (i) => JasprPages(i, app: app, config: config),
+      (i) => JasprPages(i, app: app, config: _withEnvironment()),
       dependsOn: const [],
     ),
   ];
 
   @override
   void onInit(Injector injector) => JasprSetup.ensureInitialized();
+
+  JasprConfig _withEnvironment() => config.liveReloadUrl != null
+      ? config
+      : config.withLiveReloadUrl(
+          LiveReloadScript.urlFrom(Platform.environment),
+        );
 }

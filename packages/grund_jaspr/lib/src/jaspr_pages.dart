@@ -20,7 +20,7 @@ final class JasprPages extends HttpApi {
     super.injector, {
     required Component Function() app,
     JasprConfig config = const JasprConfig(),
-  }) : _renderer = PageRenderer(app),
+  }) : _renderer = PageRenderer(app, liveReloadUrl: config.liveReloadUrl),
        _files = StaticFiles(config.staticDirectory),
        _pageSuffixes = config.pageSuffixes;
 
