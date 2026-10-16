@@ -22,12 +22,15 @@ final class DevSession {
   /// Creates the session for [target], printing through [printer] and
   /// forwarding the application's stdout to [out] and its stderr to the
   /// printer's error sink. The application is started and reached through
-  /// [launcher] (tests replace it to make these steps fail).
+  /// [launcher] (tests replace it to make these steps fail). [onServing]
+  /// runs whenever the application serves new code: after a reload with a
+  /// successful reassemble, and once a started application serves.
   DevSession(
     this.target, {
     required this.printer,
     required this.out,
     this.launcher = const AppLauncher(),
+    this.onServing,
   });
 
   /// What runs: the entry point, its package and its arguments.
@@ -41,6 +44,10 @@ final class DevSession {
 
   /// Starts the processes and connects to them.
   final AppLauncher launcher;
+
+  /// Called when the application serves new code (`dev` tells open pages
+  /// to reload); `null` for none.
+  final void Function()? onServing;
 
   final _shapes = ShapeTracker();
   Future<void> _tail = Future<void>.value();
@@ -137,7 +144,14 @@ final class DevSession {
     // The application died meanwhile and said so; its reload result is moot.
     if (!identical(_running, running)) return;
     printer.reloaded(result);
-    if (result is ReloadRejected) await _replace();
+    switch (result) {
+      case Reloaded(reassembleError: null):
+        onServing?.call();
+      case ReloadRejected():
+        await _replace();
+      case Reloaded() || ReloadFailed():
+        break;
+    }
   }
 
   Future<void> _restart(String reason) async {
@@ -184,6 +198,19 @@ final class DevSession {
     _running = running;
     printer.started(process.pid, uri);
     unawaited(process.exitCode.then((code) => _exited(running, code)));
+    if (onServing case final announce?) {
+      unawaited(_announceWhenServing(running, announce));
+    }
+  }
+
+  // Not awaited: a process without grund never serves, and the session
+  // must go on meanwhile.
+  Future<void> _announceWhenServing(
+    _Running running,
+    void Function() announce,
+  ) async {
+    final serving = await running.client.waitUntilServing();
+    if (serving && identical(_running, running)) announce();
   }
 
   Future<ReloadClient?> _connect(AppProcess process, Uri uri) async {

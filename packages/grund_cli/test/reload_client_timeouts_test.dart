@@ -13,7 +13,33 @@ const _short = ReloadTimeouts(
   connect: Duration(milliseconds: 300),
   reload: Duration(milliseconds: 300),
   close: Duration(milliseconds: 300),
+  serving: Duration(milliseconds: 300),
 );
+
+/// Starts a Dart program without grund that keeps running, and connects
+/// to it with [timeouts].
+Future<ReloadClient> _clientOfProcessWithoutGrund({
+  ReloadTimeouts timeouts = const ReloadTimeouts(),
+}) async {
+  final dir = TempDir.create();
+  final entry = dir.write(
+    'main.dart',
+    "import 'dart:async';\n\n"
+        "void main() {\n  Timer(const Duration(minutes: 5), () {});\n"
+        "  print('up');\n}\n",
+  );
+  final process = await AppProcess.start(
+    AppCommand(entry, workingDirectory: dir.path),
+    out: LineSink(),
+    err: LineSink(),
+  );
+  addTearDown(() => process.stop(killGrace: Duration.zero));
+  final uri = await process.serviceUri ?? fail('No VM service.');
+  final client = await ReloadClient.connect(uri, timeouts: timeouts);
+  if (client == null) fail('No connection.');
+  addTearDown(client.dispose);
+  return client;
+}
 
 /// Connects to a VM service that opens the connection and never answers.
 Future<ReloadClient> _connectedToHungService() async {
@@ -56,27 +82,25 @@ void main() {
   });
 
   test('a process without grund reloads and skips the reassemble', () async {
-    final dir = TempDir.create();
-    final entry = dir.write(
-      'main.dart',
-      "import 'dart:async';\n\n"
-          "void main() {\n  Timer(const Duration(minutes: 5), () {});\n"
-          "  print('up');\n}\n",
-    );
-    final process = await AppProcess.start(
-      AppCommand(entry, workingDirectory: dir.path),
-      out: LineSink(),
-      err: LineSink(),
-    );
-    addTearDown(() => process.stop(killGrace: Duration.zero));
-    final uri = await process.serviceUri ?? fail('No VM service.');
-    final client = await ReloadClient.connect(uri) ?? fail('No connection.');
-    addTearDown(client.dispose);
+    final client = await _clientOfProcessWithoutGrund();
 
     final result = await client.reload();
 
     expect(result, isA<Reloaded>());
     expect((result as Reloaded).changes, isNull);
     expect(result.reassembleError, isNull);
+  });
+
+  test('a process without grund never serves', () async {
+    final client = await _clientOfProcessWithoutGrund(timeouts: _short);
+
+    expect(await client.waitUntilServing(), isFalse);
+  });
+
+  test('a VM service that never answers never serves', () async {
+    final client = await _connectedToHungService();
+    addTearDown(client.dispose);
+
+    expect(await client.waitUntilServing(), isFalse);
   });
 }

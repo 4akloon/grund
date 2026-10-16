@@ -8,6 +8,7 @@ import 'package:watcher/watcher.dart';
 import '../dev/dev_printer.dart';
 import '../dev/dev_session.dart';
 import '../dev/dev_target.dart';
+import '../dev/live_reload_hub.dart';
 import '../dev/merged_watcher.dart';
 import '../dev/terminal_keys.dart';
 import '../generate/generation_session.dart';
@@ -67,8 +68,33 @@ final class DevCommand extends Command<int> {
     final options = argResults ?? (throw StateError('dev was not parsed.'));
     final package = PackageRoot.open(options.option('directory') ?? '.');
     final target = _target(package, options.option('target') ?? '');
+    // Open pages reconnect to the same endpoint across restarts; it ends
+    // with dev.
+    final liveReload = await LiveReloadHub.start();
+    try {
+      await _serve(package, target, options.rest, liveReload);
+    } finally {
+      await liveReload.close();
+    }
+    return CliExitCode.success.code;
+  }
+
+  Future<void> _serve(
+    PackageRoot package,
+    String target,
+    List<String> arguments,
+    LiveReloadHub liveReload,
+  ) async {
     final session = GenerationSession(package, generator: cli.generator);
-    final dev = _session(package, target, options.rest);
+    final dev = _session(
+      DevTarget(
+        package,
+        entry: target,
+        arguments: arguments,
+        environment: liveReload.environment,
+      ),
+      liveReload,
+    );
     final failure = Completer<void>();
     final keys = cli.keys().listen((key) => _press(dev, key, failure));
     final (:stopped, :subscription) = cli.interruption.listen(
@@ -89,7 +115,6 @@ final class DevCommand extends Command<int> {
         await subscription.cancel();
       }
     }
-    return CliExitCode.success.code;
   }
 
   Future<void> _run(
@@ -115,14 +140,19 @@ final class DevCommand extends Command<int> {
     }
   }
 
-  DevSession _session(PackageRoot package, String entry, List<String> rest) {
+  DevSession _session(DevTarget target, LiveReloadHub liveReload) {
     if (TerminalKeys.isInteractive) {
       cli.out.writeln('Press r to hot reload, R to hot restart.');
     }
     return DevSession(
-      DevTarget(package, entry: entry, arguments: rest),
-      printer: DevPrinter(package.display(entry), cli.out, cli.err),
+      target,
+      printer: DevPrinter(
+        target.package.display(target.entry),
+        cli.out,
+        cli.err,
+      ),
       out: cli.out,
+      onServing: liveReload.broadcastReload,
     );
   }
 

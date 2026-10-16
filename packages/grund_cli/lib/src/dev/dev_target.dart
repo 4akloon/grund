@@ -9,7 +9,12 @@ import 'app_command.dart';
 /// `main`.
 final class DevTarget {
   /// Creates the target; [entry] is absolute.
-  const DevTarget(this.package, {required this.entry, required this.arguments});
+  const DevTarget(
+    this.package, {
+    required this.entry,
+    required this.arguments,
+    this.environment = const {},
+  });
 
   /// The package of the application.
   final PackageRoot package;
@@ -20,9 +25,16 @@ final class DevTarget {
   /// The arguments of the application's `main`.
   final List<String> arguments;
 
+  /// Variables added to the environment of the application.
+  final Map<String, String> environment;
+
   /// The command line that runs the application in its package.
-  AppCommand get command =>
-      AppCommand(entry, workingDirectory: package.path, arguments: arguments);
+  AppCommand get command => AppCommand(
+    entry,
+    workingDirectory: package.path,
+    arguments: arguments,
+    environment: environment,
+  );
 
   /// The Dart files the application is built from, as far as `dev` watches
   /// them: `lib/` and the directory of the entry point.

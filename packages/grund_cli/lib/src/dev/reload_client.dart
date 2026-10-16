@@ -20,6 +20,9 @@ final class ReloadClient {
   /// The extension `Application` registers to close before a restart.
   static const closeMethod = 'ext.grund.close';
 
+  /// How often [waitUntilServing] looks for the reassemble extension.
+  static const servingPollInterval = Duration(milliseconds: 100);
+
   final VmService _service;
   final ReloadTimeouts _timeouts;
 
@@ -85,6 +88,33 @@ final class ReloadClient {
       changes: changes,
       reassembleError: error,
     );
+  }
+
+  /// Whether a grund application of the process serves within
+  /// [ReloadTimeouts.serving]: grund registers the reassemble extension
+  /// once the runners of an `App` started. `false` for a process without
+  /// grund, and when the connection ends meanwhile.
+  Future<bool> waitUntilServing() async {
+    try {
+      return await _pollServing().timeout(_timeouts.serving);
+    } on TimeoutException {
+      return false;
+    } on RPCError {
+      return false;
+    } on SentinelException {
+      return false;
+    }
+  }
+
+  Future<bool> _pollServing() async {
+    final waited = Stopwatch()..start();
+    while (waited.elapsed < _timeouts.serving) {
+      if (await _isolateWith(reassembleMethod, await _isolateIds()) != null) {
+        return true;
+      }
+      await Future<void>.delayed(servingPollInterval);
+    }
+    return false;
   }
 
   /// Closes the grund applications of the process (they finish their

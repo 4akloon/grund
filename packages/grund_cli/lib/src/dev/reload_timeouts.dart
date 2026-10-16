@@ -7,6 +7,7 @@ final class ReloadTimeouts {
     this.reload = const Duration(seconds: 60),
     this.close = const Duration(seconds: 5),
     this.serviceUri = const Duration(seconds: 30),
+    this.serving = const Duration(seconds: 30),
   });
 
   /// Opening the connection to the VM service.
@@ -20,4 +21,8 @@ final class ReloadTimeouts {
 
   /// The child printing its VM service address after it started.
   final Duration serviceUri;
+
+  /// A started application registering its reassemble extension, which
+  /// grund does once its runners serve.
+  final Duration serving;
 }

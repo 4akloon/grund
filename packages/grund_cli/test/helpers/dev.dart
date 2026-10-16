@@ -18,8 +18,13 @@ final class Dev {
   static Future<Dev> start({
     AppLauncher? launcher,
     void Function(HelloApp app)? prepare,
+    void Function()? onServing,
   }) async {
-    final dev = await create(launcher: launcher, prepare: prepare);
+    final dev = await create(
+      launcher: launcher,
+      prepare: prepare,
+      onServing: onServing,
+    );
     await dev.change(const []);
     return dev;
   }
@@ -28,6 +33,7 @@ final class Dev {
   static Future<Dev> create({
     AppLauncher? launcher,
     void Function(HelloApp app)? prepare,
+    void Function()? onServing,
   }) async {
     final app = await HelloApp.create();
     prepare?.call(app);
@@ -43,6 +49,7 @@ final class Dev {
       printer: DevPrinter('bin/main.dart', lines, lines),
       out: lines,
       launcher: launcher ?? const AppLauncher(),
+      onServing: onServing,
     );
     addTearDown(session.stop);
     return Dev._(app, lines, generation, session);

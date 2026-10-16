@@ -131,4 +131,30 @@ Future<void> main() async {
 
     expect(stopwatch.elapsed, lessThan(const Duration(seconds: 10)));
   }, testOn: '!windows');
+
+  test('the child gets the variables of its command and of dev', () async {
+    final dir = TempDir.create();
+    dir.write('bin/main.dart', '''
+import 'dart:io';
+
+void main() {
+  print(Platform.environment['GRUND_TEST_VARIABLE']);
+  print(Platform.environment.containsKey('PATH'));
+}
+''');
+    final out = LineSink();
+    final app = await AppProcess.start(
+      AppCommand(
+        'bin/main.dart',
+        workingDirectory: dir.path,
+        environment: const {'GRUND_TEST_VARIABLE': 'passed'},
+      ),
+      out: out,
+      err: LineSink(),
+    );
+    addTearDown(() => app.stop(killGrace: Duration.zero));
+
+    await app.exitCode;
+    expect(out.lines, ['passed', 'true']);
+  });
 }

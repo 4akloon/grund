@@ -137,4 +137,10 @@ final class Broken {
 
     expect(await running.process.exitCode, 0);
   });
+
+  test('a serving grund application is found serving', () async {
+    final running = await Running.start();
+
+    expect(await running.client.waitUntilServing(), isTrue);
+  });
 }

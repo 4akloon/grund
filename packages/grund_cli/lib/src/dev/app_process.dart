@@ -33,11 +33,12 @@ final class AppProcess {
     required StringSink out,
     required StringSink err,
   }) async {
-    final process = await Process.start(Platform.resolvedExecutable, [
-      ...vmFlags,
-      command.entry,
-      ...command.arguments,
-    ], workingDirectory: command.workingDirectory);
+    final process = await Process.start(
+      Platform.resolvedExecutable,
+      [...vmFlags, command.entry, ...command.arguments],
+      workingDirectory: command.workingDirectory,
+      environment: command.environment,
+    );
     final serviceUri = Completer<Uri?>();
     final stdoutDone = _lines(process.stdout).listen((line) {
       final banner = serviceUri.isCompleted ? null : _banner.firstMatch(line);

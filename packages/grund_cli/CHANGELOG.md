@@ -4,6 +4,11 @@
   cookie sessions (`grund_jaspr`, `grund_auth`), a sign-in form, a
   stylesheet in `web/` and tests; `--template api` (the default) is the
   previous scaffold.
+- `dev` reloads open pages: it serves server-sent events on a loopback
+  port, passes the URL in `GRUND_LIVE_RELOAD_URL` and sends `reload` after
+  every reload with a successful reassemble and once a started or
+  restarted application serves (`grund_jaspr` adds the listening script to
+  its pages).
 
 ## 0.1.1
 
