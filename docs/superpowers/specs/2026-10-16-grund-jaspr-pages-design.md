@@ -114,14 +114,16 @@
   запитує `PageRenderer`, тож без `JasprModule` у графі старт падає
   типізованою помилкою, а сторінки не лишаються мовчки без обробника.
 - `Page(String path, {required PageBuilder build, PageMeta meta, PageEntries?
-  entries, bool guarded = true, List<HookRef<HttpHook>> use,
+  entries, List<Type> skip = const [], List<HookRef<HttpHook>> use,
   List<PageExtension> extensions})`. `typedef PageBuilder = FutureOr<Component>
   Function(HttpCtx c)`: параметри шляху читаються як у звичайному роуті
   (`c.path.string('slug')`), дані завантажуються тут, а компонент отримує їх
   аргументами. `NotFoundException`, кинутий **білдером**, перетворюється на
   `scope.notFound()` зі статусом 404; виняток усередині компонента під час
-  рендеру Jaspr робить 500 (так працює Jaspr 0.23, див. §9). `guarded: false`
-  знімає хуки скоупу зі сторінки (сторінка входу в охоронюваному скоупі).
+  рендеру Jaspr робить 500 (так працює Jaspr 0.23, див. §9). `skip: [AdminGuard]`
+  знімає зі сторінки названі хуки скоупу за типом (сторінка входу пропускає
+  охоронця, але лишає решту хуків скоупу, наприклад `SameOriginHook`); тип,
+  якого немає в `scope.use`, — `page_skip_unknown` на старті.
 - `PageMeta({required String title, String? description, PageNav? nav,
   PageSitemap sitemap})`; `PageNav({String? label, String group = 'main', int
   order = 0})`; `PageSitemap({bool included = true, DateTime? lastMod,
@@ -144,8 +146,8 @@
 Прив'язує `PageRenderer`, `PageCatalog` і `PageRouter` — єдиний внутрішній
 `HttpApi` модуля (порожній `path`), чиї `routes` будуються зі скоупів і
 сторінок: по `Route.get(scope.prefix + page.path, ...)` на сторінку з хуками
-`[if (page.guarded) ...scope.use, ...page.use]` (на рівні роута, щоб сторінку
-входу можна було зробити відкритою), плюс фолбеки скоупів, sitemap і статику.
+`[...scope.use без page.skip, ...page.use]` (на рівні роута, щоб сторінка
+входу могла пропустити окремі хуки скоупу), плюс фолбеки скоупів, sitemap і статику.
 Хуки скоупу резолвляться в injector скоупу (модуля-власника), а хуки
 сторінки — в injector її `PageApi`; `PageRouter` перетворює їх на готові
 екземпляри (`HookRef.instance`) до реєстрації, тож модулю сторінок не треба
@@ -225,7 +227,8 @@ JSON 404 `file_not_found` в усіх фолбеках (включно з `/admi
 
 `page_scope_missing`, `scope_prefix_conflict` (два скоупи з однаковим
 префіксом), `scope_prefix_invalid`, `page_path_invalid`,
-`page_entries_without_param`, `scope_sitemap_guarded` (усі на старті);
+`page_entries_without_param`, `page_skip_unknown`, `scope_sitemap_guarded`
+(усі на старті);
 `page_entries_mismatch` лише коли `entries` реально викликана (запит sitemap).
 Дубль `(скоуп, шлях)`
 дає наявний `DuplicateRouteError` з іменем `UsersPages.GET /admin/users`.
@@ -260,7 +263,8 @@ JSON 404 `file_not_found` в усіх фолбеках (включно з `/admi
 - DI: компонент бачить прив'язки модуля, що оголосив сторінку; охоронець
   скоупу резолвиться в injector скоупу, і модуль сторінок, що не імпортує
   модуль скоупу, працює; `PageApi` без `JasprModule` у графі падає на старті.
-- Сторінки: `guarded: false` (сторінка входу), `NotFoundException` з білдера
+- Сторінки: `skip` (сторінка входу пропускає лише названий хук, решта
+  хуків скоупу діють; `page_skip_unknown`), `NotFoundException` з білдера
   (404 скоупу) і з компонента (500), `FutureOr`-білдер, `context.page`.
 - Каталог: `match(Uri)` (пріоритети, префікси скоупів), `extensionsOf<T>()`,
   лінива побудова, помилка `entries` дає 500 без отруєння кешу, порції sitemap
@@ -289,7 +293,7 @@ jaspr) оновлюються. Портфоліо мігрує окремою р
 sitemap»; `baseUrl` у скоупі вмикає sitemap (і виключає охоронювані скоупи);
 поля `PageSitemap` збігаються з jaspr_router; порції sitemap по 50 000 через
 `offset/limit`; фреймворк не володіє `Document`; білдер `FutureOr` і 404 лише з
-білдера; `guarded: false` замість окремого скоупу для сторінки входу;
+білдера; `skip` за типом хука замість окремого скоупу для сторінки входу;
 `JasprModule` глобальний; `match(Uri)` не знімає суфікси; правило розширень
 (JSON 404 `file_not_found`) діє в усіх фолбеках.
 
