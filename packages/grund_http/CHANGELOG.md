@@ -6,8 +6,8 @@
   cookie of a returned `HttpResponse` both reach the client.
 - `await c.form()` reads an `application/x-www-form-urlencoded` body into
   `Params` (`ParamLocation.form`, pointer `/body/<name>`; the content type is
-  not checked, as for `body`); a bad escape or UTF-8 sequence is a 400 `body_invalid`, a body over the limit a 413.
-  `ParamLocation` gained the value `form`: an exhaustive `switch` over it
+  not checked, as for `body`); a bad escape or UTF-8 sequence is a 400
+  `body_invalid`, a body over the limit a 413. `ParamLocation` gained the value `form`: an exhaustive `switch` over it
   needs a case for it.
 - `StatusCode.seeOther` (303), the redirect after a form `POST`.
 
