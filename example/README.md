@@ -4,7 +4,9 @@ A small tasks API that uses every part of grund: modules with imports,
 exports and a global module, a `@Provides` method, an interface bound to an
 implementation (`Bind`), `HttpApi` classes with typed path, query and body
 readers, `HttpHook`s (by type and by instance, per route, per API and
-global), a middleware, both adapters and hot reload.
+global), a middleware, both adapters and hot reload. Next to the API it
+serves HTML pages rendered on the server by Jaspr (`grund_jaspr`) and a
+cookie session (`grund_auth`) that the pages and the API share.
 
 The same application is wired twice:
 
@@ -47,6 +49,19 @@ curl -X DELETE -H 'x-api-key: editor-key' localhost:8080/tasks/3
 Errors are `application/problem+json` (RFC 9457): a `status`, a `detail`, a
 stable `code` and, for a bad body, `errors` with a JSON `pointer`.
 
+Open `http://localhost:8080/` in a browser: the page lists the tasks of
+`TasksService` (the same singleton the API changes), links to a sign-in
+form, and after signing in shows who is signed in and a sign-out button.
+
+```sh
+curl localhost:8080/                       # the HTML page
+curl -i -d 'name=ann' localhost:8080/login # 303 with the session cookie
+```
+
+The example trusts the name it is given; a real application checks a
+password before `Sessions.start`. The session cookie is not `Secure` here
+(`SessionConfig(secure: false)`): the example serves plain `http`.
+
 | Request | Answer |
 | --- | --- |
 | `GET /health` | `{"status": "ok", "name": "tasks_api"}`, no key needed |
@@ -71,6 +86,11 @@ stable `code` and, for a bad body, `errors` with a JSON `pointer`.
 | Adapter choice | `lib/src/server/serving_module.dart`, `bin/main.dart` |
 | The generated glue | `lib/src/**/*.g.dart` |
 | The explicit-API twin | `lib/explicit.dart` |
+| Jaspr pages reading DI and the session | `lib/src/web/tasks_site.dart`, `home_page.dart`, `login_page.dart` |
+| Sign-in and sign-out with `Sessions`, a cookie of the handler's own | `lib/src/web/login_api.dart` |
+| `JasprModule`, `SessionModule` (explicit in both graphs) | `lib/src/web/web_module.dart` |
+| The `SessionHook`, global | `lib/src/server/serving_module.dart` |
+| Static files | `web/styles.css` |
 
 ## Generated files
 
@@ -120,6 +140,9 @@ dart test
 ```
 
 - `test/e2e_test.dart`: both graphs on both adapters, over loopback.
+- `test/web_e2e_test.dart`: the pages, the stylesheet, sign-in with both
+  cookies, sign-out and a refused cross-site form, on the same four
+  servers.
 - `test/in_process_test.dart`: `TestApp` and `TestClient`, no socket.
 - `test/tasks_service_test.dart`: the service alone, and a test module
   with a fake store.

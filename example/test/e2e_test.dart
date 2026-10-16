@@ -44,10 +44,11 @@ void _public(LoopbackServer Function() server) {
       '/health',
       headers: {'x-request-id': 'abc'},
     );
-    final unrouted = await server().send('GET', '/nowhere');
+    // GET of any path is a page now; no route answers DELETE /nowhere.
+    final unrouted = await server().send('DELETE', '/nowhere');
 
     expect(own.headers['x-request-id'], 'abc');
-    expect(unrouted.status, 404);
+    expect(unrouted.status, 405);
     expect(unrouted.headers['content-type'], contains('problem+json'));
     expect(unrouted.headers['x-request-id'], startsWith('req-'));
   });

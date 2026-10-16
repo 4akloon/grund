@@ -39,4 +39,7 @@ mixin $TasksModule on grund.Module {
       dependsOn: const [grund.Key<i6.TasksApi>()],
     ),
   ];
+
+  @override
+  List<Object> get exports => const [grund.Key<i4.TasksService>()];
 }

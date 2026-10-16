@@ -7,6 +7,7 @@ import 'package:grund/grund.dart' as grund;
 import 'package:tasks_api/src/config/config_module.dart' as i1;
 import 'package:tasks_api/src/health/health_module.dart' as i3;
 import 'package:tasks_api/src/tasks/tasks_module.dart' as i2;
+import 'package:tasks_api/src/web/web_module.dart' as i4;
 
 /// The generated declarations of `AppModule`.
 mixin $AppModule on grund.Module {
@@ -15,5 +16,6 @@ mixin $AppModule on grund.Module {
     i1.ConfigModule(),
     i2.TasksModule(),
     i3.HealthModule(),
+    i4.WebModule(i2.TasksModule()),
   ];
 }

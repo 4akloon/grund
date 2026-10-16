@@ -32,3 +32,8 @@ export 'src/tasks/tasks_api.dart';
 export 'src/tasks/tasks_module.dart';
 export 'src/tasks/tasks_service.dart';
 export 'src/tasks/update_task.dart';
+export 'src/web/home_page.dart';
+export 'src/web/login_api.dart';
+export 'src/web/login_page.dart';
+export 'src/web/tasks_site.dart';
+export 'src/web/web_module.dart';

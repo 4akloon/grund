@@ -1,4 +1,5 @@
 import 'package:grund/grund.dart';
+import 'package:grund_auth/grund_auth.dart' show SessionHook;
 import 'package:grund_http/grund_http.dart';
 import 'package:grund_io/grund_io.dart';
 import 'package:grund_shelf/grund_shelf.dart';
@@ -43,7 +44,10 @@ final class ServingModule extends Module {
       AdapterKind.shelf => ShelfAdapterModule(onError: onError),
     },
     HttpModule(
-      use: const [HookRef<TimingHook>.instance(TimingHook())],
+      use: const [
+        HookRef<TimingHook>.instance(TimingHook()),
+        HookRef<SessionHook>.type(),
+      ],
       middleware: [RequestIdMiddleware()],
       config: HttpConfig(address: address, port: port),
     ),

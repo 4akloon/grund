@@ -9,7 +9,8 @@ import 'tasks_api.dart';
 import 'tasks_module.g.dart';
 import 'tasks_service.dart';
 
-/// Tasks: the store, the service, the API and its error hook.
+/// Tasks: the store, the service, the API and its error hook; the pages
+/// read [TasksService].
 @Module(
   imports: [AuthModule()],
   providers: [
@@ -18,6 +19,7 @@ import 'tasks_service.dart';
     TaskNotFoundHook,
     TasksApi,
   ],
+  exports: [TasksService],
 )
 final class TasksModule extends grund.Module with $TasksModule {
   /// Creates the module.

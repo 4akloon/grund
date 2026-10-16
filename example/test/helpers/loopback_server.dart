@@ -59,29 +59,39 @@ final class LoopbackServer {
   final LogSubscription _logOutput;
   final HttpClient _client = HttpClient();
 
-  /// Sends [method] to [target] with [headers] and [json] as the body;
-  /// reads the whole response.
+  /// Sends [method] to [target] with [headers] and [json] or the form
+  /// fields [form] (already encoded) as the body; reads the whole response
+  /// and does not follow a redirect.
   Future<ApiResponse> send(
     String method,
     String target, {
     Map<String, String> headers = const {},
     Object? json,
+    String? form,
   }) async {
     final request = await _client.openUrl(
       method,
       Uri.parse('http://127.0.0.1:$port$target'),
     );
+    request.followRedirects = false;
     headers.forEach(request.headers.set);
     if (json != null) {
       request.headers.contentType = ContentType.json;
       request.write(jsonEncode(json));
     }
+    if (form != null) {
+      request.headers.contentType = _formType;
+      request.write(form);
+    }
     final response = await request.close();
     final body = await utf8.decodeStream(response);
     final first = <String, String>{};
     response.headers.forEach((name, values) => first[name] = values.first);
-    return ApiResponse(response.statusCode, first, body);
+    final cookies = response.headers[HttpHeaders.setCookieHeader] ?? const [];
+    return ApiResponse(response.statusCode, first, body, setCookies: cookies);
   }
+
+  static final _formType = ContentType('application', 'x-www-form-urlencoded');
 
   /// Closes the client and the application.
   Future<void> close() async {

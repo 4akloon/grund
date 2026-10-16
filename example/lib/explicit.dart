@@ -110,6 +110,9 @@ final class ExplicitTasksModule extends Module {
       dependsOn: const [Key<TasksApi>()],
     ),
   ];
+
+  @override
+  List<Object> get exports => const [Key<TasksService>()];
 }
 
 /// The health check, with an inline `HttpApi`.
@@ -152,5 +155,6 @@ final class ExplicitAppModule extends Module {
     ExplicitConfigModule(),
     ExplicitTasksModule(),
     ExplicitHealthModule(),
+    WebModule(ExplicitTasksModule()),
   ];
 }

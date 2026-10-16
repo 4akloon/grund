@@ -10,9 +10,12 @@ resolution: workspace
 
 dependencies:
   grund: ^0.1.0
+  grund_auth: ^0.1.0
   grund_http: ^0.1.0
   grund_io: ^0.1.0
+  grund_jaspr: ^0.1.0
   grund_shelf: ^0.1.0
+  jaspr: '>=0.23.5 <0.24.0'
 
 dev_dependencies:
   dart_style: ^3.1.2
