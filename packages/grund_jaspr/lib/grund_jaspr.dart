@@ -3,4 +3,8 @@
 /// lifecycle.
 library;
 
+export 'src/grund_context.dart';
+export 'src/grund_scope.dart';
 export 'src/jaspr_config.dart';
+export 'src/jaspr_error.dart';
+export 'src/jaspr_module.dart';
