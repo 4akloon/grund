@@ -1,14 +1,26 @@
 import 'package:args/command_runner.dart';
 
+import '../init/project_kind.dart';
 import '../init/project_scaffold.dart';
 import 'cli_exit_code.dart';
 import 'grund_cli.dart';
 import 'shell_word.dart';
 
-/// `init <directory>`: scaffolds a new application.
+/// `init [--template <name>] <directory>`: scaffolds a new application of a
+/// [ProjectKind].
 final class InitCommand extends Command<int> {
   /// Creates the command of [cli].
-  InitCommand(this.cli);
+  InitCommand(this.cli) {
+    argParser.addOption(
+      'template',
+      allowed: [for (final kind in ProjectKind.values) kind.name],
+      allowedHelp: {
+        for (final kind in ProjectKind.values) kind.name: kind.summary,
+      },
+      defaultsTo: ProjectKind.api.name,
+      help: 'What the new application is.',
+    );
+  }
 
   /// The command line this command belongs to.
   final GrundCli cli;
@@ -21,7 +33,7 @@ final class InitCommand extends Command<int> {
       'Creates a grund application in a new or empty directory.';
 
   @override
-  String get invocation => 'grund_cli init <directory>';
+  String get invocation => 'grund_cli init [--template <name>] <directory>';
 
   @override
   void printUsage() => cli.out.writeln(usage);
@@ -33,7 +45,10 @@ final class InitCommand extends Command<int> {
       usageException('init takes exactly one directory.');
     }
     final target = options.rest.single;
-    final scaffold = ProjectScaffold(target);
+    final kind = ProjectKind.values.byName(
+      options.option('template') ?? ProjectKind.api.name,
+    );
+    final scaffold = ProjectScaffold(target, kind: kind);
     final files = scaffold.write();
     cli.out
       ..writeln('Created package ${scaffold.name} in ${scaffold.directory}:')
@@ -41,8 +56,7 @@ final class InitCommand extends Command<int> {
       ..writeln('Next:')
       ..writeln('  cd ${ShellWord.quote(target)}')
       ..writeln('  dart pub get')
-      ..writeln('  dart run grund_cli gen')
-      ..writeln('  dart run bin/main.dart');
+      ..writeAll([for (final step in kind.nextSteps) '  $step\n']);
     return CliExitCode.success.code;
   }
 }

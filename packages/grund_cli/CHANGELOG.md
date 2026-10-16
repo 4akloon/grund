@@ -1,3 +1,10 @@
+## 0.1.2
+
+- `init --template fullstack` scaffolds server-rendered Jaspr pages with
+  cookie sessions (`grund_jaspr`, `grund_auth`), a sign-in form, a
+  stylesheet in `web/` and tests; `--template api` (the default) is the
+  previous scaffold.
+
 ## 0.1.1
 
 - `init` scaffolds a `test/` directory with a smoke test and the `test` dev dependency.
