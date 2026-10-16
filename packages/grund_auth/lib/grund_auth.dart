@@ -8,6 +8,8 @@ export 'src/cookie/cookie_attributes.dart';
 export 'src/cookie/same_site_policy.dart';
 export 'src/cookie/set_cookie.dart';
 export 'src/current_user.dart';
+export 'src/hook/same_origin_hook.dart';
+export 'src/hook/session_hook.dart';
 export 'src/session/in_memory_session_store.dart';
 export 'src/session/session.dart';
 export 'src/session/session_config.dart';

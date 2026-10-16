@@ -8,8 +8,8 @@ import 'package:test/test.dart';
 
 import 'account_api.dart';
 
-/// [AccountApi] with sessions, started in process (no socket); closed after
-/// the test.
+/// [AccountApi] behind the global [SessionHook], started in process (no
+/// socket); closed after the test.
 abstract final class SessionApp {
   /// The client of the application with [config] and the store [store]
   /// creates.
@@ -47,7 +47,7 @@ final class _Root extends Module {
 
   @override
   List<Module> get imports => [
-    const HttpModule(),
+    const HttpModule(use: [HookRef<SessionHook>.type()]),
     const IoAdapterModule(),
     _sessions,
   ];

@@ -16,10 +16,8 @@ final class AccountApi extends HttpApi {
       return c.maybe<CurrentUser>()?.id ?? 'nobody';
     }),
     Route.post('/logout', (c) => _sessions.end(c)),
-    Route.get(
-      '/me',
-      (c) async => (await _sessions.current(c))?.userId ?? 'nobody',
-    ),
+    Route.get('/me', (c) => c.maybe<CurrentUser>()?.id ?? 'nobody'),
+    Route.post('/echo', (_) => 'ok'),
   ];
 
   Future<HttpResponse> _login(HttpCtx c) async {

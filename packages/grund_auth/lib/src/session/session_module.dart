@@ -1,16 +1,18 @@
 import 'package:grund/grund.dart';
 
+import '../hook/session_hook.dart';
 import 'in_memory_session_store.dart';
 import 'session_config.dart';
 import 'session_store.dart';
 import 'sessions.dart';
 
-/// Cookie sessions: binds [SessionConfig], [SessionStore] and [Sessions],
-/// globally, so every API sees them.
+/// Cookie sessions: binds [SessionConfig], [SessionStore], [Sessions] and
+/// [SessionHook], globally, so every API and the hook list of `HttpModule`
+/// see them.
 ///
 /// ```dart
 /// imports: [
-///   const HttpModule(),
+///   HttpModule(use: const [HookRef<SessionHook>.type()]),
 ///   const SessionModule(config: SessionConfig(secure: false)), // dev only
 /// ]
 /// ```
@@ -41,6 +43,10 @@ final class SessionModule extends Module {
       (i) => Sessions(i<SessionStore>(), i<SessionConfig>()),
       dependsOn: const [Key<SessionStore>(), Key<SessionConfig>()],
     ),
+    Singleton<SessionHook>(
+      (i) => SessionHook(i<Sessions>(), i<SessionConfig>()),
+      dependsOn: const [Key<Sessions>(), Key<SessionConfig>()],
+    ),
   ];
 
   @override
@@ -48,6 +54,7 @@ final class SessionModule extends Module {
     Key<SessionConfig>(),
     Key<SessionStore>(),
     Key<Sessions>(),
+    Key<SessionHook>(),
   ];
 
   @override
