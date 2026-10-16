@@ -31,4 +31,22 @@ void main() {
       throwsA(isA<JasprSetupError>()),
     );
   });
+
+  test('a page suffix with a leading dot refuses to start', () async {
+    await expectLater(
+      PagesApp.start([
+        const JasprModule(
+          app: UrlPage.new,
+          config: JasprConfig(pageSuffixes: ['html', '.xml']),
+        ),
+      ]),
+      throwsA(
+        isA<JasprSetupError>().having(
+          (e) => e.message,
+          'message',
+          contains('".xml"'),
+        ),
+      ),
+    );
+  });
 }

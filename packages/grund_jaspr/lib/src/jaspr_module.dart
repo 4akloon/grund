@@ -53,7 +53,10 @@ final class JasprModule extends Module {
   ];
 
   @override
-  void onInit(Injector injector) => JasprSetup.ensureInitialized();
+  void onInit(Injector injector) {
+    config.validate();
+    JasprSetup.ensureInitialized();
+  }
 
   JasprConfig _withEnvironment() => config.liveReloadUrl != null
       ? config

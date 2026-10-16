@@ -29,7 +29,31 @@ void main() {
       expect(read, isNull);
     });
 
-    for (final value in ['ftp://127.0.0.1/', '/relative', 'http://', '::']) {
+    for (final value in [
+      'http://localhost:1/',
+      'http://127.0.0.1:1/',
+      'http://[::1]:1/',
+      'http://LOCALHOST:1/',
+    ]) {
+      test('accepts "$value"', () {
+        final read = LiveReloadScript.urlFrom({
+          'GRUND_LIVE_RELOAD_URL': value,
+        }, isProduct: false);
+
+        expect(read, Uri.parse(value));
+      });
+    }
+
+    for (final value in [
+      'ftp://127.0.0.1/',
+      '/relative',
+      'http://',
+      '::',
+      'http://evil.example/',
+      'http://127.0.0.1.evil.example/',
+      'http://[2001:db8::1]:1/',
+      'http://<evil>/',
+    ]) {
       test('refuses "$value"', () {
         expect(
           () => LiveReloadScript.urlFrom({
@@ -96,6 +120,21 @@ void main() {
     expect(tag, isNot(contains('<script>alert')));
     expect(tag.indexOf('<'), 0);
     expect(tag.split('<').length, 3); // only the opening and closing tag
+  });
+
+  test('quotes and ampersands in the query stay inside the JSON string', () {
+    final read = LiveReloadScript.urlFrom({
+      'GRUND_LIVE_RELOAD_URL': "http://127.0.0.1:9/?a='&b=\"<x>\\",
+    }, isProduct: false)!;
+
+    final tag = LiveReloadScript.tag(read);
+    final literal = tag.substring(
+      '<script>new EventSource('.length,
+      tag.indexOf(').addEventListener'),
+    );
+
+    expect(tag.split('<').length, 3); // only the opening and closing tag
+    expect(jsonDecode(literal), '$read');
   });
 
   group('addTo', () {

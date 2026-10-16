@@ -1,3 +1,5 @@
+import 'jaspr_error.dart';
+
 /// How `JasprModule` serves pages and static files.
 final class JasprConfig {
   /// Creates the configuration.
@@ -12,7 +14,9 @@ final class JasprConfig {
   /// root). A directory that does not exist serves nothing.
   final String staticDirectory;
 
-  /// The file extensions a page path may have (`/feed.xml`); a path with
+  /// The file extensions a page path may have, written without the dot
+  /// (`xml`, not `.xml`; [validate] refuses a dotted entry, which would
+  /// never match); a path with
   /// another extension that is not a static file is a 404 instead of a
   /// page, the way Jaspr's own server does it.
   final List<String> pageSuffixes;
@@ -22,6 +26,19 @@ final class JasprConfig {
   /// `GRUND_LIVE_RELOAD_URL` that `grund dev` passes, outside product
   /// builds, when it is `null`.
   final Uri? liveReloadUrl;
+
+  /// Throws [JasprSetupError] for a [pageSuffixes] entry that starts with
+  /// `.`; `JasprModule` calls it when the application starts.
+  void validate() {
+    for (final suffix in pageSuffixes) {
+      if (suffix.startsWith('.')) {
+        throw JasprSetupError(
+          'pageSuffixes entries are written without the dot; "$suffix" would '
+          'never match (use "${suffix.substring(1)}").',
+        );
+      }
+    }
+  }
 
   /// A copy with [url] as the [liveReloadUrl].
   JasprConfig withLiveReloadUrl(Uri? url) => JasprConfig(

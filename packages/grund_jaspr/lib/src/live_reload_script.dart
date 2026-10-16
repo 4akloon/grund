@@ -9,15 +9,20 @@ import 'jaspr_response.dart';
 /// or restarted the application.
 ///
 /// `grund dev` serves server-sent events on a loopback port and passes its
-/// URL in [environmentVariable]; the script listens there for `reload`.
+/// URL in [environmentVariable]; the script listens there for `reload`. The
+/// variable is trusted only when its host is loopback, so a value from
+/// elsewhere cannot point every page at another server.
 abstract final class LiveReloadScript {
   /// The variable `grund dev` sets for the application it runs.
   static const environmentVariable = 'GRUND_LIVE_RELOAD_URL';
 
+  static const _loopbackHosts = {'127.0.0.1', 'localhost', '::1'};
+
   static const _isProduct = bool.fromEnvironment('dart.vm.product');
 
   /// The URL in [environment], or `null` when it is not set or [isProduct];
-  /// throws [JasprSetupError] when it is not an absolute `http` URL.
+  /// throws [JasprSetupError] when it is not an absolute `http` URL with a
+  /// loopback host (`127.0.0.1`, `localhost` or `::1`).
   static Uri? urlFrom(
     Map<String, String> environment, {
     bool isProduct = _isProduct,
@@ -25,9 +30,12 @@ abstract final class LiveReloadScript {
     final value = environment[environmentVariable];
     if (isProduct || value == null) return null;
     final url = Uri.tryParse(value);
-    if (url == null || !url.isScheme('http') || url.host.isEmpty) {
+    if (url == null ||
+        !url.isScheme('http') ||
+        !_loopbackHosts.contains(url.host)) {
       throw JasprSetupError(
-        '$environmentVariable must be an absolute http URL; it is "$value".',
+        '$environmentVariable must be an absolute http URL on a loopback '
+        'host (127.0.0.1, localhost or [::1]); it is "$value".',
       );
     }
     return url;

@@ -172,6 +172,7 @@ void main() {
     final response = await client.get('/missing.png');
 
     expect(response.status, 404);
+    expect(response.headers['content-type'], 'application/problem+json');
     expect(response.json, containsPair('code', 'file_not_found'));
   });
 

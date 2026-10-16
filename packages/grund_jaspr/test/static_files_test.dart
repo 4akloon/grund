@@ -117,6 +117,23 @@ void main() {
     expect(files.find(['alias.css']), dir.resolve('web/app.css'));
   });
 
+  test(
+    'a directory that is itself a symbolic link serves its files',
+    () {
+      final dir = TempDir.create();
+      _web(dir);
+      Link(dir.resolve('public')).createSync(dir.resolve('web'));
+      final files = StaticFiles(dir.resolve('public'));
+
+      expect(files.find(['app.css']), dir.resolve('web/app.css'));
+      expect(files.find(['sub', 'page.js']), dir.resolve('web/sub/page.js'));
+      expect(files.find(['..', 'secret.txt']), isNull);
+    },
+    skip: Platform.isWindows
+        ? 'creating symbolic links needs privileges on Windows'
+        : false,
+  );
+
   test('a directory that does not exist serves nothing', () {
     final dir = TempDir.create();
 
@@ -136,6 +153,7 @@ void main() {
     expect(response.status, 200);
     expect(response.headers['content-type'], 'text/css; charset=utf-8');
     expect(response.headers['cache-control'], 'no-cache');
+    expect(response.headers['x-content-type-options'], 'nosniff');
     expect(String.fromCharCodes((response.body as BytesBody).bytes), 'body{}');
   });
 

@@ -37,4 +37,28 @@ void main() {
     expect(request.headersAll['x-many'], ['a', 'b']);
     expect(request.headers['accept'], 'text/html');
   });
+
+  test('repeated cookie headers are joined the way a browser sends them', () {
+    final headers = HeaderMap()
+      ..add('cookie', 'a=1')
+      ..add('cookie', 'b=2');
+
+    final request = JasprRequest.from(_request('/', headers: headers));
+
+    expect(request.headers['cookie'], 'a=1; b=2');
+  });
+
+  test('an encoded slash stays encoded in the path', () {
+    final request = JasprRequest.from(_request('/a%2Fb/c'));
+
+    expect(request.requestedUri.path, '/a%2Fb/c');
+    expect(request.requestedUri.pathSegments, ['a/b', 'c']);
+  });
+
+  test('a non-ASCII path reaches Jaspr percent-encoded, once', () {
+    final request = JasprRequest.from(_request('/%C3%A4/ü'));
+
+    expect(request.requestedUri.path, '/%C3%A4/%C3%BC');
+    expect(request.requestedUri.pathSegments, ['ä', 'ü']);
+  });
 }

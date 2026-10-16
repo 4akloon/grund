@@ -39,13 +39,16 @@ final class StaticFiles {
     }
   }
 
-  /// The response with the bytes of [file], its type and
-  /// `cache-control: no-cache` (the browser revalidates every time).
+  /// The response with the bytes of [file], its type,
+  /// `cache-control: no-cache` (the browser revalidates every time) and
+  /// `x-content-type-options: nosniff` (the browser trusts the type, not the
+  /// content).
   Future<HttpResponse> respond(String file) async => HttpResponse.bytes(
     await File(file).readAsBytes(),
     headers: HeaderMap.of({
       'content-type': ContentTypes.forPath(file),
       'cache-control': 'no-cache',
+      'x-content-type-options': 'nosniff',
     }),
   );
 
