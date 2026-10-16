@@ -2,7 +2,7 @@ name: grund_io
 description: >-
   dart:io HttpServer adapter for grund applications: streaming bodies both
   ways, graceful close with a timeout, HTTPS through a SecurityContext.
-version: 0.1.0
+version: 0.1.1
 repository: https://github.com/4akLoon/grund/tree/master/packages/grund_io
 issue_tracker: https://github.com/4akLoon/grund/issues
 topics: [server, http, framework]
@@ -11,7 +11,7 @@ environment:
 resolution: workspace
 dependencies:
   grund: ^0.1.0
-  grund_http: ^0.1.0
+  grund_http: ^0.2.0
 dev_dependencies:
   grund_conformance: ^0.1.0
   lints: ^5.1.0

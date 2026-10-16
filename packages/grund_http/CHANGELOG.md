@@ -1,4 +1,4 @@
-## 0.1.1
+## 0.2.0
 
 - `HttpResponse.mergeHeaders` adds every `set-cookie` of the merged headers
   before the response's own instead of dropping them when the response has

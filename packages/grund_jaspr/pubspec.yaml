@@ -11,7 +11,7 @@ environment:
 resolution: workspace
 dependencies:
   grund: ^0.1.0
-  grund_http: ^0.1.0
+  grund_http: ^0.2.0
   jaspr: '>=0.23.5 <0.24.0'
   path: ^1.9.0
 dev_dependencies:

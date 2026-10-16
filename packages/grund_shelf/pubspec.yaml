@@ -1,6 +1,6 @@
 name: grund_shelf
 description: shelf adapter for grund applications, and a shelf Handler to embed one in an existing shelf pipeline.
-version: 0.1.0
+version: 0.1.1
 repository: https://github.com/4akLoon/grund/tree/master/packages/grund_shelf
 issue_tracker: https://github.com/4akLoon/grund/issues
 topics: [server, http, shelf, framework]
@@ -9,7 +9,7 @@ environment:
 resolution: workspace
 dependencies:
   grund: ^0.1.0
-  grund_http: ^0.1.0
+  grund_http: ^0.2.0
   shelf: ^1.4.2
 dev_dependencies:
   grund_conformance: ^0.1.0

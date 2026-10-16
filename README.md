@@ -101,7 +101,7 @@ files are committed; they change only when the annotations do.
 # pubspec.yaml
 dependencies:
   grund: ^0.1.0
-  grund_http: ^0.1.0
+  grund_http: ^0.2.0
   grund_io: ^0.1.0
 ```
 
