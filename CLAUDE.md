@@ -22,14 +22,17 @@ pluggable HTTP adapters. It is a Dart pub workspace of pure-Dart packages.
   stage ships.
 - User documentation: `README.md` and `docs/*.md` (English); the example
   application: `example/` (`tasks_api`, a workspace member, not published;
-  the same application in annotations and in the explicit API, tested end to
-  end on both adapters); releases: `docs/RELEASING.md`.
+  the same application in annotations and in the explicit API, with Jaspr
+  pages and a session, tested end to end on both adapters); releases:
+  `docs/RELEASING.md`.
 - Packages (published, versioned independently): `grund` (core: modules, DI, runners,
   logging, no HTTP), `grund_http` (HTTP values, hooks, routing, server
   runner, adapter contract, HTTP annotations), `grund_io` and `grund_shelf`
   (adapters), `grund_generator` (core generator, no HTTP),
   `grund_http_generator` (`@Api` generator), `grund_cli` (`gen`, `dev`,
-  `init`), `grund_build` (build_runner builder). Unpublished:
+  `init`), `grund_build` (build_runner builder), `grund_jaspr`
+  (server-side rendered Jaspr pages and static files), `grund_auth`
+  (cookie sessions). Unpublished:
   `grund_conformance` (adapter test suite), the fixture packages
   `cases_app`, `http_cases_app`, `users_app`, and `example`.
 
@@ -79,7 +82,7 @@ only. It has not run yet.
 
 ## Releases
 
-- The eight published packages are versioned independently: only a
+- The ten published packages are versioned independently: only a
   changed package gets a new version. A constraint between workspace
   members is the lowest version that has what the dependent needs. A release
   is made by pushing the tag `<package>-vX.Y.Z`, which runs
@@ -122,7 +125,9 @@ only. It has not run yet.
   URI, the HTTP prefix supplied by `ApiConstruct`, and the boundary test
   below is unchanged; `analyzer` is allowed only in `grund_generator`/
   `grund_http_generator`/`grund_cli`/`grund_build`, `vm_service` only in
-  `grund_cli`, and `build` only in `grund_build`. `dart:developer` (SDK) is allowed in the core for
+  `grund_cli`, `build` only in `grund_build`, and `jaspr` only in
+  `grund_jaspr` and the example (`grund_auth` does not depend on it, and
+  `grund_jaspr` not on `grund_auth`). `dart:developer` (SDK) is allowed in the core for
   the hot reload service extensions, which register only outside product
   mode.
 - **The core generator knows no HTTP.** `grund_generator` reads modules,
@@ -198,8 +203,12 @@ only. It has not run yet.
   interruption:, keys:)`), never as a child process. The exceptions are
   `dev`'s: its tests start the user's application as a child process with
   the VM service on loopback (`AppProcess`, `DevSession`), and
-  `integration/dev_test.dart` (run with `dart test integration`, not part
-  of `dart test`) also runs the real `grund dev` as a child process.
+  `integration/` (run with `dart test integration`, not part of `dart
+  test`) runs the real `grund dev` as a child process (`dev_test.dart`,
+  and `dev_jaspr_test.dart`: a page edit and the live reload event) and
+  runs the tests of a fresh `init --template fullstack` package with the
+  VM directly against this workspace (`init_fullstack_test.dart`, no `pub
+  get`).
   `grund_build` tests build in memory with `build_test`
   (`TestReaderWriter` + `loadIsolateSources()`, no `pub get`), and compare
   with the CLI through `GenerationSession` on a `TempDir` package;
@@ -287,7 +296,8 @@ producing a response):
   catches the same error while encoding `details` and falls back to a body
   without them, so the last-resort 500 is always produced; `BodyReader`
   turns a `FormatException` or the `TypeError` of a failed cast in a user
-  `fromJson` into a 400 (any other failure is a bug and propagates);
+  `fromJson`, and the `FormatException` of a malformed form body (`c.form()`),
+  into a 400 (any other failure is a bug and propagates);
   `RequestDispatcher` answers 400 for a malformed percent-encoding of the
   path (`FormatException` of `Uri.pathSegments`);
 - the `dev` command boundary (`grund_cli`): `DevCommand` catches `on

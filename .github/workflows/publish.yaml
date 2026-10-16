@@ -22,6 +22,8 @@ on:
       - 'grund_http-v*'
       - 'grund_io-v*'
       - 'grund_shelf-v*'
+      - 'grund_auth-v*'
+      - 'grund_jaspr-v*'
       - 'grund_generator-v*'
       - 'grund_http_generator-v*'
       - 'grund_cli-v*'

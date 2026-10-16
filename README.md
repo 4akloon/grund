@@ -153,6 +153,17 @@ Future<void> main() => App(root: const AppModule()).run();
 The two styles mix freely: a generated module can import a hand-written one
 and the other way round.
 
+### Pages and sessions
+
+`grund init --template fullstack my_site` (`--template api`, the default,
+is the JSON API above) writes a site whose HTML pages are rendered on the
+server by Jaspr (`grund_jaspr`) in the same process as its API, with a
+cookie session (`grund_auth`) that pages and handlers both see. Run it with
+`dart run grund_cli dev`: besides hot reload, `grund dev` tells open pages
+to reload (live reload) when the app serves Jaspr pages; `grund_jaspr`
+injects the script when `GRUND_LIVE_RELOAD_URL` is set, never in product
+mode. See [docs/jaspr.md](docs/jaspr.md).
+
 ## Packages
 
 | Package | What it is |
@@ -165,6 +176,8 @@ and the other way round.
 | [`grund_http_generator`](packages/grund_http_generator) | The `@Api` part of the generator: routes, parameters, hooks, validators, bodies. |
 | [`grund_cli`](packages/grund_cli) | The `grund` command: `gen`, `gen --watch`, `dev` (hot reload), `init`. |
 | [`grund_build`](packages/grund_build) | The same generation as a build_runner builder. |
+| [`grund_jaspr`](packages/grund_jaspr) | `JasprModule`: server-side rendered Jaspr pages and static files next to the API, with the call scope in every component. |
+| [`grund_auth`](packages/grund_auth) | Cookie sessions: `SessionModule`, `Sessions`, `SessionHook` (the `CurrentUser` of a request), `SameOriginHook`, `SetCookie`. |
 
 Every package README lists the exact rules of that package.
 
@@ -203,6 +216,7 @@ GraphQL, microservice transports, OpenAPI generation. See
 - [Annotations and code generation](docs/annotations-and-codegen.md)
 - [Adapters: dart:io and shelf](docs/adapters.md)
 - [Dev mode and hot reload](docs/dev-mode.md)
+- [Pages and sessions: Jaspr and grund_auth](docs/jaspr.md)
 - [build_runner](docs/build-runner.md)
 - [Logging](docs/logging.md)
 - [Testing](docs/testing.md)

@@ -16,40 +16,46 @@ reload, build_runner-драйвер, приклад і документація)
 Попередні пункти v1.1/v2.0 (OpenAPI, lifecycle, GraphQL) поглинуті етапами
 нижче.
 
-## grund: релізи 0.x → 1.0
+## grund: віхи 0.x → 1.0
 
-Випускаємо частинами: кожен реліз дає робочу платформу з тим, що вже є, і
+Випускаємо частинами: кожна віха дає робочу платформу з тим, що вже є, і
 публікується на pub.dev. Обсяг 1.0 — увесь v1 з рамки (auth, realtime,
 infra); 0.x — шлях до нього. До 1.0 несумісні зміни дозволені в мінорній
 версії й позначаються `**Breaking:**` у CHANGELOG.
 
-Кожен реліз закінчується однаковим кроком випуску: CHANGELOG усіх пакетів,
-README і quick start для того, що вже є, приклад покриває всі опубліковані
-модулі, `publish --dry-run` без попереджень; публікацію й теги робить
-мейнтейнер вручну за `docs/RELEASING.md`. Версія lockstep: усі `grund_*`
-мають одну версію; новий пакет зʼявляється з версією свого релізу.
+Версії пакетів незалежні (`docs/RELEASING.md`): реліз пакета — тег
+`<package>-vX.Y.Z`, нову версію отримує лише змінений пакет (несумісна зміна —
+мінорна, решта — патч), обмеження між членами workspace — найнижча версія, що
+має потрібне залежному. Новий пакет починає з `0.1.0`; першу версію публікують
+вручну. Віха закінчується однаковим кроком випуску: CHANGELOG кожного зміненого
+пакета, README і quick start для того, що вже є, приклад покриває всі
+опубліковані модулі, `publish --dry-run` без попереджень для всіх пакетів;
+версії, теги й публікацію робить мейнтейнер вручну за `docs/RELEASING.md`.
 
-| Реліз | Етапи | Пакети, що додаються | Має бути опубліковано заздалегідь | Готово, коли |
+| Віха | Етапи | Пакети, що додаються | Має бути опубліковано заздалегідь | Готово, коли |
 |---|---|---|---|---|
-| **0.1.0** — REST з контрактом | G1, G2 | `grund`, `grund_http`, `grund_io`, `grund_shelf`, `grund_generator`, `grund_http_generator`, `grund_cli`, `grund_build`, `grund_openapi` | — (typed_openapi T1–T2 потрібні лише контрактним тестам у неопублікованому `example/`) | Етапи G1 і G2 здані; крок випуску |
-| **0.2.0** — дані | G3 | `grund_basalt`, `grund_basalt_postgres`, `grund_basalt_sqlite` | basalt з B1–B3 | G3 здано; крок випуску |
-| **0.3.0** — auth | G4 | `grund_auth`, `grund_auth_oauth` | basalt з B4; token_manager K1 | G4 здано; крок випуску |
-| **0.4.0** — realtime | G5 | `grund_sse`, `grund_redis`, `grund_pubsub` | typed_sse 0.1.0 (S1); typed_openapi з T4 | G5 здано; крок випуску |
-| **0.5.0** — інфраструктура | G6 | `grund_jobs`, `grund_cache`, `grund_storage`, `grund_storage_s3`, `grund_observability` | — (basalt B2 вийшов у 0.2.0) | G6 здано; крок випуску |
-| **0.6.0** — WebSocket, Jaspr, init | G7 | `grund_ws`, `grund_jaspr`, шаблони `grund_cli init` | — | G7 здано; крок випуску |
-| **1.0.0** — стабілізація | G8 | — | typed_openapi 0.1.0 (T5) | Публічний API заморожено, застарілі члени прибрано, сайт документації, гайд міграції з 0.x, відгуки з 0.x закриті або перенесені |
+| **REST** ✅ | G1 | `grund`, `grund_http`, `grund_io`, `grund_shelf`, `grund_generator`, `grund_http_generator`, `grund_cli`, `grund_build` (опубліковано `0.1.x`) | — | Здано |
+| **Сторінки й сесії** | G7a | `grund_jaspr`, `grund_auth` (лише сесії); шаблон `grund init --template fullstack` | — | G7a здано; крок випуску (`grund_http` з `c.form()` і злиттям `set-cookie` — раніше за нові пакети й `grund_cli`) |
+| **Контракт** | G2 | `grund_openapi` | — (typed_openapi T1–T2 потрібні лише контрактним тестам у неопублікованому `example/`) | G2 здано; крок випуску |
+| **Дані** | G3 | `grund_basalt`, `grund_basalt_postgres`, `grund_basalt_sqlite` | basalt з B1–B3 | G3 здано; крок випуску |
+| **Auth** | G4 | `grund_auth_oauth`; нові можливості `grund_auth` | basalt з B4; token_manager K1 | G4 здано; крок випуску |
+| **Realtime** | G5 | `grund_sse`, `grund_redis`, `grund_pubsub` | typed_sse 0.1.0 (S1); typed_openapi з T4 | G5 здано; крок випуску |
+| **Інфраструктура** | G6 | `grund_jobs`, `grund_cache`, `grund_storage`, `grund_storage_s3`, `grund_observability` | — (basalt B2 вийшов у віхі «Дані») | G6 здано; крок випуску |
+| **WebSocket, гідратація, шаблони** | G7b | `grund_ws`; гідратація в `grund_jaspr`; решта шаблонів `grund_cli init` | — | G7b здано; крок випуску |
+| **1.0.0** — стабілізація | G8 | — | typed_openapi 0.1.0 (T5) | Усі пакети `1.0.0`; публічний API заморожено, застарілі члени прибрано, сайт документації, гайд міграції з 0.x, відгуки з 0.x закриті або перенесені |
 
 Етапи:
 
 | # | Етап | Пакети цього репо | Залежить від інших репо | Готово, коли |
 |---|---|---|---|---|
 | G1 ✅ | **Ядро, HTTP, генератор** (spec `2026-10-15-grund-core-design.md`, вивід `2026-10-15-grund-generated-output-layout-design.md`; плани `2026-10-15-grund-g1-core-http-generator.md` і `...-g1-1-output-layout.md`; перейменування `dartnest*` → `grund*` зроблено) | `grund`, `grund_http`, `grund_generator`, `grund_http_generator`, `grund_cli`, `grund_build`, `grund_io`, `grund_shelf` (анотації: `package:grund/annotations.dart` і `package:grund_http/annotations.dart`) | — | Здано: приклад `tasks_api` у двох формах проходить ті самі e2e на обох адаптерах; `grund` без HTTP у залежностях; golden-фікстура `users_app` на новій моделі (плоский `X.g.dart`, `part` для `@Api`) |
+| G7a | **Jaspr SSR і сесії** (spec `2026-10-16-grund-jaspr-design.md`; план `2026-10-16-grund-g7a-jaspr-ssr.md`) | `grund_jaspr`, `grund_auth` (сесії), `grund_http` (`c.form()`, злиття `set-cookie`), `grund_cli` (`init --template fullstack`, автооновлення сторінок у `dev`) | — | `example` віддає SSR-сторінку з даними з DI і вхід через сесію на обох адаптерах; шаблон fullstack проходить свої тести; CI зелений на 3.8.0 і stable; `publish --dry-run` без попереджень |
 | G2 | **OpenAPI** | `grund_openapi`; аналіз DTO і валідація полів у генераторі | typed_openapi T1–T2 (контрактний тест) | `GET /openapi.json` з `ETag`, Scalar UI, `export` для CI; RFC 9457 у схемах; контрактний тест: `typed_openapi check` без діагностик, згенерований клієнт проходить e2e прикладу |
 | G3 | **Дані** | `grund_basalt`, `grund_basalt_postgres`, `grund_basalt_sqlite` | basalt B1–B3 | Кілька іменованих підключень; `transactionPerRequest`; health-check і метрики пулу; e2e прикладу на Postgres (контейнер у CI) і SQLite in-memory |
-| G4 | **Auth** | `grund_auth`, `grund_auth_oauth` | basalt B4; typed_openapi T3; token_manager K1 | Сесії + JWT-стратегія, refresh-ротація з reuse detection, email+password (argon2id), Google, Apple; хуки з `SecurityScheme`; Bearer і `httpOnly` cookie; e2e через згенерований клієнт із token_manager |
+| G4 | **Auth** (сесії й cookie вже в G7a) | `grund_auth`, `grund_auth_oauth` | basalt B4; typed_openapi T3; token_manager K1 | JWT-стратегія, refresh-ротація з reuse detection, email+password (argon2id), Google, Apple; `Authenticated`/`Roles`; довговічне сховище сесій; хуки з `SecurityScheme`; Bearer і `httpOnly` cookie; e2e через згенерований клієнт із token_manager |
 | G5 | **SSE, Redis, pub/sub** | `grund_sse`, `grund_redis`, `grund_pubsub` | typed_sse S1; typed_openapi T4 | `Stream<T>` з API як SSE з `Last-Event-ID`; fan-out між двома інстансами через Redis; `InMemoryBus`; клієнт typed_openapi читає стрім |
 | G6 | **Jobs, cache, storage, observability** | `grund_jobs`, `grund_cache`, `grund_storage`, `grund_storage_s3`, `grund_observability` | basalt B2 (`QueryObserver`) | Redis Streams-черга з retry/DLQ/cron; кеш з тегами; S3 (RustFS у CI); один трейс від HTTP до SQL і джоба в OTLP; `DevExporter` через MCP і `tail` |
-| G7 | **WebSocket, Jaspr, init** | `grund_ws`, `grund_jaspr`, шаблони `grund_cli init` | — | JSON-RPC 2.0 канали з AsyncAPI 3; Jaspr SSR у тому ж процесі з cookie-сесією; `init` створює api- і fullstack-проєкт, що проходить свої тести |
+| G7b | **WebSocket, гідратація, шаблони** | `grund_ws`, `grund_jaspr` (гідратація, `@client`), шаблони `grund_cli init` | — | JSON-RPC 2.0 канали з AsyncAPI 3; гідратовані компоненти Jaspr у тому ж процесі; решта шаблонів `init` проходить свої тести |
 | G8 | **Стабілізація 1.0** | усі пакети, сайт документації | typed_openapi T5 | Див. рядок 1.0.0 вище |
 
 ## Після 1.0

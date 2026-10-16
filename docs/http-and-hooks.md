@@ -66,6 +66,7 @@ A handler receives an `HttpCtx` (`c`) that lives for one request:
 | `c.path`, `c.query`, `c.headers`, `c.cookies` | typed `Params` readers |
 | `await c.body(T.fromJson)` | the JSON object body as a `T` |
 | `await c.bodyList(T.fromJson)` | a JSON array of objects, as `List<T>` |
+| `await c.form()` | an `application/x-www-form-urlencoded` body, as `Params` |
 | `await c.bytes()` | the raw body |
 | `c.request` | the `HttpRequest` (method, `uri`, headers, body stream) |
 | `c.response` | the `ResponseHead` being built: `status` and `headers` |
@@ -85,6 +86,9 @@ of a repeated parameter. An absent required value is a 400
 `pointer` (`/query/limit`). A body that is not JSON, not an object, or that
 `fromJson` rejects is a 400 (`body_invalid`, pointer `/body`); one over
 `HttpConfig.maxBodyBytes` (1 MiB by default) is a 413 (`body_too_large`).
+`c.form()` reads the fields of a form post with the same readers (a problem
+points at `/body/<name>`); a malformed escape or UTF-8 sequence is a 400
+`body_invalid`. It does not check the `content-type`.
 
 ## Results
 

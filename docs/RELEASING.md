@@ -7,7 +7,7 @@ change here publishes anything.
 
 ## Packages
 
-Eight packages are published. Each has its own version and its own
+Ten packages are published. Each has its own version and its own
 release: only a package that changed gets a new version and a `CHANGELOG.md`
 entry, and a release of package `P` is made by pushing the tag `P-vX.Y.Z`.
 
@@ -17,6 +17,8 @@ entry, and a release of package `P` is made by pushing the tag `P-vX.Y.Z`.
 | `grund_http` | `grund` |
 | `grund_io` | `grund`, `grund_http` |
 | `grund_shelf` | `grund`, `grund_http` |
+| `grund_auth` | `grund`, `grund_http` (dev: `grund_io`) |
+| `grund_jaspr` | `grund`, `grund_http` (dev: `grund_io`) |
 | `grund_generator` | none (dev: `grund`, fixture `cases_app`) |
 | `grund_http_generator` | `grund_generator` (dev: `grund`, `grund_http`, fixtures `http_cases_app`, `users_app`) |
 | `grund_cli` | `grund_generator`, `grund_http_generator` |
@@ -67,8 +69,10 @@ package that already exists on pub.dev. Once per package:
    package's `pubspec.yaml`. Raise a constraint on another workspace member
    only when the dependent needs its new version. If the scaffold or a
    README snippet names a version users should depend on
-   (`packages/grund_cli/lib/src/init/project_template.dart`, `grundVersion`),
-   keep it resolvable: it must name a version that exists.
+   (`packages/grund_cli/lib/src/init/project_template.dart`, `grundVersion`;
+   `fullstack_template.dart`, which also names `grund_http`, `grund_auth`,
+   `grund_jaspr` and `jaspr`), keep it resolvable: it must name a version
+   that exists.
 3. Add a `## x.y.z` section at the top of the `CHANGELOG.md` of each package
    being released. The publish workflow and pub both require it.
 4. Run the checks on a clean `master`:
@@ -87,8 +91,9 @@ package that already exists on pub.dev. Once per package:
    65):
 
    ```sh
-   for package in grund grund_http grund_io grund_shelf grund_generator \
-       grund_http_generator grund_cli grund_build; do
+   for package in grund grund_http grund_io grund_shelf grund_auth \
+       grund_jaspr grund_generator grund_http_generator grund_cli \
+       grund_build; do
      (cd "packages/$package" && dart pub publish --dry-run) || break
    done
    ```

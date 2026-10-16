@@ -8,6 +8,12 @@ write it. Applications, tests and libraries work without any code
 generation, and the two styles mix in one graph: a generated module can
 import a hand-written one and the other way round.
 
+**Can grund serve HTML pages?**
+Yes, server-side rendered with Jaspr in the same process as the API:
+`grund_jaspr` serves the pages and static files, `grund_auth` adds a
+cookie session that pages and handlers share. Hydration (`@client`) is not
+supported yet. See [jaspr.md](jaspr.md).
+
 **Where is the controller, the guard, the pipe, the interceptor, the filter?**
 An `HttpApi` (`@Api`) is the controller. One type, `HttpHook`, replaces the
 rest: `before` is a guard (throw to refuse), `before` and `after` together are

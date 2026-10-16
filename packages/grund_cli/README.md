@@ -13,6 +13,7 @@ dart run grund_cli gen --directory packages/shop
 dart run grund_cli dev                    # run bin/main.dart, hot reload on every change
 dart run grund_cli dev -t bin/server.dart -- --port 8080
 dart run grund_cli init my_app            # a new package in ./my_app
+dart run grund_cli init --template fullstack my_site   # pages and sessions
 ```
 
 `--directory` is `-C`, `--watch` is `-w` and `--target` is `-t`. Installed as
@@ -142,6 +143,13 @@ Restarting bin/main.dart: lib/src/greeter.dart changed a field, a constructor or
   5 s, a reload 60 s, closing the applications 5 s and the application's
   first sign of life 30 s; then the step fails with a message and `dev`
   goes on (or, for the last, stops the application until the next change).
+- Open pages reload themselves. `dev` serves server-sent events on an
+  ephemeral loopback port for as long as it runs and passes their URL to
+  the application in `GRUND_LIVE_RELOAD_URL`; it sends `event: reload`
+  after every reload whose reassemble succeeded and once a started or
+  restarted application serves (the reassemble extension answers). A
+  `grund_jaspr` application adds the listening script to its pages; nothing
+  else changes for an application that ignores the variable.
 - `dev` runs the target with `dart <target>`, not `dart run`: no implicit
   `pub get` on every restart, and one process whose `pid` is the
   application's. Run `dart pub get` after editing `pubspec.yaml`, then
@@ -149,9 +157,12 @@ Restarting bin/main.dart: lib/src/greeter.dart changed a field, a constructor or
 
 ## init
 
-`init <directory>` writes a new package into a new or empty directory; the
-directory name is the package name (lowercase_with_underscores, not a Dart
-reserved word, and not one of the packages the template depends on):
+`init [--template <name>] <directory>` writes a new package into a new or
+empty directory; the directory name is the package name
+(lowercase_with_underscores, not a Dart reserved word, and not one of the
+packages the template depends on). There are two templates.
+
+`--template api` (the default) is a JSON API written with annotations:
 `pubspec.yaml`, `analysis_options.yaml`, `.gitignore`, `lib/src/hello.dart`
 (a service and an `@Api` with its `part`), `lib/src/app_module.dart` (the
 root `AppModule`, which imports `HttpModule` and `IoAdapterModule`) and
@@ -171,8 +182,27 @@ dart run bin/main.dart    # GET http://localhost:8080/hello?name=you
 The scaffold's entry point is `bin/main.dart`, so `dart run grund_cli dev`
 runs it without `--target`.
 
-The scaffold depends on `grund`, `grund_http`, `grund_io` and `grund_cli`
-at `^0.1.0`. To try it against a checkout of the
+`--template fullstack` is a site written with the explicit API, served by
+`grund_jaspr` with sessions from `grund_auth`: `lib/src/app_module.dart`
+(`HttpModule` with the `SessionHook`, `SessionModule`, `JasprModule`, the
+`AccountApi` that signs in and out through forms), the pages in
+`lib/src/pages/` (a home page that greets the signed-in user, a sign-in
+page), `web/styles.css`, `bin/main.dart` and `test/app_test.dart` (the
+home page and a sign-in through `TestApp`). It needs no `gen`:
+
+```sh
+cd my_site
+dart pub get
+dart run grund_cli dev    # http://localhost:8080
+```
+
+The session cookie is `Secure` only in product builds, so sign-in works
+over plain `http` under `dev`; serve a product build behind HTTPS.
+
+The api scaffold depends on `grund`, `grund_http`, `grund_io` and
+`grund_cli` at `^0.1.0`; the fullstack one also on `grund_auth` and
+`grund_jaspr` at `^0.1.0`, on `grund_http` at `^0.2.0` and on `jaspr`
+`>=0.23.5 <0.24.0`. To try a scaffold against a checkout of the
 repository instead of pub.dev, add to its `pubspec.yaml` (with your path):
 
 ```yaml
@@ -184,6 +214,9 @@ dependency_overrides:
   grund_http_generator: {path: ../grund/packages/grund_http_generator}
   grund_io: {path: ../grund/packages/grund_io}
 ```
+
+(and, for the fullstack scaffold, `grund_auth` and `grund_jaspr` the same
+way).
 
 ## Exit codes
 

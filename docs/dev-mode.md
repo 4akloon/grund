@@ -62,6 +62,27 @@ initializer, which a reload could handle, still restarts.
 - An application that exits or does not start is started again after the
   next change, never in a loop.
 
+## Pages reload in the browser
+
+`dev` also serves a stream of server-sent events on an ephemeral port of
+the loopback interface and passes its URL to the application in the
+environment variable `GRUND_LIVE_RELOAD_URL`. It sends the event `reload`
+after every reload whose reassemble succeeded and once a started or
+restarted application serves. Pages that listen there reload themselves:
+`grund_jaspr` adds the listening script to every HTML page it renders (see
+[Pages and sessions](jaspr.md#hot-reload)); any other page can do the same
+with
+
+```html
+<script>
+  new EventSource("<the URL>").addEventListener("reload", () => location.reload());
+</script>
+```
+
+The stream outlives restarts of the application and ends when `dev` stops.
+It listens on loopback only: a browser on another machine does not reach
+it (the page still works, it only does not reload).
+
 ## Keys
 
 In a terminal, `r` reloads and `R` restarts (both also start an
