@@ -28,6 +28,8 @@ void main() {
     expect(dir.exists('my_app/bin/main.dart'), isTrue);
     expect(dir.read('my_app/pubspec.yaml'), contains('name: my_app\n'));
     expect(dir.read('my_app/pubspec.yaml'), contains('  test: ^1.25.0\n'));
+    expect(dir.read('my_app/pubspec.yaml'), contains('  grund: ^0.1.0\n'));
+    expect(dir.read('my_app/pubspec.yaml'), contains('  grund_http: ^0.2.0\n'));
     final smoke = dir.read('my_app/test/hello_test.dart');
     expect(smoke, contains("import 'package:my_app/src/app_module.dart';"));
     expect(smoke, contains('Hello, you!'));

@@ -41,6 +41,37 @@ void main() {
     expect(headers.value('cache-control'), 'no-cache');
   });
 
+  Future<HttpClientResponse> send(
+    LiveReloadHub hub,
+    String method,
+    String path,
+  ) async {
+    final client = HttpClient();
+    addTearDown(() => client.close(force: true));
+    final request = await client.openUrl(method, hub.url.resolve(path));
+    return request.close();
+  }
+
+  for (final method in ['POST', 'PUT', 'DELETE', 'HEAD']) {
+    test('$method / is a 405 that allows GET', () async {
+      final hub = await startHub();
+
+      final response = await send(hub, method, '/');
+
+      expect(response.statusCode, HttpStatus.methodNotAllowed);
+      expect(response.headers.value('allow'), 'GET');
+    });
+  }
+
+  test('another path is a 404, not an event stream', () async {
+    final hub = await startHub();
+
+    final response = await send(hub, 'GET', '/other');
+
+    expect(response.statusCode, HttpStatus.notFound);
+    expect(response.headers.contentType?.mimeType, isNot('text/event-stream'));
+  });
+
   test('every connected page receives reload', () async {
     final hub = await startHub();
     final first = await connect(hub);

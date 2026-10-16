@@ -6,6 +6,10 @@ abstract final class ProjectTemplate {
   /// first published release.
   static const grundVersion = '^0.1.0';
 
+  /// The version constraint of `grund_http` in a new pubspec: the release
+  /// with `HttpCtx.form` and the `set-cookie` merge.
+  static const grundHttpVersion = '^0.2.0';
+
   /// The files of application [name] (relative path to content), sorted by
   /// path.
   ///
@@ -33,7 +37,7 @@ environment:
 
 dependencies:
   grund: $grundVersion
-  grund_http: $grundVersion
+  grund_http: $grundHttpVersion
   grund_io: $grundVersion
 
 dev_dependencies:

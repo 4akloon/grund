@@ -26,6 +26,19 @@ void main() {
     expect(await DartDiagnostics.of(target), isEmpty);
   });
 
+  test(
+    'the fullstack session cookie is Secure only in a product build',
+    () async {
+      final dir = TempDir.create();
+
+      await CliRun.run(['init', '--template', 'fullstack', dir.resolve('s')]);
+
+      final module = dir.read('s/lib/src/app_module.dart');
+      expect(module, contains("bool.fromEnvironment('dart.vm.product')"));
+      expect(module, contains('SessionConfig(secure: _isProduct)'));
+    },
+  );
+
   test('init without --template still writes the annotated API', () async {
     final dir = TempDir.create();
 

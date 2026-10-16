@@ -10,7 +10,8 @@ import 'dart:io';
 /// application and closes with `dev`. Every request gets the event stream,
 /// with `access-control-allow-origin: *` (the page comes from the
 /// application's origin) and a comment every [keepAlive] so that proxies
-/// and browsers keep the connection open.
+/// and browsers keep the connection open. Only `GET /` gets the stream:
+/// another method is a 405 with `allow: GET`, another path a 404.
 final class LiveReloadHub {
   LiveReloadHub._(this._server, this.url, Duration keepAlive) {
     _keepAlive = Timer.periodic(keepAlive, (_) => _send(': keep-alive\n\n'));
@@ -54,17 +55,44 @@ final class LiveReloadHub {
     _clients.clear();
     // Each stream ends cleanly; a page that is gone or does not read is
     // cut off by the forced close below.
-    await Future.wait([
-      for (final client in clients)
-        client.close().catchError(
-          (Object _) {},
-          test: (error) => error is IOException,
-        ),
-    ]).timeout(const Duration(seconds: 1), onTimeout: () => const []);
-    await _server.close(force: true);
+    try {
+      await Future.wait([
+        for (final client in clients)
+          client.close().catchError(
+            (Object _) {},
+            test: (error) => error is IOException,
+          ),
+      ]).timeout(const Duration(seconds: 1), onTimeout: () => const []);
+    } finally {
+      // Whatever a client's close threw, the port is freed.
+      await _server.close(force: true);
+    }
   }
 
   void _accept(HttpRequest request) {
+    if (request.uri.path != '/') {
+      _refuse(request, HttpStatus.notFound);
+      return;
+    }
+    if (request.method != 'GET') {
+      _refuse(request, HttpStatus.methodNotAllowed);
+      return;
+    }
+    _stream(request);
+  }
+
+  void _refuse(HttpRequest request, int status) {
+    final response = request.response..statusCode = status;
+    if (status == HttpStatus.methodNotAllowed) {
+      response.headers.set('allow', 'GET');
+    }
+    response.close().catchError(
+      (Object _) {},
+      test: (error) => error is IOException,
+    );
+  }
+
+  void _stream(HttpRequest request) {
     final response = request.response
       ..bufferOutput = false
       ..headers.set('content-type', 'text/event-stream')

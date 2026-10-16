@@ -29,8 +29,7 @@ abstract final class FullstackTemplate {
 
   static const _grund = ProjectTemplate.grundVersion;
 
-  // `HttpCtx.form` and the `set-cookie` merge arrive in grund_http 0.2.0.
-  static const _grundHttp = '^0.2.0';
+  static const _grundHttp = ProjectTemplate.grundHttpVersion;
 
   static String _pubspec(String name) =>
       '''

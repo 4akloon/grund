@@ -46,7 +46,7 @@ final class InitCommand extends Command<int> {
     }
     final target = options.rest.single;
     final kind = ProjectKind.values.byName(
-      options.option('template') ?? ProjectKind.api.name,
+      options.option('template') ?? (throw StateError('init was not parsed.')),
     );
     final scaffold = ProjectScaffold(target, kind: kind);
     final files = scaffold.write();

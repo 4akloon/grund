@@ -130,8 +130,8 @@ void main() {
       await served.reach(1);
 
       // Type parameters of a class with a live instance are a change hot
-      // reload cannot apply. The file is
-      // not listed as changed, so the shape check does not restart first.
+      // reload cannot apply. The file is not listed as changed, so the
+      // shape check does not restart first.
       dev.app.edit(
         'lib/src/greeter.dart',
         'class Plain {}',
