@@ -50,7 +50,7 @@ dependencies:
   jaspr: '>=0.23.5 <0.24.0'
 
 dev_dependencies:
-  grund_cli: $_grund
+  grund_cli: ^0.1.2
   lints: ^5.1.0
   test: ^1.25.0
 ''';
@@ -84,7 +84,9 @@ final class AppModule extends Module {
   const AppModule();
 
   // A Secure cookie needs HTTPS; `dart run` serves plain http, a product
-  // build (`dart compile exe`) is expected behind HTTPS.
+  // build (`dart compile exe`) is expected behind HTTPS. `dart run` (JIT)
+  // in production is not a product build: the cookie is then sent without
+  // Secure unless the app sets `secure: true`.
   static const _isProduct = bool.fromEnvironment('dart.vm.product');
 
   @override
