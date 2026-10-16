@@ -24,7 +24,7 @@ pluggable HTTP adapters. It is a Dart pub workspace of pure-Dart packages.
   application: `example/` (`tasks_api`, a workspace member, not published;
   the same application in annotations and in the explicit API, tested end to
   end on both adapters); releases: `docs/RELEASING.md`.
-- Packages (published, one version): `grund` (core: modules, DI, runners,
+- Packages (published, versioned independently): `grund` (core: modules, DI, runners,
   logging, no HTTP), `grund_http` (HTTP values, hooks, routing, server
   runner, adapter contract, HTTP annotations), `grund_io` and `grund_shelf`
   (adapters), `grund_generator` (core generator, no HTTP),

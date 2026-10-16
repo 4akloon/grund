@@ -24,12 +24,14 @@ entry, and a release of package `P` is made by pushing the tag `P-vX.Y.Z`.
 
 A constraint between workspace members is the lowest version that has what
 the dependent needs (`^0.1.0` stays valid when the dependency ships
-`0.1.1`; raise it to `^0.1.1` when the dependent needs that fix). pub.dev
-rejects an upload whose `dependencies` are not on pub.dev yet: when a
-dependent raises its constraint to a version of another workspace package
-that is not published yet, push the dependency's tag first, wait until its
-page shows the version, then push the dependent's tag. It does not check
-`dev_dependencies`.
+`0.1.1`; raise it to `^0.1.1` when the dependent needs that fix). The
+publish workflow resolves the package's `dependencies` against pub.dev
+(`.github/scripts/check_published_dependencies.dart`) and fails before
+publishing when a dependency version is not live yet. So when a dependent
+raises its constraint to a version of another workspace package that is not
+published yet, push the dependency's tag first, wait until its page shows
+the version, then push the dependent's tag (or re-run the failed job of the
+dependent afterwards). `dev_dependencies` are not checked.
 
 Not published (`publish_to: none`): `grund_conformance` (the adapters'
 test suite), the generators' fixture packages `cases_app`, `http_cases_app` and
@@ -38,38 +40,6 @@ dependencies: pub.dev does not require them to exist (checked in the
 pub.dev source, `PackageBackend`, on 2026-10-14), pana's checks drop them,
 and pub ignores the dev dependencies of a dependency.
 
-## Before the first release
-
-1. **The name.** The packages are named `grund*`. On 2026-10-14 none of
-   the eight names was taken on pub.dev
-   (`https://pub.dev/api/packages/<name>` answered 404). Check again right
-   before publishing; a name is taken forever once published. To rename,
-   replace `grund` in every pubspec, import, README and doc
-   (`git grep -l grund`), then run every check below.
-2. **The repository.** Every pubspec points to
-   `https://github.com/4akLoon/grund` (branch `master`). Create that
-   repository and push `master`, or replace the URL everywhere:
-   `git grep -l 'github.com/4akLoon/grund'`.
-3. **CI.** Push, and wait for `.github/workflows/ci.yaml` to pass on both
-   SDKs (3.8.0 and stable). Until it has run once, the SDK floor 3.8 is
-   declared but not verified.
-4. **The publisher (optional).** A verified publisher (a domain you own)
-   shows on pub.dev instead of a personal account. It can be added after
-   the first upload with `dart pub` and the pub.dev admin page.
-
-## Known risks / check before first publish
-
-- **Dev dependencies on unpublished packages.** `grund_generator` and
-  `grund_http_generator` have dev dependencies on their fixture packages
-  (`cases_app`; `http_cases_app`, `users_app`) and `grund_io` and
-  `grund_shelf` on `grund_conformance`; none of them is published.
-  `dart pub publish --dry-run` accepts this, but pub.dev scoring may fail to
-  resolve them. After the first upload check the package's scoring page; if
-  it reports a resolution failure, drop those dev dependencies from the
-  published pubspecs in a release commit (the tests that need them stay in
-  the repository).
-- **The SDK floor 3.8 is unverified** until CI has run once (see above).
-
 ## One-time setup of automated publishing
 
 pub.dev publishes from GitHub Actions without a token (OIDC), but only for a
@@ -77,6 +47,9 @@ package that already exists on pub.dev. Once per package:
 
 1. **New packages: the first version is published by hand**
    (`cd packages/<package> && dart pub publish`), after the dry-run below.
+   Check the name is free first
+   (`https://pub.dev/api/packages/<name>` answers 404); a name is taken
+   forever once published.
 2. On the package's pub.dev admin page (Admin, Automated publishing) enable
    publishing from GitHub Actions: repository `4akloon/grund`, tag pattern
    `<package>-v{{version}}`, and require the GitHub environment `pub.dev`.
@@ -130,6 +103,9 @@ package that already exists on pub.dev. Once per package:
    git push origin <package>-vX.Y.Z
    ```
 
+   GitHub starts no tag workflows when more than three tags are pushed at
+   once: push tags one at a time or in batches of up to three.
+
    The workflow checks that the tag matches `pubspec.yaml` and the
    changelog and that the commit is on `master`, then publishes. The
    `pub.dev` environment's reviewer approves the run.
@@ -139,6 +115,12 @@ package that already exists on pub.dev. Once per package:
 - On each package's pub.dev page: the score (pana) and its suggestions,
   the example tab, the API docs (dartdoc runs on pub.dev) and that the
   `repository` link resolves.
+- Dev dependencies on unpublished packages (the fixture packages,
+  `grund_conformance`) pass `dart pub publish --dry-run`, but pub.dev
+  scoring may fail to resolve them: check the scoring page of a package that
+  has them; on a resolution failure drop those dev dependencies from the
+  published pubspec in a release commit (the tests that need them stay in
+  the repository).
 - Outside the repository, with no path overrides:
 
   ```sh
