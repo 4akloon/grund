@@ -80,22 +80,29 @@ final class HttpResponse {
   /// The body.
   final ResponseBody body;
 
-  /// A copy that also carries every header of [extra] whose name this
-  /// response does not set; the response's own values win.
+  /// A copy that also carries the headers of [extra]: a name this response
+  /// does not set is added with all its values, and every `set-cookie` of
+  /// [extra] is added before the response's own, so both reach the client
+  /// and the response's own cookie wins where both set the same one. For
+  /// any other name the response's own values win.
   HttpResponse mergeHeaders(HeaderMap extra) {
-    final missing = [
+    final added = [
       for (final name in extra.names)
-        if (!headers.contains(name)) name,
+        if (!headers.contains(name) || name == _setCookie) name,
     ];
-    if (missing.isEmpty) return this;
+    if (added.isEmpty) return this;
     final merged = HeaderMap.copy(headers);
-    for (final name in missing) {
-      for (final value in extra.all(name)) {
+    for (final name in added) {
+      final own = merged.all(name);
+      merged.remove(name);
+      for (final value in [...extra.all(name), ...own]) {
         merged.add(name, value);
       }
     }
     return HttpResponse(status, headers: merged, body: body);
   }
+
+  static const _setCookie = 'set-cookie';
 
   static HttpResponse _typed(
     int status,

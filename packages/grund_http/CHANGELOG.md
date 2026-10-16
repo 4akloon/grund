@@ -1,3 +1,10 @@
+## 0.1.1
+
+- `HttpResponse.mergeHeaders` adds every `set-cookie` of the merged headers
+  before the response's own instead of dropping them when the response has
+  one: a cookie a hook or `Sessions.start` set on `c.response` and the
+  cookie of a returned `HttpResponse` both reach the client.
+
 ## 0.1.0
 
 Initial release.

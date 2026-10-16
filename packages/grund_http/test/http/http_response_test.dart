@@ -86,6 +86,24 @@ void main() {
       expect(response.headers['x-trace'], '7');
     });
 
+    test('adds every set-cookie of extra before the response\'s own', () {
+      final own = HttpResponse(
+        303,
+        headers: HeaderMap()..add('set-cookie', 'flash=1'),
+      );
+      final extra = HeaderMap()
+        ..add('set-cookie', 'sid=a')
+        ..add('set-cookie', 'theme=b');
+
+      final response = own.mergeHeaders(extra);
+
+      expect(response.headers.all('set-cookie'), [
+        'sid=a',
+        'theme=b',
+        'flash=1',
+      ]);
+    });
+
     test('returns the same response when nothing is missing', () {
       final response = HttpResponse.text('x');
 
