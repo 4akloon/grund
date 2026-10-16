@@ -154,9 +154,7 @@ final class DevSession {
     if (_stopped) return;
     _shapes.remember(target.sources());
     final process = await launcher.start(
-      target: target.entry,
-      arguments: target.arguments,
-      workingDirectory: target.package.path,
+      target.command,
       out: out,
       err: printer.err,
     );

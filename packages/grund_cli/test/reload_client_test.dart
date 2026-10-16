@@ -1,3 +1,4 @@
+import 'package:grund_cli/src/dev/app_command.dart';
 import 'package:grund_cli/src/dev/app_process.dart';
 import 'package:grund_cli/src/dev/reload_client.dart';
 import 'package:grund_cli/src/dev/reload_result.dart';
@@ -17,9 +18,7 @@ final class Running {
     final out = LineSink();
     final err = LineSink();
     final process = await AppProcess.start(
-      target: 'bin/main.dart',
-      arguments: const [],
-      workingDirectory: app.package.dir.path,
+      AppCommand('bin/main.dart', workingDirectory: app.package.dir.path),
       out: out,
       err: err,
     );

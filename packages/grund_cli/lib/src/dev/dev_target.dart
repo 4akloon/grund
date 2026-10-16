@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 
 import '../package/package_root.dart';
+import 'app_command.dart';
 
 /// What `dev` runs: the entry point of [package] and the arguments of its
 /// `main`.
@@ -18,6 +19,10 @@ final class DevTarget {
 
   /// The arguments of the application's `main`.
   final List<String> arguments;
+
+  /// The command line that runs the application in its package.
+  AppCommand get command =>
+      AppCommand(entry, workingDirectory: package.path, arguments: arguments);
 
   /// The Dart files the application is built from, as far as `dev` watches
   /// them: `lib/` and the directory of the entry point.

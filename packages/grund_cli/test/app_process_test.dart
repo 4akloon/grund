@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:grund_cli/src/dev/app_command.dart';
 import 'package:grund_cli/src/dev/app_process.dart';
 import 'package:test/test.dart';
 
@@ -14,9 +15,11 @@ Future<(AppProcess, LineSink, LineSink)> startProgram(String source) async {
   final out = LineSink();
   final err = LineSink();
   final app = await AppProcess.start(
-    target: 'bin/main.dart',
-    arguments: ['an argument'],
-    workingDirectory: dir.path,
+    AppCommand(
+      'bin/main.dart',
+      workingDirectory: dir.path,
+      arguments: ['an argument'],
+    ),
     out: out,
     err: err,
   );
@@ -62,9 +65,7 @@ void main() => print(pid);
     final dir = TempDir.create();
     final err = LineSink();
     final app = await AppProcess.start(
-      target: 'bin/missing.dart',
-      arguments: const [],
-      workingDirectory: dir.path,
+      AppCommand('bin/missing.dart', workingDirectory: dir.path),
       out: LineSink(),
       err: err,
     );

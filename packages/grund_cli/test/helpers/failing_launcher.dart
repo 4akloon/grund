@@ -1,3 +1,4 @@
+import 'package:grund_cli/src/dev/app_command.dart';
 import 'package:grund_cli/src/dev/app_launcher.dart';
 import 'package:grund_cli/src/dev/app_process.dart';
 import 'package:grund_cli/src/dev/reload_client.dart';
@@ -31,21 +32,13 @@ final class FailingLauncher extends AppLauncher {
   final started = <AppProcess>[];
 
   @override
-  Future<AppProcess> start({
-    required String target,
-    required List<String> arguments,
-    required String workingDirectory,
+  Future<AppProcess> start(
+    AppCommand command, {
     required StringSink out,
     required StringSink err,
   }) async {
     await Future<void>.delayed(startDelay);
-    final process = await super.start(
-      target: target,
-      arguments: arguments,
-      workingDirectory: workingDirectory,
-      out: out,
-      err: err,
-    );
+    final process = await super.start(command, out: out, err: err);
     started.add(process);
     return process;
   }

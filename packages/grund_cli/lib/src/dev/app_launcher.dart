@@ -1,3 +1,4 @@
+import 'app_command.dart';
 import 'app_process.dart';
 import 'reload_client.dart';
 import 'reload_timeouts.dart';
@@ -14,19 +15,11 @@ class AppLauncher {
   final ReloadTimeouts timeouts;
 
   /// Starts the application; see [AppProcess.start].
-  Future<AppProcess> start({
-    required String target,
-    required List<String> arguments,
-    required String workingDirectory,
+  Future<AppProcess> start(
+    AppCommand command, {
     required StringSink out,
     required StringSink err,
-  }) => AppProcess.start(
-    target: target,
-    arguments: arguments,
-    workingDirectory: workingDirectory,
-    out: out,
-    err: err,
-  );
+  }) => AppProcess.start(command, out: out, err: err);
 
   /// Connects to the VM service at [serviceUri]; see [ReloadClient.connect].
   Future<ReloadClient?> connect(Uri serviceUri) =>

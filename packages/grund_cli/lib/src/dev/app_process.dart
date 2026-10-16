@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'app_command.dart';
+
 /// The user's application, running in a child Dart VM with the VM service
 /// on an ephemeral loopback port.
 ///
@@ -24,21 +26,18 @@ final class AppProcess {
     r'^The Dart VM service is listening on (http://\S+)$',
   );
 
-  /// Starts `dart <vmFlags> <target> <arguments>` in [workingDirectory],
-  /// forwarding the child's stdout lines to [out] and stderr lines to
-  /// [err].
-  static Future<AppProcess> start({
-    required String target,
-    required List<String> arguments,
-    required String workingDirectory,
+  /// Starts `dart <vmFlags> <entry> <arguments>` of [command], forwarding
+  /// the child's stdout lines to [out] and stderr lines to [err].
+  static Future<AppProcess> start(
+    AppCommand command, {
     required StringSink out,
     required StringSink err,
   }) async {
     final process = await Process.start(Platform.resolvedExecutable, [
       ...vmFlags,
-      target,
-      ...arguments,
-    ], workingDirectory: workingDirectory);
+      command.entry,
+      ...command.arguments,
+    ], workingDirectory: command.workingDirectory);
     final serviceUri = Completer<Uri?>();
     final stdoutDone = _lines(process.stdout).listen((line) {
       final banner = serviceUri.isCompleted ? null : _banner.firstMatch(line);
