@@ -1,4 +1,7 @@
 @TestOn('vm')
+// The first child `dart run` compiles the application cold (a fresh CI
+// runner needs far more than the default 30 s); the bodies bound the waits.
+@Timeout(Duration(minutes: 3))
 library;
 
 import 'dart:async';
@@ -6,6 +9,19 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:test/test.dart';
+
+/// Binds every address that `localhost` resolves to on one shared port, so
+/// the application collides whichever of them it picks (a runner may list
+/// `::1` first, where a blocker on 127.0.0.1 alone would not collide).
+Future<List<ServerSocket>> _blockLocalhost() async {
+  final addresses = await InternetAddress.lookup('localhost');
+  final first = await ServerSocket.bind(addresses.first, 0);
+  final blockers = [first];
+  for (final address in addresses.skip(1)) {
+    blockers.add(await ServerSocket.bind(address, first.port, v6Only: true));
+  }
+  return blockers;
+}
 
 Future<Process> _start(int port) => Process.start(
   Platform.resolvedExecutable,
@@ -17,10 +33,11 @@ void main() {
   test(
     'a port in use: one line of its own on stderr and exit code 1',
     () async {
-      final blocker = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
-      addTearDown(blocker.close);
+      final blockers = await _blockLocalhost();
+      addTearDown(() => Future.wait(blockers.map((socket) => socket.close())));
 
-      final process = await _start(blocker.port);
+      final process = await _start(blockers.first.port);
+      addTearDown(process.kill);
       final err = process.stderr.transform(utf8.decoder).join();
       unawaited(process.stdout.drain<void>());
 
