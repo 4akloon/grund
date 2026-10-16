@@ -55,7 +55,7 @@ dart format packages example          # a second run must change 0 files
 cd example && dart test               # the example: e2e on both adapters, golden check
 # the example, after changing its annotations (commit the result):
 cd example && dart run grund_cli gen
-# every published package, in release order, must print "0 warnings":
+# every published package must print "0 warnings":
 cd packages/grund && dart pub publish --dry-run
 # packages/grund_http_generator, after a deliberate change of generated output
 # (rewrites the committed *.g.dart of the users_app fixture):
@@ -79,10 +79,13 @@ only. It has not run yet.
 
 ## Releases
 
-- The eight published packages share one version (lockstep); every
-  constraint between workspace members is `^<that version>`. Publishing,
-  tags and pushes are done by a maintainer by hand, following
-  `docs/RELEASING.md`; no change here publishes anything.
+- The eight published packages are versioned independently: only a
+  changed package gets a new version. A constraint between workspace
+  members is the lowest version that has what the dependent needs. A release
+  is made by pushing the tag `<package>-vX.Y.Z`, which runs
+  `.github/workflows/publish.yaml`. Publishing, tags and pushes are done by
+  a maintainer by hand, following `docs/RELEASING.md`; no change here
+  publishes anything.
 - A user-visible change adds a line to the `CHANGELOG.md` of each package
   it touches, under the version it will ship in.
 - Each published package has its own `LICENSE` (a copy of the root one) and

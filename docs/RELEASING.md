@@ -1,29 +1,35 @@
 # Releasing
 
-How a version of the grund packages reaches pub.dev. Every step that
-leaves this machine (creating the GitHub repository, pushing, publishing,
-tagging) is done by a maintainer by hand; nothing in this repository runs
-it automatically.
+How a version of a grund package reaches pub.dev. Tagging and pushing are
+done by a maintainer by hand; the tag then runs
+`.github/workflows/publish.yaml`, which publishes that one package. No other
+change here publishes anything.
 
-## Packages and order
+## Packages
 
-Eight packages are published, always together and with the same version
-(lockstep): a release bumps all of them, even a package without changes, so
-`^0.1.0` constraints between them never mix versions.
+Eight packages are published. Each has its own version and its own
+release: only a package that changed gets a new version and a `CHANGELOG.md`
+entry, and a release of package `P` is made by pushing the tag `P-vX.Y.Z`.
 
-| Order | Package | Depends on (published) |
-| --- | --- | --- |
-| 1 | `grund` | none |
-| 2 | `grund_http` | `grund` |
-| 3 | `grund_io` | `grund`, `grund_http` |
-| 4 | `grund_shelf` | `grund`, `grund_http` |
-| 5 | `grund_generator` | none (dev: `grund`, fixture `cases_app`) |
-| 6 | `grund_http_generator` | `grund_generator` (dev: `grund`, `grund_http`, fixtures `http_cases_app`, `users_app`) |
-| 7 | `grund_cli` | `grund_generator`, `grund_http_generator` |
-| 8 | `grund_build` | `grund_generator`, `grund_http_generator` (dev: `grund_cli`) |
+| Package | Depends on (published) |
+| --- | --- |
+| `grund` | none |
+| `grund_http` | `grund` |
+| `grund_io` | `grund`, `grund_http` |
+| `grund_shelf` | `grund`, `grund_http` |
+| `grund_generator` | none (dev: `grund`, fixture `cases_app`) |
+| `grund_http_generator` | `grund_generator` (dev: `grund`, `grund_http`, fixtures `http_cases_app`, `users_app`) |
+| `grund_cli` | `grund_generator`, `grund_http_generator` |
+| `grund_build` | `grund_generator`, `grund_http_generator` (dev: `grund_cli`) |
 
-pub.dev rejects an upload whose `dependencies` are not on pub.dev yet, so
-publish in this order. It does not check `dev_dependencies`.
+A constraint between workspace members is the lowest version that has what
+the dependent needs (`^0.1.0` stays valid when the dependency ships
+`0.1.1`; raise it to `^0.1.1` when the dependent needs that fix). pub.dev
+rejects an upload whose `dependencies` are not on pub.dev yet: when a
+dependent raises its constraint to a version of another workspace package
+that is not published yet, push the dependency's tag first, wait until its
+page shows the version, then push the dependent's tag. It does not check
+`dev_dependencies`.
 
 Not published (`publish_to: none`): `grund_conformance` (the adapters'
 test suite), the generators' fixture packages `cases_app`, `http_cases_app` and
@@ -64,19 +70,35 @@ and pub ignores the dev dependencies of a dependency.
   the repository).
 - **The SDK floor 3.8 is unverified** until CI has run once (see above).
 
+## One-time setup of automated publishing
+
+pub.dev publishes from GitHub Actions without a token (OIDC), but only for a
+package that already exists on pub.dev. Once per package:
+
+1. **New packages: the first version is published by hand**
+   (`cd packages/<package> && dart pub publish`), after the dry-run below.
+2. On the package's pub.dev admin page (Admin, Automated publishing) enable
+   publishing from GitHub Actions: repository `4akloon/grund`, tag pattern
+   `<package>-v{{version}}`, and require the GitHub environment `pub.dev`.
+3. Once for the repository, on GitHub: create the environment `pub.dev`
+   (Settings, Environments) with a required reviewer, and restrict its
+   deployment tags to the rule `*-v*`.
+
 ## Every release
 
-1. Pick the version (see "Versions" below) and set it in all eight
-   `pubspec.yaml` files and in every `^x.y.z` constraint between them,
-   including `example/`, `packages/grund_conformance` and the generator
-   fixtures. `packages/grund_cli/lib/src/init/project_template.dart`
-   (`grundVersion`) and the `^0.1.0` snippets in the READMEs and `docs/`
-   name the version users should depend on: update them too.
-2. Add a `## x.y.z` section at the top of each package's `CHANGELOG.md`.
-   pub warns when the changelog does not mention the version being
-   published. A package without changes gets "No changes; released with
-   the other grund packages."
-3. Run the checks on a clean `master`:
+1. Decide which packages changed since their last tag: a package needs a
+   release when its `lib/`, `bin/`, dependencies, README or CHANGELOG
+   changed (`git diff --stat <package>-vX.Y.Z..HEAD -- packages/<package>`);
+   changes only under `test/` do not.
+2. Pick each version (see "Versions" below) and set `version:` in that
+   package's `pubspec.yaml`. Raise a constraint on another workspace member
+   only when the dependent needs its new version. If the scaffold or a
+   README snippet names a version users should depend on
+   (`packages/grund_cli/lib/src/init/project_template.dart`, `grundVersion`),
+   keep it resolvable: it must name a version that exists.
+3. Add a `## x.y.z` section at the top of the `CHANGELOG.md` of each package
+   being released. The publish workflow and pub both require it.
+4. Run the checks on a clean `master`:
 
    ```sh
    dart pub get
@@ -87,8 +109,9 @@ and pub ignores the dev dependencies of a dependency.
    (cd packages/grund_build && dart test integration)
    ```
 
-4. Dry-run every package, in the order above. Each must end with
-   `Package has 0 warnings.` and exit with 0 (any warning exits with 65):
+5. Dry-run every package (not only the ones being released). Each must end
+   with `Package has 0 warnings.` and exit with 0 (any warning exits with
+   65):
 
    ```sh
    for package in grund grund_http grund_io grund_shelf grund_generator \
@@ -98,25 +121,18 @@ and pub ignores the dev dependencies of a dependency.
    ```
 
    The dry-run also fails on uncommitted changes: commit first.
-5. Commit (`chore: release x.y.z`) and push; wait for CI.
-6. Publish, in the same order, one package at a time:
+6. Commit (`chore: release <package> x.y.z`), push and wait for CI.
+7. Tag the commit on `master` and push the tag, one package at a time (for
+   several packages, in dependency order, see "Packages"):
 
    ```sh
-   cd packages/grund && dart pub publish
+   git tag <package>-vX.Y.Z <commit>
+   git push origin <package>-vX.Y.Z
    ```
 
-   `dart pub publish` asks for confirmation and, the first time, for a
-   Google login in the browser. Wait until each package's page shows the
-   new version before publishing the next one.
-7. Tag the commit, one tag per package, and push the tags:
-
-   ```sh
-   for package in grund grund_http grund_io grund_shelf grund_generator \
-       grund_http_generator grund_cli grund_build; do
-     git tag "$package-vx.y.z"
-   done
-   git push origin --tags
-   ```
+   The workflow checks that the tag matches `pubspec.yaml` and the
+   changelog and that the commit is on `master`, then publishes. The
+   `pub.dev` environment's reviewer approves the run.
 
 ## After publishing
 
@@ -137,16 +153,8 @@ and pub ignores the dev dependencies of a dependency.
 
 ## Versions
 
-Until 1.0.0, a breaking change raises the minor version (0.1.0 → 0.2.0)
+Each package is versioned on its own. Until 1.0.0, a breaking change raises the minor version (0.1.0 → 0.2.0)
 and anything else the patch version. A change of the generator's output
 for the same sources is breaking (users' committed generated files
 change). Prereleases (`0.2.0-dev.1`) are possible but are not shown to
-users by default; the lockstep rule applies to them too.
-
-## Automated publishing (later)
-
-pub.dev can publish from GitHub Actions when a tag is pushed, without a
-token: enable "Automated publishing" on each package's admin page (tag
-pattern `<package>-v{{version}}`), then add a workflow with
-`dart-lang/setup-dart/.github/workflows/publish.yml`. The first version of
-each package must still be published by hand.
+users by default.
