@@ -18,6 +18,7 @@ abstract final class ProjectTemplate {
     'lib/src/app_module.dart': _appModule,
     'lib/src/hello.dart': _hello,
     'pubspec.yaml': _pubspec(name),
+    'test/hello_test.dart': _helloTest(name),
   };
 
   static String _pubspec(String name) =>
@@ -38,6 +39,7 @@ dependencies:
 dev_dependencies:
   grund_cli: $grundVersion
   lints: ^5.1.0
+  test: ^1.25.0
 ''';
 
   // The `part` and the prefixed import are what a host of `@Api` needs; the
@@ -103,6 +105,35 @@ import 'package:$name/src/app_module.dart';
 /// send it elsewhere (`run(log: ...)`).
 Future<void> main(List<String> arguments) async {
   await App(root: const AppModule()).run(only: Runners.fromArgs(arguments));
+}
+''';
+
+  // `TestApp` never makes the io adapter listen, so the test needs no socket.
+  static String _helloTest(String name) =>
+      '''
+import 'package:grund/testing.dart';
+import 'package:grund_http/testing.dart';
+import 'package:$name/src/app_module.dart';
+import 'package:test/test.dart';
+
+void main() {
+  late TestApp app;
+  late TestClient client;
+
+  setUp(() async {
+    app = await TestApp.start(root: const AppModule());
+    client = TestClient.of(app);
+  });
+  tearDown(() => app.close());
+
+  test('GET /hello greets the name, or the world', () async {
+    final named = await client.get('/hello?name=you');
+    final anonymous = await client.get('/hello');
+
+    expect(named.status, 200);
+    expect(named.json, {'message': 'Hello, you!'});
+    expect(anonymous.json, {'message': 'Hello, world!'});
+  });
 }
 ''';
 }

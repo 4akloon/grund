@@ -156,7 +156,9 @@ reserved word, and not one of the packages the template depends on):
 (a service and an `@Api` with its `part`), `lib/src/app_module.dart` (the
 root `AppModule`, which imports `HttpModule` and `IoAdapterModule`) and
 `bin/main.dart` (`App(root:).run(...)`, logging to the console, see
-`docs/logging.md` of the repository).
+`docs/logging.md` of the repository) and `test/hello_test.dart` (a smoke
+test of `GET /hello` through `TestApp` and `TestClient`, no socket; run it
+with `dart test` after `dart run grund_cli gen`).
 If writing fails, the files `init` created are removed again. Then:
 
 ```sh

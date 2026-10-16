@@ -21,12 +21,13 @@ Without a global activation every command also works as
 
 ```text
 my_app/
-  pubspec.yaml            grund, grund_http, grund_io; dev: grund_cli
+  pubspec.yaml            grund, grund_http, grund_io; dev: grund_cli, test
   analysis_options.yaml
   .gitignore              .dart_tool/
   bin/main.dart           App(root: const AppModule()).run(...)
   lib/src/app_module.dart AppModule: HttpModule, IoAdapterModule, the providers
   lib/src/hello.dart      HelloService and HelloApi
+  test/hello_test.dart    a smoke test of GET /hello, in process (dart test)
 ```
 
 `grund gen` reads `lib/` and writes one file next to every library that has

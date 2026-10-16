@@ -51,5 +51,6 @@ abstract final class ReservedNames {
     'grund_cli',
     'grund_io',
     'lints',
+    'test',
   };
 }

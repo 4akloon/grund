@@ -18,7 +18,7 @@ Future<List<String>> _analyze(String root) async {
   final collection = AnalysisContextCollection(includedPaths: [root]);
   addTearDown(collection.dispose);
   final files = [
-    for (final directory in ['lib', 'bin'])
+    for (final directory in ['lib', 'bin', 'test'])
       for (final entity in Directory(
         '$root/$directory',
       ).listSync(recursive: true))
@@ -49,6 +49,11 @@ void main() {
     expect(init.out, contains('  dart run bin/main.dart\n'));
     expect(dir.exists('my_app/bin/main.dart'), isTrue);
     expect(dir.read('my_app/pubspec.yaml'), contains('name: my_app\n'));
+    expect(dir.read('my_app/pubspec.yaml'), contains('  test: ^1.25.0\n'));
+    final smoke = dir.read('my_app/test/hello_test.dart');
+    expect(smoke, contains("import 'package:my_app/src/app_module.dart';"));
+    expect(smoke, contains('Hello, you!'));
+    expect(smoke, contains('Hello, world!'));
     expect(gen.exitCode, 0, reason: gen.err);
     expect(gen.out, startsWith('Generated 2 files in '));
     expect(dir.exists('my_app/lib/src/app_module.g.dart'), isTrue);
@@ -88,6 +93,7 @@ void main() {
     ('grund', 'a dependency of the new package'),
     ('grund_http', 'a dependency of the new package'),
     ('lints', 'a dependency of the new package'),
+    ('test', 'a dependency of the new package'),
   ]) {
     test('init rejects the package name "$name"', () async {
       final dir = TempDir.create();
@@ -102,7 +108,7 @@ void main() {
   }
 
   test('init accepts the names of packages the template does not use', () {
-    for (final name in ['test', 'grund_generator']) {
+    for (final name in ['grund_conformance', 'grund_generator']) {
       expect(ReservedNames.reasonFor(name), isNull);
     }
   });

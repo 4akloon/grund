@@ -1,3 +1,7 @@
+## 0.1.1
+
+- `init` scaffolds a `test/` directory with a smoke test and the `test` dev dependency.
+
 ## 0.1.0
 
 Initial release.
