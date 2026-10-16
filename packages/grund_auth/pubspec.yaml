@@ -1,0 +1,18 @@
+name: grund_auth
+description: >-
+  Cookie sessions for grund: an opaque token in an HttpOnly cookie, a hook
+  that puts the CurrentUser in the call scope, and a same-origin check.
+version: 0.1.0
+repository: https://github.com/4akLoon/grund/tree/master/packages/grund_auth
+issue_tracker: https://github.com/4akLoon/grund/issues
+topics: [server, http, framework, authentication]
+environment:
+  sdk: ^3.8.0
+resolution: workspace
+dependencies:
+  grund: ^0.1.0
+  grund_http: ^0.1.0
+dev_dependencies:
+  grund_io: ^0.1.0
+  lints: ^5.1.0
+  test: ^1.25.0

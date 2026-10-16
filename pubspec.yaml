@@ -5,6 +5,7 @@ environment:
 workspace:
   - example
   - packages/grund
+  - packages/grund_auth
   - packages/grund_build
   - packages/grund_cli
   - packages/grund_conformance
