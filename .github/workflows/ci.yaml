@@ -75,7 +75,7 @@ jobs:
       # Every published package (the list of docs/RELEASING.md); any warning fails the job.
       - name: dart pub publish --dry-run
         run: |
-          for package in grund grund_http grund_io grund_shelf \
+          for package in grund grund_http grund_io grund_shelf grund_jaspr \
               grund_generator grund_http_generator grund_cli grund_build; do
             echo "::group::$package"
             (cd "packages/$package" && dart pub publish --dry-run) || exit 1
