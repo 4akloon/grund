@@ -3,7 +3,7 @@ description: >-
   Command line tool of grund: generates the code of annotated packages
   (gen, gen --watch), runs them with hot reload (dev) and scaffolds new
   applications (init).
-version: 0.1.0
+version: 0.1.1
 repository: https://github.com/4akLoon/grund/tree/master/packages/grund_cli
 issue_tracker: https://github.com/4akLoon/grund/issues
 topics: [cli, codegen, hot-reload, server]
@@ -15,7 +15,7 @@ executables:
 dependencies:
   analyzer: '>=8.1.1 <15.0.0'
   args: ^2.7.0
-  grund_generator: ^0.1.0
+  grund_generator: ^0.1.1
   grund_http_generator: ^0.1.0
   path: ^1.9.0
   vm_service: ^15.2.0
