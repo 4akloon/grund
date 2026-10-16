@@ -18,6 +18,7 @@ import 'collection_context.dart';
 import 'injectable_reader.dart';
 import 'module_reader.dart';
 import 'provides_reader.dart';
+import '../model/public_imports.dart';
 import 'public_imports_reader.dart';
 import 'source_locations.dart';
 import 'unresolved_uri_reader.dart';
@@ -102,16 +103,19 @@ final class PackageCollector {
       unresolvedUris: parts.unresolved,
       extensions: _extensions(sorted),
       libraryPaths: [for (final library in sorted) _locations.pathOf(library)],
-      publicImports: {
-        // Only a library with modules has a generated library to import in.
-        for (final library in withModules)
-          _locations.pathOf(library): PublicImportsReader.read(
-            library,
-            packageName,
-          ),
-      },
+      publicImports: _publicImports(withModules),
     );
   }
+
+  /// The public imports of the libraries that declare modules: only those
+  /// have a generated library to import in.
+  Map<String, PublicImports> _publicImports(List<LibraryElement> libraries) => {
+    for (final library in libraries)
+      _locations.pathOf(library): PublicImportsReader.read(
+        library,
+        packageName,
+      ),
+  };
 
   List<ExtensionModel> _extensions(List<LibraryElement> libraries) {
     final context = CollectionContext(

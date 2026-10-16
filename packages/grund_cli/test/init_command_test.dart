@@ -59,6 +59,13 @@ void main() {
     expect(dir.exists('my_app/lib/src/app_module.g.dart'), isTrue);
     expect(dir.exists('my_app/lib/src/hello.g.dart'), isTrue);
     expect(await _analyze(target), isEmpty);
+    // `_analyze` drops infos, the severity of `implementation_imports`.
+    final generated = dir.read('my_app/lib/src/app_module.g.dart');
+    expect(
+      RegExp(r"import 'package:(?!my_app/)\w+/src/").hasMatch(generated),
+      isFalse,
+      reason: 'a generated file imports the src/ of another package',
+    );
     final again = await CliRun.run(['gen', '-C', target]);
     expect(again.out, startsWith('Generated files are up to date (2 files'));
   });
