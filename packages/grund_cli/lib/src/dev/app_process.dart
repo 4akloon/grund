@@ -71,7 +71,8 @@ final class AppProcess {
   final Process _process;
 
   /// The URI of the child's VM service; `null` when the child exited
-  /// without starting it. It has no timeout of its own: callers race it
+  /// without printing the banner (a child that fails early may still have
+  /// printed it, depending on the SDK). It has no timeout of its own: callers race it
   /// against [exitCode].
   final Future<Uri?> serviceUri;
 

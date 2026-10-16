@@ -58,7 +58,7 @@ void main() => print(pid);
     expect(out.lines, ['${app.pid}']);
   });
 
-  test('a child that cannot start has no VM service', () async {
+  test('a child that cannot start exits with its error on stderr', () async {
     final dir = TempDir.create();
     final err = LineSink();
     final app = await AppProcess.start(
@@ -69,7 +69,9 @@ void main() => print(pid);
       err: err,
     );
 
-    expect(await app.serviceUri, isNull);
+    // Some SDKs print the VM service banner before the missing script is
+    // reported, so the URI is not part of the contract here; callers race
+    // it against the exit code.
     expect(await app.exitCode, isNot(0));
     expect(err.lines.join('\n'), contains('bin/missing.dart'));
   });
