@@ -99,22 +99,20 @@
   const []`, `Component shell(Component page) => page`,
   `Component notFound()` (мінімальна сторінка «Not found»), `String? get
   baseUrl => null` (абсолютна адреса для sitemap; `null` — sitemap скоупу
-  вимкнений). Конструктор приймає `Injector` модуля-власника (як `HttpApi`);
-  реєструється як `Singleton<AdminScope>(AdminScope.new)` у цьому модулі.
+  вимкнений). Конструктор приймає `Injector` модуля-власника; реєструється як `Singleton<AdminScope>(AdminScope.new)` у цьому модулі.
   Скоуп із непорожнім `use` і `baseUrl` одночасно — `scope_sitemap_guarded`
   на старті (sitemap віддається без хуків скоупу, тож охоронювані сторінки в
   ньому були б витоком).
-- `PageApi<S extends PageScope>` — `abstract base class extends HttpApi`
-  (звичайний `Singleton<UsersPages>(UsersPages.new)` у будь-якому модулі) з
-  абстрактним `List<Page> get pages`. Його `use` порожній, а `routes` = по
-  `Route.get(scope.prefix + page.path, ...)` на сторінку з хуками
-  `[if (page.guarded) ...scope.use, ...page.use]` (на рівні роута, щоб
-  сторінку входу можна було зробити відкритою); скоуп береться як `injector<S>()`
-  (відсутній — `page_scope_missing` на старті). Хуки скоупу резолвляться в
-  injector модуля, що оголосив сторінки, тому модуль скоупу експортує свої
-  охоронці, а модуль сторінок імпортує модуль скоупу (звичайні імпорти grund). Окремий збирач сторінок не потрібен: наявний
-  `injector.all<HttpApi>()` їх уже знаходить; без `JasprModule` у графі
-  `PageApi` не знаходить `PageRenderer` і старт падає типізованою помилкою.
+- `PageApi<S extends PageScope>` — самостійний `abstract base class`, **не**
+  `HttpApi` (сторінки не успадковують `path`/`routes`/`use`, які їм не
+  потрібні). Конструктор приймає `Injector` модуля, єдиний абстрактний член —
+  `List<Page> get pages`. Реєструється як `Singleton<UsersPages>(UsersPages.new)`
+  у будь-якому модулі; `JasprModule` знаходить усі через
+  `injector.all<PageApi>()` (видимість і експорт не потрібні) і сам будує з них
+  роути (§4.2). Скоуп сторінки — це `S`, знайдений серед `all<PageScope>()`
+  за типом; відсутній — `page_scope_missing` на старті. Конструктор `PageApi`
+  запитує `PageRenderer`, тож без `JasprModule` у графі старт падає
+  типізованою помилкою, а сторінки не лишаються мовчки без обробника.
 - `Page(String path, {required PageBuilder build, PageMeta meta, PageEntries?
   entries, bool guarded = true, List<HookRef<HttpHook>> use,
   List<PageExtension> extensions})`. `typedef PageBuilder = FutureOr<Component>
@@ -143,7 +141,15 @@
 ### 4.2 `JasprModule`
 
 `JasprModule({JasprConfig config, List<Module> imports})` без `app`.
-Прив'язує `PageRenderer`, `PageCatalog`, фолбеки скоупів і статику. Один
+Прив'язує `PageRenderer`, `PageCatalog` і `PageRouter` — єдиний внутрішній
+`HttpApi` модуля (порожній `path`), чиї `routes` будуються зі скоупів і
+сторінок: по `Route.get(scope.prefix + page.path, ...)` на сторінку з хуками
+`[if (page.guarded) ...scope.use, ...page.use]` (на рівні роута, щоб сторінку
+входу можна було зробити відкритою), плюс фолбеки скоупів, sitemap і статику.
+Хуки скоупу резолвляться в injector скоупу (модуля-власника), а хуки
+сторінки — в injector її `PageApi`; `PageRouter` перетворює їх на готові
+екземпляри (`HookRef.instance`) до реєстрації, тож модулю сторінок не треба
+бачити охоронців скоупу й імпортувати його модуль. Один
 `JasprModule` на застосунок; скоупи й сторінки приходять з інших модулів, тож
 проблема ідентичності модулів зникає. Рендер: компонент сторінки
 обгортається `scope.shell(...)` і `GrundScope(httpContext: c, ...)`;
@@ -252,7 +258,8 @@ JSON 404 `file_not_found` в усіх фолбеках (включно з `/admi
 - Каталог: nav (групи, порядок), sitemap (статичні, `entries`, виключені,
   без `entries`), кеш і `invalidate`, помилки з §4.6.
 - DI: компонент бачить прив'язки модуля, що оголосив сторінку; охоронець
-  скоупу, експортований модулем скоупу, резолвиться в модулі сторінок.
+  скоупу резолвиться в injector скоупу, і модуль сторінок, що не імпортує
+  модуль скоупу, працює; `PageApi` без `JasprModule` у графі падає на старті.
 - Сторінки: `guarded: false` (сторінка входу), `NotFoundException` з білдера
   (404 скоупу) і з компонента (500), `FutureOr`-білдер, `context.page`.
 - Каталог: `match(Uri)` (пріоритети, префікси скоупів), `extensionsOf<T>()`,
@@ -275,7 +282,8 @@ jaspr) оновлюються. Портфоліо мігрує окремою р
 
 ## 8. Рішення, що чекають вашого перегляду
 
-Мої рішення: `PageApi extends HttpApi` замість окремого збирача; охоронці
+Мої рішення: `PageApi` самостійний клас (не `HttpApi`), а всі роути будує
+один внутрішній `PageRouter` у `JasprModule`; охоронці
 лише через `HttpHook.onError`; статика лише в корені; кеш каталогу 60 с;
 `entries` не додають пункти навігації; правило «без `entries` немає в
 sitemap»; `baseUrl` у скоупі вмикає sitemap (і виключає охоронювані скоупи);
@@ -290,7 +298,7 @@ sitemap»; `baseUrl` у скоупі вмикає sitemap (і виключає �
 
 ## 9. Ризики
 
-- `injector.all<PageApi<PageScope>>` / `injector<S>()` з дженериками: коваріантність
+- `injector.all<PageApi<PageScope>>` / `all<PageScope>()` з дженериками: коваріантність
   `Binding` перевірити першою задачею плану.
 - Чи бачить `context.call<T>()` прив'язки модуля сторінки: перевірити першою
   задачею; якщо ні — `GrundScope` отримує injector `PageApi`.
@@ -298,9 +306,13 @@ sitemap»; `baseUrl` у скоупі вмикає sitemap (і виключає �
 - Що виняток усередині компонента під час рендеру Jaspr 0.23.5 дає 500, а не
   проходить крізь `renderComponent`, перевірити першою задачею (на цьому
   тримається правило «404 лише з білдера»).
-- Резолв хуків скоупу в injector модуля сторінок вимагає імпорту модуля
-  скоупу; якщо це незручно на практиці, розширюємо `grund_http` (резолв хуків
-  в injector скоупу) окремим кроком.
+- `PageRouter` резолвить хуки в injector скоупу й сторінки сам. Чи є в
+  `grund_http` публічний спосіб розв'язати `HookRef` у заданому injector і
+  віддати готовий `HookRef.instance`, невідомо; перевірити першою задачею.
+  Якщо немає, невелике розширення `grund_http` (окремий крок, мінорна версія).
+- Рендер мусить відкрити call-scope від injector `PageApi` сторінки, а не
+  `JasprModule`, щоб `context.call<T>()` бачив прив'язки модуля сторінки;
+  перевірити тестом разом з попереднім.
 - Кеш `entries` показує застарілий sitemap до 60 с.
 - Порції через `OFFSET` на мільйонах рядків повільні на великих зсувах: це
   відповідальність джерела (індекс, ключова пагінація всередині `page`), ядро
