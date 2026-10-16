@@ -12,107 +12,29 @@ import 'package:test/test.dart';
 
 import '../test/helpers/hello_app.dart';
 import '../test/helpers/line_sink.dart';
+import 'helpers/dev_run.dart';
 
-/// Waits until [lines] has [count] lines that satisfy [test], in any order
-/// with the other lines (the application prints while dev does).
-Future<void> until(
-  LineSink lines,
-  bool Function(String line) test, {
-  int count = 1,
-}) async {
-  while (lines.lines.where(test).length < count) {
-    await lines.next();
-  }
-}
-
-bool isListening(String line) => HelloApp.portIn(line) != null;
-
-/// Kills the application processes `dev` reported in [lines] (`Started ...
-/// (pid N`) that are still running, so a failing test leaves none behind.
-void killStrays(LineSink lines) {
-  final started = RegExp(r'^Started .* \(pid (\d+),');
-  for (final line in lines.lines) {
-    final pid = int.tryParse(started.firstMatch(line)?[1] ?? '');
-    if (pid == null || !_isApplication(pid)) continue;
-    Process.killPid(pid, ProcessSignal.sigkill);
-  }
-}
-
-// The pid may have been reused after a clean shutdown; where /proc tells
-// what it runs, only a child VM with the VM service is killed.
-bool _isApplication(int pid) {
-  final command = File('/proc/$pid/cmdline');
-  return !command.existsSync() ||
-      command.readAsStringSync().contains('--enable-vm-service');
-}
-
-/// A loopback port that was free a moment ago.
-Future<int> freePort() async {
-  final socket = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
-  final port = socket.port;
-  await socket.close();
-  return port;
-}
-
-/// The answer of `GET /hello` on [port].
-Future<Map<String, Object?>> hello(int port) async =>
-    await HelloApp.get(port, '/hello') as Map<String, Object?>;
-
-/// `dev` of the `hello` application on [port], run in-process.
-final class DevRun {
-  DevRun._(this.app, this.port, this.lines, this.keys, this._stop, this.exit);
-
-  /// Starts `dev` and waits until the application listens.
-  static Future<DevRun> start() async {
-    final app = await HelloApp.create();
-    final port = await freePort();
-    final lines = LineSink();
-    final keys = StreamController<String>();
-    final stop = Completer<void>();
-    final exit = GrundCli(
-      out: lines,
-      err: lines,
-      interruption: Interruption(untilStopped: () => stop.future),
-      keys: () => keys.stream,
-    ).run(['dev', '-C', app.package.dir.path, '--', '$port']);
-    final run = DevRun._(app, port, lines, keys, stop, exit);
-    addTearDown(() => killStrays(lines));
-    addTearDown(run.stop);
-    await until(lines, (line) => line.startsWith('Watching lib/ and bin/'));
-    await until(lines, isListening);
-    return run;
-  }
-
-  final HelloApp app;
-  final int port;
-  final LineSink lines;
-  final StreamController<String> keys;
-  final Completer<void> _stop;
-
-  /// The exit code of `dev`.
-  final Future<int> exit;
-
-  /// Stops `dev` as Ctrl+C does and returns its exit code.
-  Future<int> stop() {
-    if (!_stop.isCompleted) _stop.complete();
-    return exit;
-  }
+/// Starts `dev` of a new `hello` application on a free port.
+Future<(HelloApp, DevRun)> startHello() async {
+  final app = await HelloApp.create();
+  final dev = await DevRun.start(app.package.dir.path, port: await freePort());
+  return (app, dev);
 }
 
 void main() {
   // The roadmap's dev test: a body change keeps the process, a new route
   // appears, a new field restarts the application in a new process.
   test('dev reloads bodies and routes and restarts on a new field', () async {
-    final dev = await DevRun.start();
+    final (app, dev) = await startHello();
     final first = (await hello(dev.port))['pid'];
 
-    dev.app.edit('lib/src/greeter.dart', 'hello v1', 'hello v2');
+    app.edit('lib/src/greeter.dart', 'hello v1', 'hello v2');
     await until(dev.lines, (line) => line.startsWith('Reloaded '));
     expect(await hello(dev.port), {'text': 'hello v2', 'pid': first});
 
     // Review Focus 8: the route reaches the application only through the
     // generated file, which is written before the reload.
-    dev.app.edit(
+    app.edit(
       'lib/src/hello_api.dart',
       "  @Get('/')",
       "  @Get('/bye')\n  Map<String, Object> bye() => {'text': 'bye'};\n\n"
@@ -124,7 +46,7 @@ void main() {
     expect((await hello(dev.port))['pid'], first);
 
     // Review Focus 6: the new process binds the port the old one held.
-    dev.app.edit(
+    app.edit(
       'lib/src/greeter.dart',
       'String greet',
       'int count = 0;\n\n  String greet',
@@ -146,11 +68,11 @@ void main() {
 
   test('a storm of saves ends with the last version in one process', () async {
     // Review Focus 4.
-    final dev = await DevRun.start();
+    final (app, dev) = await startHello();
     final first = (await hello(dev.port))['pid'];
 
     for (var version = 2; version <= 6; version++) {
-      dev.app.edit(
+      app.edit(
         'lib/src/greeter.dart',
         'hello v${version - 1}',
         'hello v$version',
@@ -168,9 +90,9 @@ void main() {
   });
 
   test('a compile error in bin/ keeps the previous code running', () async {
-    final dev = await DevRun.start();
+    final (app, dev) = await startHello();
 
-    dev.app.edit('bin/main.dart', 'final adapter', 'final adapter = 1;\n  var');
+    app.edit('bin/main.dart', 'final adapter', 'final adapter = 1;\n  var');
     await until(dev.lines, (line) => line.startsWith('Hot reload failed; '));
     expect((await hello(dev.port))['text'], 'hello v1');
   });
