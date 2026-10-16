@@ -41,11 +41,14 @@ jobs:
 
       - name: Unit tests
         run: |
+          # Every directory runs, so one failure does not hide the rest.
+          failed=0
           for dir in packages/*/ example/; do
             echo "::group::$dir"
-            (cd "$dir" && dart test) || exit 1
+            (cd "$dir" && dart test) || { echo "::error::tests failed in $dir"; failed=1; }
             echo "::endgroup::"
           done
+          exit $failed
 
       - name: Integration tests (dev, build_runner)
         run: |
