@@ -1,9 +1,10 @@
 /// Names a new package cannot have.
 abstract final class ReservedNames {
-  /// Why [name] cannot name a new package, or `null` when it can.
-  static String? reasonFor(String name) {
+  /// Why [name] cannot name a new package whose pubspec names
+  /// [dependencies], or `null` when it can.
+  static String? reasonFor(String name, Set<String> dependencies) {
     if (_reservedWords.contains(name)) return 'a Dart reserved word';
-    if (_dependencies.contains(name)) {
+    if (dependencies.contains(name)) {
       return 'a dependency of the new package';
     }
     return null;
@@ -43,14 +44,5 @@ abstract final class ReservedNames {
     'void',
     'while',
     'with',
-  };
-
-  static const _dependencies = {
-    'grund',
-    'grund_http',
-    'grund_cli',
-    'grund_io',
-    'lints',
-    'test',
   };
 }

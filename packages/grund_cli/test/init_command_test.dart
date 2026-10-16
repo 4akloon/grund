@@ -1,38 +1,16 @@
 import 'dart:io';
 
-import 'package:analyzer/dart/analysis/analysis_context_collection.dart';
-import 'package:analyzer/dart/analysis/results.dart';
-import 'package:analyzer/error/error.dart';
 import 'package:grund_cli/grund_cli.dart';
 import 'package:grund_cli/src/cli/shell_word.dart';
+import 'package:grund_cli/src/init/project_kind.dart';
 import 'package:grund_cli/src/init/project_scaffold.dart';
 import 'package:grund_cli/src/init/reserved_names.dart';
 import 'package:test/test.dart';
 
 import 'helpers/cli_run.dart';
+import 'helpers/dart_diagnostics.dart';
 import 'helpers/temp_dir.dart';
 import 'helpers/workspace_package_config.dart';
-
-/// Errors and warnings of the Dart files of [root]'s `lib/` and `bin/`.
-Future<List<String>> _analyze(String root) async {
-  final collection = AnalysisContextCollection(includedPaths: [root]);
-  addTearDown(collection.dispose);
-  final files = [
-    for (final directory in ['lib', 'bin', 'test'])
-      for (final entity in Directory(
-        '$root/$directory',
-      ).listSync(recursive: true))
-        if (entity.path.endsWith('.dart')) entity.path,
-  ];
-  return [
-    for (final file in files)
-      if (await collection.contextFor(file).currentSession.getErrors(file)
-          case final ErrorsResult result)
-        for (final diagnostic in result.diagnostics)
-          if (diagnostic.diagnosticCode.severity != DiagnosticSeverity.INFO)
-            '$file: ${diagnostic.message}',
-  ];
-}
 
 void main() {
   test('init writes an application that generates and analyzes', () async {
@@ -58,8 +36,8 @@ void main() {
     expect(gen.out, startsWith('Generated 2 files in '));
     expect(dir.exists('my_app/lib/src/app_module.g.dart'), isTrue);
     expect(dir.exists('my_app/lib/src/hello.g.dart'), isTrue);
-    expect(await _analyze(target), isEmpty);
-    // `_analyze` drops infos, the severity of `implementation_imports`.
+    expect(await DartDiagnostics.of(target), isEmpty);
+    // `DartDiagnostics` drops infos, the severity of `implementation_imports`.
     final generated = dir.read('my_app/lib/src/app_module.g.dart');
     expect(
       RegExp(r"import 'package:(?!my_app/)\w+/src/").hasMatch(generated),
@@ -115,8 +93,11 @@ void main() {
   }
 
   test('init accepts the names of packages the template does not use', () {
-    for (final name in ['grund_conformance', 'grund_generator']) {
-      expect(ReservedNames.reasonFor(name), isNull);
+    for (final name in ['grund_conformance', 'grund_generator', 'jaspr']) {
+      expect(
+        ReservedNames.reasonFor(name, ProjectKind.api.dependencies),
+        isNull,
+      );
     }
   });
 

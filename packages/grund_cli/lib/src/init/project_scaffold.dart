@@ -5,19 +5,25 @@ import 'package:path/path.dart' as p;
 import '../cli/cli_exit_code.dart';
 import '../cli/cli_failure.dart';
 import '../package/package_root.dart';
-import 'project_template.dart';
+import 'project_kind.dart';
 import 'reserved_names.dart';
 
-/// Writes a new application from [ProjectTemplate] into an empty or new
+/// Writes a new application of a [ProjectKind] into an empty or new
 /// directory; the directory name is the package name.
 final class ProjectScaffold {
   /// Creates the scaffold of [directory]; [writeFile] replaces the file
   /// write (a seam for failure tests).
-  ProjectScaffold(String directory, {void Function(File, String)? writeFile})
-    : directory = p.normalize(p.absolute(directory)),
-      _writeFile = writeFile ?? _write;
+  ProjectScaffold(
+    String directory, {
+    this.kind = ProjectKind.api,
+    void Function(File, String)? writeFile,
+  }) : directory = p.normalize(p.absolute(directory)),
+       _writeFile = writeFile ?? _write;
 
   final void Function(File, String) _writeFile;
+
+  /// The application this scaffold writes.
+  final ProjectKind kind;
 
   /// Absolute path of the new package.
   final String directory;
@@ -38,7 +44,7 @@ final class ProjectScaffold {
         'lowercase_with_underscores.',
       );
     }
-    final reason = ReservedNames.reasonFor(name);
+    final reason = ReservedNames.reasonFor(name, kind.dependencies);
     if (reason != null) {
       throw CliFailure(
         CliExitCode.usage,
@@ -47,7 +53,7 @@ final class ProjectScaffold {
     }
     final existed = _checkEmpty();
     final topmostNew = existed ? null : _topmostMissing();
-    final files = ProjectTemplate.files(name);
+    final files = kind.files(name);
     for (final MapEntry(key: path, value: content) in files.entries) {
       final file = File(p.joinAll([directory, ...path.split('/')]));
       try {
