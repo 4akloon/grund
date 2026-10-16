@@ -107,8 +107,9 @@ the URL by hand.
   another isolate cannot reach.
 - The first render prints a `[WARNING]` about a missing `.client.dart`
   file to stdout. A page that uses `Document` without a client script makes
-  Jaspr print this one harmless notice at the first render of each isolate;
-  there are no client components in this release.
+  Jaspr print this one harmless notice at the first render of each process;
+  it cannot be silenced, and there are no client components in this
+  release.
 - Do not run the application under `jaspr serve`; use `grund dev`.
 - Not in this release: hydration (`@client`), `jaspr_builder`, HTML error
   pages.

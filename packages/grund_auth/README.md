@@ -93,11 +93,15 @@ development over plain `http`.
 `SetCookie` writes any other cookie the same checked way:
 `c.response.headers.add('set-cookie', SetCookie('theme', 'dark').toHeader())`.
 A name that is not a token, a value with a space, quote, comma, semicolon,
-backslash or control character, a path with `;`, a negative `maxAge` or
+backslash or control character, a path that is empty, does not start with
+`/` or has a `;`, a negative `maxAge`, a positive `maxAge` under one second
+(it would truncate to `Max-Age=0` and delete the cookie) or
 `SameSite=None` without `Secure` throws a `CookieFormatError`, so a value
-taken from a request cannot add attributes or headers. Several
-`set-cookie` headers (the session's and the handler's own) all reach the
-client.
+taken from a request cannot add attributes or headers. `SetCookie` does not
+enforce a prefix policy: a hand-built `__Host-` cookie is not checked for
+`Secure` or `Path=/` (`SessionConfig` checks the prefix rules for its own
+cookie). Several `set-cookie` headers (the session's and the handler's own)
+all reach the client.
 
 ## Cross-site requests
 
@@ -109,7 +113,8 @@ is neither `same-origin` nor `none`, or whose `origin` does not name the
 server) passes. `SameOriginHook` is the same check for an application
 without sessions. Together with `SameSite=Lax` it replaces CSRF tokens for
 browsers that send these headers; behind a proxy that rewrites `host`,
-forward the original one.
+forward the original one. More than one `origin` header is refused, and
+only the host and port of `origin` are compared, not its scheme.
 
 Not in this release: passwords, OAuth, JWT, CSRF tokens, roles, durable
 stores.

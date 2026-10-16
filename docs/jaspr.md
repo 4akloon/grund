@@ -115,14 +115,16 @@ The cookie is `HttpOnly`, `SameSite=Lax`, `Path=/`, `Secure` unless
 `SessionConfig(secure: false)` (development over plain `http` only), with
 an absolute lifetime of 7 days. A handler can set cookies of its own next
 to the session's (`SetCookie(...).toHeader()` on `c.response.headers` or in
-a returned `HttpResponse`); every `set-cookie` reaches the browser. `SetCookie` validates the names,
-values and attributes it builds; it does not enforce a prefix policy, so a
-hand-built `__Host-` cookie is not checked for `Secure`, `Path=/` or the
-absence of `Domain`.
+a returned `HttpResponse`); every `set-cookie` reaches the browser.
+`SetCookie` validates the names, values and attributes it builds (a `path`
+must start with `/`, a positive `maxAge` must be at least one second); it
+does not enforce a prefix policy, so a hand-built `__Host-` cookie is not
+checked for `Secure` or `Path=/`.
 
 Cross-site form posts are refused: `SessionHook` answers an unsafe request
 whose `sec-fetch-site` is another site, or whose `origin` is not the
-`host`, with a 403 `cross_site_request`. The
+`host` (more than one `origin` header is refused; the scheme is not
+compared), with a 403 `cross_site_request`. The
 [`grund_auth` README](../packages/grund_auth/README.md) has every rule.
 
 ## Static files
@@ -176,7 +178,7 @@ build.
 - **The first render prints a warning about `.client.dart`** to stdout
   (`[WARNING] ...`). A page that uses `Document` without a client script
   makes Jaspr print this one harmless notice at the first render of each
-  isolate; it cannot be silenced and this release has no client
+  process; it cannot be silenced and this release has no client
   components.
 - **Read cookies with `GrundScope.of(context).cookies`**, not with Jaspr's
   `context.cookies`, which throws on a malformed `cookie` header.
