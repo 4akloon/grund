@@ -56,6 +56,8 @@ final class LoopbackServer {
   /// adapter reported as unexpected.
   final List<Object> errors;
 
+  static final _formType = ContentType('application', 'x-www-form-urlencoded');
+
   final LogSubscription _logOutput;
   final HttpClient _client = HttpClient();
 
@@ -90,8 +92,6 @@ final class LoopbackServer {
     final cookies = response.headers[HttpHeaders.setCookieHeader] ?? const [];
     return ApiResponse(response.statusCode, first, body, setCookies: cookies);
   }
-
-  static final _formType = ContentType('application', 'x-www-form-urlencoded');
 
   /// Closes the client and the application.
   Future<void> close() async {

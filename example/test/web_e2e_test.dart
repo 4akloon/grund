@@ -24,7 +24,8 @@ void _suite(ModuleStyle style, AdapterKind kind) {
   });
 
   _pages(() => server);
-  _session(() => server);
+  _signIn(() => server);
+  _signOut(() => server);
 }
 
 /// Pages and files without a session.
@@ -54,10 +55,15 @@ void _pages(LoopbackServer Function() server) {
   });
 }
 
-/// Signing in and out through the forms.
-void _session(LoopbackServer Function() server) {
-  Future<ApiResponse> signIn(String name) =>
-      server().send('POST', '/login', form: 'name=$name');
+/// Signing in through the form.
+void _signIn(LoopbackServer Function() server) {
+  Future<ApiResponse> signIn(String name, {Map<String, String>? headers}) =>
+      server().send(
+        'POST',
+        '/login',
+        form: 'name=${Uri.encodeQueryComponent(name)}',
+        headers: headers ?? const {},
+      );
 
   test('signing in sets the session and the flash cookie (RF4, RF5)', () async {
     final login = await signIn('ann');
@@ -79,18 +85,34 @@ void _session(LoopbackServer Function() server) {
     expect(login.setCookies, contains(startsWith('flash=signed-in; ')));
   });
 
-  test('the next page sees the user and shows the flash once', () async {
-    final cookie = _cookieHeader(await signIn('ann'));
+  test(
+    'the flash shows on the next page and is gone on the one after',
+    () async {
+      final login = await signIn('ann');
+      final cookie = _cookieHeader(login);
 
-    final home = await server().send('GET', '/', headers: {'cookie': cookie});
+      final first = await server().send(
+        'GET',
+        '/',
+        headers: {'cookie': cookie},
+      );
+      // The browser applied `flash=; Max-Age=0`: only the session comes back.
+      final second = await server().send(
+        'GET',
+        '/',
+        headers: {'cookie': _sessionOnly(login)},
+      );
 
-    expect(home.body, contains('Signed in as ann.'));
-    expect(home.body, contains('class="flash"'));
-    expect(home.setCookies, contains(startsWith('flash=; ')));
-  });
+      expect(first.body, contains('Signed in as ann.'));
+      expect(first.body, contains('class="flash"'));
+      expect(first.setCookies, contains(startsWith('flash=; ')));
+      expect(second.body, contains('Signed in as ann.'));
+      expect(second.body, isNot(contains('class="flash"')));
+    },
+  );
 
-  test('the name is escaped in the page', () async {
-    final login = await signIn('%3Cb%3Eann');
+  test('a hostile name is escaped in the page', () async {
+    final login = await signIn('<script>alert(1)</script>');
 
     final home = await server().send(
       'GET',
@@ -98,12 +120,84 @@ void _session(LoopbackServer Function() server) {
       headers: {'cookie': _cookieHeader(login)},
     );
 
-    expect(home.body, contains('&lt;b&gt;ann'));
-    expect(home.body, isNot(contains('<b>ann')));
+    expect(home.body, contains('&lt;script&gt;alert(1)&lt;/script&gt;'));
+    expect(home.body, isNot(contains('<script>alert(1)')));
   });
 
+  test('a session id the browser already had is not accepted', () async {
+    final planted = 'A' * 43;
+
+    final login = await signIn(
+      'ann',
+      headers: {'cookie': 'grund_sid=$planted'},
+    );
+
+    expect(_sessionOnly(login), isNot(contains(planted)));
+    final home = await server().send(
+      'GET',
+      '/',
+      headers: {'cookie': 'grund_sid=$planted'},
+    );
+    expect(home.body, isNot(contains('Signed in as')));
+  });
+
+  test('signing in again replaces the session and kills the old id', () async {
+    final first = _sessionOnly(await signIn('ann'));
+
+    final second = _sessionOnly(
+      await signIn('bob', headers: {'cookie': first}),
+    );
+
+    expect(second, isNot(first));
+    final old = await server().send('GET', '/', headers: {'cookie': first});
+    final current = await server().send(
+      'GET',
+      '/',
+      headers: {'cookie': second},
+    );
+    expect(old.body, isNot(contains('Signed in as')));
+    expect(current.body, contains('Signed in as bob.'));
+  });
+
+  for (final (label, name) in [
+    ('empty', ''),
+    ('over 40 characters', 'x' * 41),
+  ]) {
+    test('$label name is a 400 and starts no session', () async {
+      final login = await signIn(name);
+
+      expect(login.status, 400);
+      expect(login.setCookies, isEmpty);
+    });
+  }
+
+  test('a form posted from another site is refused', () async {
+    final login = await signIn(
+      'ann',
+      headers: {'sec-fetch-site': 'cross-site'},
+    );
+
+    expect(login.status, 403);
+    expect(login.setCookies, isEmpty);
+  });
+
+  test('a form posted with a foreign Origin is refused', () async {
+    final login = await signIn('ann', headers: {'origin': 'http://evil.test'});
+
+    expect(login.status, 403);
+    expect(login.setCookies, isEmpty);
+  });
+}
+
+/// Signing out through the form.
+void _signOut(LoopbackServer Function() server) {
+  Future<Map<String, String>> signedIn() async {
+    final login = await server().send('POST', '/login', form: 'name=ann');
+    return {'cookie': _cookieHeader(login)};
+  }
+
   test('signing out ends the session', () async {
-    final cookie = {'cookie': _cookieHeader(await signIn('ann'))};
+    final cookie = await signedIn();
 
     final logout = await server().send('POST', '/logout', headers: cookie);
     final home = await server().send('GET', '/', headers: cookie);
@@ -113,20 +207,33 @@ void _session(LoopbackServer Function() server) {
     expect(home.body, isNot(contains('Signed in as')));
   });
 
-  test('a form posted from another site is refused', () async {
-    final login = await server().send(
-      'POST',
-      '/login',
-      form: 'name=ann',
-      headers: {'sec-fetch-site': 'cross-site'},
-    );
+  for (final (label, header) in [
+    ('Sec-Fetch-Site', {'sec-fetch-site': 'cross-site'}),
+    ('Origin', {'origin': 'http://evil.test'}),
+  ]) {
+    test('a sign-out posted from another site ($label) is refused', () async {
+      final cookie = await signedIn();
 
-    expect(login.status, 403);
-    expect(login.setCookies, isEmpty);
-  });
+      final logout = await server().send(
+        'POST',
+        '/logout',
+        headers: {...cookie, ...header},
+      );
+      final home = await server().send('GET', '/', headers: cookie);
+
+      expect(logout.status, 403);
+      expect(home.body, contains('Signed in as ann.'));
+    });
+  }
 }
 
 /// The `cookie` header a browser sends after [response]: the name and value
 /// of every cookie it set.
 String _cookieHeader(ApiResponse response) =>
     response.setCookies.map((cookie) => cookie.split(';').first).join('; ');
+
+/// Only the session cookie of [response], as a browser keeps it after the
+/// flash cookie was deleted.
+String _sessionOnly(ApiResponse response) => response.setCookies
+    .map((cookie) => cookie.split(';').first)
+    .firstWhere((pair) => pair.startsWith('grund_sid='));
