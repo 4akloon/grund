@@ -1,9 +1,11 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import '../http/http_exception.dart';
 import '../http/http_request.dart';
 import '../http/problem_code.dart';
 import '../http/request_body.dart';
+import 'form_decoder.dart';
 
 /// Reads the body of one request once, within a size limit, and decodes it.
 final class BodyReader {
@@ -15,6 +17,7 @@ final class BodyReader {
   final int? _maxBytes;
   Future<Uint8List>? _bytes;
   Future<Object?>? _json;
+  Future<Map<String, List<String>>>? _form;
 
   /// The raw body; throws [PayloadTooLargeException] (413) as soon as the
   /// declared or the received size exceeds the limit.
@@ -52,6 +55,11 @@ final class BodyReader {
     ];
   }
 
+  /// The body decoded as form fields; a body that is not UTF-8 or has a
+  /// bad escape is a 400 `body_invalid`.
+  Future<Map<String, List<String>>> form() =>
+      _form ??= bytes().then(_decodeForm);
+
   Future<Object?> _decoded() =>
       _json ??= bytes().then((data) => RequestBody.bytes(data).json());
 
@@ -76,6 +84,14 @@ final class BodyReader {
         'Invalid request body: a field is missing or has the wrong type.',
         pointer: pointer,
       );
+    }
+  }
+
+  static Map<String, List<String>> _decodeForm(Uint8List data) {
+    try {
+      return FormDecoder.decode(utf8.decode(data));
+    } on FormatException catch (error) {
+      throw _invalid('Invalid form body: ${error.message}');
     }
   }
 

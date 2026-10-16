@@ -76,6 +76,17 @@ final class HttpCtx extends CallContext {
     T Function(Map<String, Object?> json) fromJson,
   ) => _body.list(fromJson);
 
+  /// The fields of an `application/x-www-form-urlencoded` body, read with
+  /// the same readers as [query] (a problem points at `/body/<name>`).
+  ///
+  /// A body that is not UTF-8 or has a bad `%` escape is a 400 with the
+  /// code `body_invalid`; a body over the limit is a 413. The content type
+  /// is not checked, as for [body].
+  Future<Params> form() async {
+    final fields = await _body.form();
+    return Params(ParamLocation.form, (name) => fields[name] ?? const []);
+  }
+
   /// The raw body; a body over the limit is a 413.
   Future<Uint8List> bytes() => _body.bytes();
 

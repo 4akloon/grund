@@ -10,7 +10,10 @@ enum ParamLocation {
   header('header', 'header'),
 
   /// A cookie of the `Cookie` header.
-  cookie('cookie', 'cookie');
+  cookie('cookie', 'cookie'),
+
+  /// A field of an `application/x-www-form-urlencoded` body.
+  form('form field', 'body');
 
   const ParamLocation(this.label, this.pointerSegment);
 

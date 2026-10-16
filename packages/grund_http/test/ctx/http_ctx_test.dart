@@ -270,4 +270,55 @@ void main() {
       expect((await c.body(NewUser.fromJson)).name, 'ann');
     });
   });
+
+  group('HttpCtx form', () {
+    test(
+      'reads the fields of a form body with the parameter readers',
+      () async {
+        final c = contexts(requestFor('POST', '/', body: 'name=ann&age=7'));
+
+        final form = await c.form();
+
+        expect(form.string('name'), 'ann');
+        expect(form.integer('age'), 7);
+      },
+    );
+
+    test('a missing field points at /body/<name>', () async {
+      final c = contexts(requestFor('POST', '/', body: 'name=ann'));
+      final form = await c.form();
+
+      expect(
+        () => form.string('password'),
+        throwsA(problem('parameter_missing', '/body/password')),
+      );
+    });
+
+    test('a bad escape is a 400 body_invalid', () async {
+      final c = contexts(requestFor('POST', '/', body: 'name=%zz'));
+
+      await expectLater(c.form(), throwsA(problem('body_invalid', '/body')));
+    });
+
+    test('a body that is not UTF-8 is a 400 body_invalid', () async {
+      final c = contexts(
+        HttpRequest(
+          method: 'POST',
+          uri: Uri.parse('/'),
+          body: RequestBody.bytes([0x6e, 0x3d, 0xff]),
+        ),
+      );
+
+      await expectLater(c.form(), throwsA(problem('body_invalid', '/body')));
+    });
+
+    test('a form over the limit is a 413', () async {
+      final c = contexts(
+        requestFor('POST', '/', body: 'name=${'x' * 20}'),
+        maxBodyBytes: 10,
+      );
+
+      await expectLater(c.form(), throwsA(isA<PayloadTooLargeException>()));
+    });
+  });
 }

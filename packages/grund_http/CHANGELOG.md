@@ -4,6 +4,12 @@
   before the response's own instead of dropping them when the response has
   one: a cookie a hook or `Sessions.start` set on `c.response` and the
   cookie of a returned `HttpResponse` both reach the client.
+- `await c.form()` reads an `application/x-www-form-urlencoded` body into
+  `Params` (`ParamLocation.form`, pointer `/body/<name>`); a bad escape or
+  UTF-8 sequence is a 400 `body_invalid`, a body over the limit a 413.
+  `ParamLocation` gained the value `form`: an exhaustive `switch` over it
+  needs a case for it.
+- `StatusCode.seeOther` (303), the redirect after a form `POST`.
 
 ## 0.1.0
 

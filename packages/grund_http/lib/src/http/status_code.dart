@@ -13,6 +13,9 @@ abstract final class StatusCode {
   /// 302 Found.
   static const found = 302;
 
+  /// 303 See Other: the redirect after a form `POST`, followed with `GET`.
+  static const seeOther = 303;
+
   /// 400 Bad Request.
   static const badRequest = 400;
 
