@@ -1,0 +1,3 @@
+# Test fixtures are workspace packages that import each other; pub would
+# validate their imports as if they were this package's own.
+test/fixtures/
