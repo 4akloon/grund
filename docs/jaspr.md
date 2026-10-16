@@ -82,6 +82,11 @@ final class AppModule extends Module {
 - API routes win: a literal or `:param` segment beats the pages' `*`, so
   `/tasks/1` is the API's and `/about` is a page. `GET /` belongs to the
   pages: an API route `GET /` is a `DuplicateRouteError` at startup.
+- Once pages are mounted, any unmatched `GET` (say `/tasks/1/typo`) is
+  answered by the site's HTML 404 page, not by the `route_not_found`
+  problem JSON; JSON clients of the same application see HTML for unknown
+  `GET` paths. (A path with a non-page extension that is no static file is
+  still the JSON 404 `file_not_found`.)
 - `JasprModule(app:)` takes a function, which an annotation cannot hold:
   write the module that imports it with the explicit API. It can sit next
   to annotated modules (the example's `WebModule` does).
@@ -121,10 +126,22 @@ must start with `/`, a positive `maxAge` must be at least one second); it
 does not enforce a prefix policy, so a hand-built `__Host-` cookie is not
 checked for `Secure` or `Path=/`.
 
+In production run a compiled build (`dart compile exe`): `dart run` (JIT)
+is not a product build, so the template's cookies are sent without
+`Secure` there unless the application sets `secure: true`. Also name the
+cookie `__Host-grund_sid` (`SessionConfig(cookieName: '__Host-grund_sid',
+secure: true)`): the browser then accepts it only as `Secure` with
+`Path=/` and no `Domain`, which defeats cookie tossing from a sibling
+subdomain (with duplicate cookies the first one wins).
+
 Cross-site form posts are refused: `SessionHook` answers an unsafe request
 whose `sec-fetch-site` is another site, or whose `origin` is not the
 `host` (more than one `origin` header is refused; the scheme is not
-compared), with a 403 `cross_site_request`. The
+compared), with a 403 `cross_site_request`. The check is global once
+`SessionHook` is registered: it runs on every route, so a token API that
+a browser calls cross-origin with CORS gets a 403 on unsafe methods. Set
+`SessionConfig(sameOrigin: false)` and register `SameOriginHook` only on
+the cookie routes (the sign-in and sign-out). The
 [`grund_auth` README](../packages/grund_auth/README.md) has every rule.
 
 ## Static files

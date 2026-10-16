@@ -7,11 +7,11 @@ import 'dart:io';
 /// restarted application serves again.
 ///
 /// It listens on 127.0.0.1 and an ephemeral port, outlives restarts of the
-/// application and closes with `dev`. Every request gets the event stream,
+/// application and closes with `dev`. Only `GET /` gets the event stream,
 /// with `access-control-allow-origin: *` (the page comes from the
 /// application's origin) and a comment every [keepAlive] so that proxies
-/// and browsers keep the connection open. Only `GET /` gets the stream:
-/// another method is a 405 with `allow: GET`, another path a 404.
+/// and browsers keep the connection open; another method is a 405 with
+/// `allow: GET`, another path a 404.
 final class LiveReloadHub {
   LiveReloadHub._(this._server, this.url, Duration keepAlive) {
     _keepAlive = Timer.periodic(keepAlive, (_) => _send(': keep-alive\n\n'));

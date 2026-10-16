@@ -72,9 +72,17 @@ a one-time code or anything else, then calls `Sessions.start`.
   the sign-in and is not extended by use.
 - `InMemorySessionStore` loses its sessions when the process ends and is
   not shared between processes. Implement `SessionStore` (`create`, `read`,
-  `delete`) for a durable one.
+  `delete`) for a durable one. It sweeps expired sessions on every
+  `create` (O(n)), and with a sign-in that needs no credentials (as in the
+  example) unauthenticated requests can create sessions that live for
+  `maxAge`: use a real credential check, rate limiting and a persistent or
+  bounded store in production.
 
 ## The cookie
+
+In production use `SessionConfig(cookieName: '__Host-grund_sid', secure:
+true)`: the `__Host-` prefix defeats cookie tossing from a sibling
+subdomain (with duplicate cookies the first one wins).
 
 `SessionConfig` names the cookie (`grund_sid`) and sets `secure` (on by
 default), `maxAge`, `sameSite` (`Lax`) and `sameOrigin`. The cookie is

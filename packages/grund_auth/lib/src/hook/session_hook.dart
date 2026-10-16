@@ -15,7 +15,11 @@ import 'same_origin_hook.dart';
 /// A request without a session, or with an unknown, expired or forged
 /// token, simply has no [CurrentUser]. With `SessionConfig.sameOrigin`
 /// (the default) it first refuses unsafe cross-site requests the way
-/// [SameOriginHook] does.
+/// [SameOriginHook] does. That check is global: it runs on every route
+/// once the hook is registered, so a token API that a browser calls
+/// cross-origin with CORS gets a 403 on unsafe methods. Pass
+/// `SessionConfig(sameOrigin: false)` and register [SameOriginHook] only
+/// on the cookie routes instead.
 final class SessionHook extends HttpHook {
   /// Reads sessions through [sessions]; [config] says whether to check the
   /// origin.
