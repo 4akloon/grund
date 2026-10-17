@@ -62,6 +62,13 @@ final class StaticFiles {
       acceptEncoding: requestHeaders['accept-encoding'],
     );
     final stat = await File(variant.path).stat();
+    if (stat.type == FileSystemEntityType.notFound) {
+      // The file vanished after it was found; stat() then dates it 1970.
+      throw NotFoundException(
+        message: 'There is no file $file.',
+        code: 'file_not_found',
+      );
+    }
     final etag = StaticValidators.etag(stat, variant: variant.encoding ?? '');
     final headers = HeaderMap.of({
       'etag': etag,

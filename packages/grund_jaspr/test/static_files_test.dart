@@ -167,4 +167,30 @@ void main() {
     expect(ContentTypes.forPath('data.bin'), 'application/octet-stream');
     expect(ContentTypes.forPath('Makefile'), 'application/octet-stream');
   });
+
+  for (final (label, header) in [
+    (
+      'if-modified-since',
+      {'if-modified-since': 'Fri, 01 Jan 2100 00:00:00 GMT'},
+    ),
+    ('if-none-match: *', {'if-none-match': '*'}),
+  ]) {
+    test('a vanished file with $label is not found, not a 304', () {
+      final files = StaticFiles(TempDir.create().path);
+
+      expect(
+        files.respond(
+          '${files.root}/gone.css',
+          requestHeaders: HeaderMap.of(header),
+        ),
+        throwsA(
+          isA<NotFoundException>().having(
+            (e) => e.code,
+            'code',
+            'file_not_found',
+          ),
+        ),
+      );
+    });
+  }
 }

@@ -30,10 +30,20 @@ abstract final class StaticEncodings {
       return original;
     }
     final qualities = _parse(acceptEncoding);
-    final accepted = [
-      for (final coding in _suffixes.keys)
-        if (_quality(qualities, coding) > 0) coding,
-    ]..sort((a, b) => _quality(qualities, b).compareTo(_quality(qualities, a)));
+    final order = _suffixes.keys.toList();
+    final accepted =
+        [
+          for (final coding in order)
+            if (_quality(qualities, coding) > 0) coding,
+        ]..sort((a, b) {
+          final byQuality = _quality(
+            qualities,
+            b,
+          ).compareTo(_quality(qualities, a));
+          return byQuality != 0
+              ? byQuality
+              : order.indexOf(a).compareTo(order.indexOf(b));
+        });
     for (final coding in accepted) {
       final sibling = file + _suffixes[coding]!;
       if (_isUsable(sibling, original: file, root: root)) {

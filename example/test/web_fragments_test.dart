@@ -176,6 +176,30 @@ void _suite(ModuleStyle style, AdapterKind kind) {
     expect(allowed.status, 201);
   });
 
+  test('a cross-site DELETE is refused and the task stays', () async {
+    final headers = await member();
+    final created = await server.send(
+      'POST',
+      '/fragments/tasks',
+      form: 'title=Stays',
+      headers: headers,
+    );
+    final id = RegExp(r'Stays<button hx-delete="/fragments/tasks/(\d+)"')
+        .firstMatch(created.body)!
+        .group(1);
+
+    final refused = await server.send(
+      'DELETE',
+      '/fragments/tasks/$id',
+      headers: {'cookie': headers['cookie']!, 'sec-fetch-site': 'cross-site'},
+    );
+    final after = await server.send('GET', '/', headers: headers);
+
+    expect(refused.status, 403);
+    expect(refused.json, containsPair('code', 'cross_site_request'));
+    expect(after.body, contains('Stays'));
+  });
+
   test('htmx is served with an ETag and revalidates to 304', () async {
     final first = await server.send('GET', '/static/vendor/htmx.min.js');
     final again = await server.send(

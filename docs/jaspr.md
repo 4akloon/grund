@@ -300,7 +300,8 @@ a delete button, and guests getting `401`.
   the configuration above) shows the user nothing: htmx only raises an
   `htmx:responseError` event. Swap the codes you want shown (add them to
   `responseHandling`) or listen for the event and show a message.
-- CSRF: `SessionHook` from `grund_auth` refuses a cross-site write with
+- CSRF: `SessionHook` from `grund_auth` (with `SessionConfig.sameOrigin`,
+  on by default; it applies `SameOriginHook`) refuses a cross-site write with
   `403 cross_site_request`. A same-origin XHR from htmx passes, and so does
   a request without browser headers (curl); there is no token to add to the
   forms.

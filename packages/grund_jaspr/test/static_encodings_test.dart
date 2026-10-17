@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:grund_http/testing.dart';
+import 'package:grund_jaspr/src/site/static_encodings.dart';
 import 'package:test/test.dart';
 
 import 'helpers/static_site.dart';
@@ -22,6 +23,7 @@ Future<String> _body(TestClient client, String? acceptEncoding) async {
 }
 
 void main() {
+  _chooseTests();
   test('br is preferred, with the type and the encoding header', () async {
     final client = await startWithStatic(_directory());
 
@@ -130,4 +132,20 @@ void main() {
     expect(tags, hasLength(3));
     expect(other.status, 200);
   });
+}
+
+void _chooseTests() {
+  for (final header in ['gzip, br', 'br, gzip']) {
+    test('"$header" with equal quality chooses br', () {
+      final dir = _directory();
+
+      final variant = StaticEncodings.choose(
+        dir.resolve('app.js'),
+        root: dir.path,
+        acceptEncoding: header,
+      );
+
+      expect(variant.encoding, 'br');
+    });
+  }
 }

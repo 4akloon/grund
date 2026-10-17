@@ -16,7 +16,7 @@ abstract final class ClientScriptRemoval {
     final body = response.body;
     if (clientId == null || body is! BytesBody) return response;
     final html = utf8.decode(body.bytes);
-    final cleaned = html.replaceFirst(_script(clientId), "");
+    final cleaned = html.replaceFirst(_script(clientId), '');
     if (cleaned == html) return response;
     return HttpResponse(
       response.status,

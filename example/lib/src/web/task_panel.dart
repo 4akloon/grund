@@ -7,7 +7,7 @@ import '../tasks/task.dart';
 /// The task list of the home page as one swappable block: the list, and for
 /// a signed-in visitor the form and a delete button per task.
 ///
-/// The page renders it inside the document, and [TaskFragments] answers it
+/// The page renders it inside the document, and `TaskFragments` answers it
 /// alone, so htmx replaces `#tasks` with the new state.
 final class TaskPanel extends StatelessComponent {
   /// The panel of [tasks]; [editable] adds the htmx form and buttons.
@@ -65,6 +65,8 @@ final class TaskPanel extends StatelessComponent {
         type: InputType.text,
         name: 'title',
         value: draft,
+        // One over the limit, so the browser can still send a title the
+        // server refuses with 422 (the demo of that path).
         attributes: {'maxlength': '${CreateTask.maxTitleLength + 1}'},
       ),
       button(type: ButtonType.submit, [Component.text('Add')]),

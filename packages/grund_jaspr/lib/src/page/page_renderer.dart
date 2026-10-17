@@ -5,7 +5,7 @@ import '../live_reload_script.dart';
 import 'component_rendering.dart';
 import 'page_match.dart';
 
-/// Renders one component under a [GrundScope], through Jaspr, into an
+/// Renders one component under a `GrundScope`, through Jaspr, into an
 /// [HttpResponse].
 final class PageRenderer {
   /// Renders pages; with [liveReloadUrl], an HTML page gets the live reload

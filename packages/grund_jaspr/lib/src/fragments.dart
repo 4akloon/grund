@@ -11,8 +11,9 @@ import 'page/page_renderer.dart';
 ///
 /// ```dart
 /// Route.post('/tasks/:id/done', (c) async {
-///   await _tasks.complete(c.pathInt('id'));
-///   return Fragments.respond(c, TaskRow(_tasks.get(c.pathInt('id'))));
+///   final id = c.path.integer('id');
+///   await _tasks.complete(id);
+///   return Fragments.respond(c, TaskRow(_tasks.get(id)));
 /// });
 /// ```
 ///
