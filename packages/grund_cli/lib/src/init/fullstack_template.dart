@@ -33,8 +33,8 @@ abstract final class FullstackTemplate {
 
   static const _grundHttp = ProjectTemplate.grundHttpVersion;
 
-  /// The release with sites and pages (`Pages.site`, `Pages.under`).
-  static const _grundJaspr = '^0.2.0';
+  /// The release that goes with the `Environment` release of `grund`.
+  static const _grundJaspr = '^0.3.0';
 
   static String _pubspec(String name) =>
       '''
@@ -55,7 +55,7 @@ dependencies:
   jaspr: '>=0.23.5 <0.24.0'
 
 dev_dependencies:
-  grund_cli: ^0.1.2
+  grund_cli: $_grund
   lints: ^5.1.0
   test: ^1.25.0
 ''';
@@ -67,6 +67,9 @@ import 'package:$name/src/app_module.dart';
 
 /// Serves the pages and the API until Ctrl+C. Run it from the package
 /// root: the static files are read from `web/`.
+///
+/// The address comes from `HOST` and `PORT`; in a container set
+/// `HOST=0.0.0.0`, or the server is not reachable from outside.
 Future<void> main(List<String> arguments) async {
   await App(root: const AppModule()).run(only: Runners.fromArgs(arguments));
 }
@@ -96,7 +99,8 @@ final class AppModule extends Module {
 
   @override
   List<Module> get imports => const [
-    HttpModule(use: [HookRef<SessionHook>.type()]),
+    EnvironmentModule(),
+    HttpModule.fromEnvironment(use: [HookRef<SessionHook>.type()]),
     IoAdapterModule(),
     SessionModule(config: SessionConfig(secure: _isProduct)),
     // Once, in the application: the sites of the modules below need it.

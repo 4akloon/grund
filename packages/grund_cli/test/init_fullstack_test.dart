@@ -19,15 +19,18 @@ void main() {
     expect(init.out, contains('  web/styles.css\n'));
     expect(init.out, endsWith('  dart pub get\n  dart run grund_cli dev\n'));
     final pubspec = dir.read('my_site/pubspec.yaml');
-    expect(pubspec, contains('  grund_auth: ^0.1.0\n'));
-    expect(pubspec, contains('  grund_cli: ^0.1.2\n'));
-    expect(pubspec, contains('  grund_http: ^0.2.0\n'));
-    expect(pubspec, contains('  grund_jaspr: ^0.2.0\n'));
+    expect(pubspec, contains('  grund_auth: ^0.2.0\n'));
+    expect(pubspec, contains('  grund_cli: ^0.2.0\n'));
+    expect(pubspec, contains('  grund_http: ^0.3.0\n'));
+    expect(pubspec, contains('  grund_jaspr: ^0.3.0\n'));
     expect(pubspec, contains("  jaspr: '>=0.23.5 <0.24.0'\n"));
     expect(
       dir.read('my_site/lib/src/home_site_module.dart'),
       contains('Pages.under<PublicSite>'),
     );
+    final module = dir.read('my_site/lib/src/app_module.dart');
+    expect(module, contains('    EnvironmentModule(),\n'));
+    expect(module, contains('HttpModule.fromEnvironment(use: ['));
     expect(await DartDiagnostics.of(target), isEmpty);
   });
 

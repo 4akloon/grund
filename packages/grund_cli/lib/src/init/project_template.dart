@@ -3,12 +3,13 @@
 /// A flat catalog of file contents without logic.
 abstract final class ProjectTemplate {
   /// The version constraint of the grund packages in a new pubspec: the
-  /// first published release.
-  static const grundVersion = '^0.1.0';
+  /// release with `Environment` and `EnvironmentModule`, which the generated
+  /// module imports.
+  static const grundVersion = '^0.2.0';
 
   /// The version constraint of `grund_http` in a new pubspec: the release
-  /// with `HttpCtx.form` and the `set-cookie` merge.
-  static const grundHttpVersion = '^0.2.0';
+  /// with `HttpModule.fromEnvironment`, which the generated module uses.
+  static const grundHttpVersion = '^0.3.0';
 
   /// The files of application [name] (relative path to content), sorted by
   /// path.
@@ -88,8 +89,15 @@ import 'app_module.g.dart';
 import 'hello.dart';
 
 /// The root module: the HTTP server over dart:io and the hello API.
+///
+/// The server listens where the environment variables `HOST` and `PORT`
+/// say (`localhost:8080` when they are not set).
 @Module(
-  imports: [HttpModule(), IoAdapterModule()],
+  imports: [
+    grund.EnvironmentModule(),
+    HttpModule.fromEnvironment(),
+    IoAdapterModule(),
+  ],
   providers: [HelloService, HelloApi],
 )
 final class AppModule extends grund.Module with \$AppModule {
@@ -104,6 +112,9 @@ import 'package:grund/grund.dart';
 import 'package:$name/src/app_module.dart';
 
 /// Serves the application until Ctrl+C; `--only=http` selects runners.
+///
+/// The address comes from `HOST` and `PORT`; in a container set
+/// `HOST=0.0.0.0`, or the server is not reachable from outside.
 ///
 /// `run` prints the log to the console; see grund's `docs/logging.md` to
 /// send it elsewhere (`run(log: ...)`).
