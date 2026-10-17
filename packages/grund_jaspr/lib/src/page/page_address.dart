@@ -28,6 +28,24 @@ abstract final class PageAddress {
     return '/${raw.map(Uri.encodeComponent).join('/')}${slash ? '/' : ''}';
   }
 
+  /// The concrete path of an alternate of the page at [pagePath] of the site
+  /// at [sitePath]: the page path (`/index` for a root page) plus [suffix],
+  /// without a trailing slash.
+  static String alternatePathOf(
+    String sitePath,
+    String pagePath,
+    Map<String, String> params,
+    String suffix,
+  ) {
+    final base = pagePath == '/' ? '$sitePath/index' : '$sitePath$pagePath';
+    return '${pathOf(base, params, TrailingSlash.never)}$suffix';
+  }
+
+  /// The route pattern of an alternate, relative to its site: `/index` plus
+  /// [suffix] for the root page, else [pagePath] plus [suffix].
+  static String alternatePatternOf(String pagePath, String suffix) =>
+      pagePath == '/' ? '/index$suffix' : '$pagePath$suffix';
+
   static String _valueOf(String name, Map<String, String> params) {
     final value = params[name];
     if (value == null || value.isEmpty || value == '.' || value == '..') {

@@ -7,6 +7,8 @@ final class PagePath {
 
   final List<String> _segments;
 
+  static final _name = RegExp(r'^[A-Za-z_][A-Za-z0-9_]*$');
+
   /// Parses [path] (`/`, `/about`, `/projects/:slug`).
   ///
   /// Throws [InvalidPagePathError] when the path does not start with `/`,
@@ -70,10 +72,13 @@ final class PagePath {
       );
     }
     final name = segment.substring(1);
-    if (name.isEmpty || name.contains(':')) {
+    if (!_name.hasMatch(name)) {
       throw InvalidPagePathError(
         path: path,
-        reason: 'segment "$segment" has no valid parameter name',
+        reason:
+            'segment "$segment" has no valid parameter name (letters, digits '
+            'and "_", not starting with a digit; suffixes belong to '
+            'alternates)',
       );
     }
   }

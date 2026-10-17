@@ -155,3 +155,48 @@ final class UnusedPageEntriesError extends PageDeclarationError {
       'entries would never be used. Remove the entries or add a ":param" to '
       'the path.';
 }
+
+/// A `PageAlternate` is declared in a way the framework cannot serve.
+final class InvalidPageAlternateError extends PageDeclarationError {
+  /// Creates the error for an alternate of [mediaType] of the page at
+  /// [path]; [reason] says what is wrong.
+  const InvalidPageAlternateError({
+    required this.path,
+    required this.mediaType,
+    required this.reason,
+  });
+
+  /// The full path of the page.
+  final String path;
+
+  /// The media type of the alternate.
+  final String mediaType;
+
+  /// What is wrong with the alternate.
+  final String reason;
+
+  @override
+  String get message =>
+      'Invalid alternate "$mediaType" of the page $path: $reason';
+}
+
+/// A page lacks an alternate its site requires.
+final class MissingPageAlternateError extends PageDeclarationError {
+  /// Creates the error for the page at [path] without an alternate of
+  /// [mediaType].
+  const MissingPageAlternateError({
+    required this.path,
+    required this.mediaType,
+  });
+
+  /// The full path of the page.
+  final String path;
+
+  /// The media type the site requires.
+  final String mediaType;
+
+  @override
+  String get message =>
+      'The page $path has no alternate of $mediaType, but its site lists '
+      '$mediaType in requiredAlternates. Add PageAlternate to the page.';
+}

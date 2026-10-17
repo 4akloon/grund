@@ -2,6 +2,8 @@ import 'package:grund/grund.dart';
 import 'package:grund_http/grund_http.dart';
 
 import '../page/page.dart';
+import '../page/page_address.dart';
+import '../page/page_alternate.dart';
 import '../page/page_match.dart';
 import '../page/page_path.dart';
 import '../page/site_page.dart';
@@ -35,9 +37,9 @@ final class PagesApi<S extends PageSite> extends HttpApi {
   List<Page> get pages => _declare(injector);
 
   @override
-  List<Route> get routes => [for (final page in pages) _route(page)];
+  List<Route> get routes => [for (final page in pages) ..._routesOf(page)];
 
-  Route _route(Page page) {
+  List<Route> _routesOf(Page page) {
     final fullPath = fullPathOf(page);
     PageDeclarationCheck.check(
       page,
@@ -45,15 +47,39 @@ final class PagesApi<S extends PageSite> extends HttpApi {
       fullPath: fullPath,
       config: _services.config,
     );
-    return Route.get(
-      page.path,
-      (c) => _serve(c, page),
-      use: const HookResolver().forPage(
-        site: site,
-        page: page,
-        fullPath: fullPath,
+    final hooks = const HookResolver().forPage(
+      site: site,
+      page: page,
+      fullPath: fullPath,
+    );
+    return [
+      Route.get(
+        page.path,
+        (c) => _serve(c, page),
+        use: hooks,
+        name: 'GET $fullPath',
       ),
-      name: 'GET $fullPath',
+      for (final alternate in page.alternates)
+        _alternateRoute(page, alternate, hooks),
+    ];
+  }
+
+  Route _alternateRoute(
+    Page page,
+    PageAlternate alternate,
+    List<HookRef<HttpHook>> hooks,
+  ) {
+    final pattern = PageAddress.alternatePatternOf(page.path, alternate.suffix);
+    return Route.get(
+      pattern,
+      (c) => _responder.alternate(
+        c,
+        site: site,
+        alternate: alternate,
+        match: _matchOf(c, page),
+      ),
+      use: hooks,
+      name: 'GET ${site.path}$pattern',
     );
   }
 

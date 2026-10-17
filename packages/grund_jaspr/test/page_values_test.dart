@@ -16,6 +16,7 @@ void main() {
     expect(page.meta.nav, isNull);
     expect(page.hooks.skip, isEmpty);
     expect(page.hooks.use, isEmpty);
+    expect(page.alternates, isEmpty);
   });
 
   test('PageSitemap can include a page explicitly', () {
@@ -38,6 +39,7 @@ void main() {
       expect(site.path, '');
       expect(site.use, isEmpty);
       expect(site.skippableHooks, isEmpty);
+      expect(site.requiredAlternates, isEmpty);
       expect(site.baseUrl, isNull);
       expect(site.trailingSlash, TrailingSlash.never);
     });

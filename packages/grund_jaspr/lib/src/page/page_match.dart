@@ -1,4 +1,5 @@
 import 'page_address.dart';
+import 'page_alternate.dart';
 import 'page_meta.dart';
 import 'site_page.dart';
 
@@ -26,4 +27,30 @@ final class PageMatch {
 
   /// [path] on the `baseUrl` of the site; `null` when the site has none.
   Uri? get url => page.site.baseUrl?.resolve(path);
+
+  /// The path of the alternate of [mediaType] of this page, with its
+  /// parameter values.
+  ///
+  /// Throws [ArgumentError] when the page has no such alternate, or as
+  /// [path] does for unusable parameters.
+  String alternatePath(String mediaType) {
+    final alternate = _alternateOf(mediaType);
+    return PageAddress.alternatePathOf(
+      page.site.path,
+      page.page.path,
+      params,
+      alternate.suffix,
+    );
+  }
+
+  PageAlternate _alternateOf(String mediaType) {
+    for (final alternate in page.page.alternates) {
+      if (alternate.mediaType == mediaType) return alternate;
+    }
+    throw ArgumentError.value(
+      mediaType,
+      'mediaType',
+      'the page ${page.path} has no such alternate',
+    );
+  }
 }

@@ -33,4 +33,8 @@ abstract base class PageSite {
 
   /// How page URLs end; see [TrailingSlash].
   TrailingSlash get trailingSlash => TrailingSlash.never;
+
+  /// Media types every page of the site must have an alternate of
+  /// (`text/markdown`); a page without one fails at startup.
+  List<String> get requiredAlternates => const [];
 }
