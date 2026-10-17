@@ -17,6 +17,19 @@ final class PublicSite extends PageSite {
       '{"code":"422","swap":true},'
       '{"code":"[45]..","swap":false,"error":true}]}';
 
+  // Stated, not inherited: the example's links are written without a slash.
+  @override
+  TrailingSlash get trailingSlash => TrailingSlash.never;
+
+  @override
+  List<SiteFile> get files => [
+    SiteFile(
+      '/robots.txt',
+      mediaType: 'text/plain',
+      build: (_) => 'User-agent: *\nAllow: /\n',
+    ),
+  ];
+
   @override
   Component shell(Component content) => Builder(
     builder: (context) => Document(

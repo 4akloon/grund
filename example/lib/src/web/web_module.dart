@@ -5,6 +5,7 @@ import 'package:grund_jaspr/grund_jaspr.dart';
 import '../tasks/tasks_service.dart';
 
 import 'login_api.dart';
+import 'home_markdown.dart';
 import 'home_page.dart';
 import 'login_page.dart';
 import 'public_site.dart';
@@ -43,6 +44,12 @@ final class WebModule extends Module {
           '/',
           build: (_) => const HomePage(),
           meta: const PageMeta(title: 'Tasks'),
+          // The same service as the HTML page, so both list the same tasks.
+          alternates: [
+            PageAlternate.markdown(
+              (c, _) => HomeMarkdown.of(c<TasksService>().list()),
+            ),
+          ],
         ),
         Page(
           '/login',
