@@ -13,7 +13,7 @@ resolution: workspace
 executables:
   grund: grund_cli
 dependencies:
-  analyzer: '>=13.1.0 <15.0.0'
+  analyzer: '>=13.3.0 <15.0.0'
   args: ^2.7.0
   grund_generator: ^0.1.1
   grund_http_generator: ^0.1.0

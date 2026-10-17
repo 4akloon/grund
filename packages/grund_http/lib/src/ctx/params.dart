@@ -11,7 +11,7 @@ import 'param_location.dart';
 /// parameter and still reject an invalid one. A repeated parameter reads as
 /// its first value; [all] returns every value.
 final class Params {
-  /// Creates readers over [lookup], which returns every value of a name
+  /// Creates readers over `lookup`, which returns every value of a name
   /// (empty when absent).
   Params(this.location, this._lookup);
 

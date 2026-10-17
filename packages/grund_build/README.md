@@ -14,7 +14,7 @@ faster and need no configuration.
 ```yaml
 # pubspec.yaml
 dev_dependencies:
-  build_runner: ^2.10.5
+  build_runner: ^2.16.0
   grund_build: ^0.1.0
 ```
 
@@ -153,7 +153,7 @@ Generate such a package with `grund_cli gen`.
 
 ## Versions
 
-`build` `^4.0.2`; `analyzer` `>=13.1.0 <15.0.0`, the range of
+`build` `^4.0.2`; `analyzer` `>=13.3.0 <15.0.0`, the range of
 `grund_generator`. The `users_app` fixture depends on `build_runner`
 `^2.16.0` (Dart 3.11 or newer, which the SDK floor `^3.13.0` satisfies), the
 version whose `build --only-check` the integration test runs.
@@ -167,9 +167,6 @@ build_runner runs only in the integration test, which is not part of
 ```sh
 cd packages/grund_build && dart test integration
 ```
-
-On build_runner older than 2.16 (Dart before 3.11) the integration test
-skips itself, because `--only-check` is missing there.
 
 It runs `dart run build_runner build --only-check` in the golden fixture
 `users_app` of `grund_http_generator` and passes when its committed

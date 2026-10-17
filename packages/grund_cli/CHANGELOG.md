@@ -1,7 +1,7 @@
 ## 0.2.0
 
 - **Breaking:** requires Dart 3.13 (`sdk: ^3.13.0`).
-- `analyzer` is now `>=13.1.0 <15.0.0` (was `>=8.1.1`): the lowest version that parses Dart 3.13 sources.
+- `analyzer` is now `>=13.3.0 <15.0.0` (was `>=8.1.1`): the lowest version that parses Dart 3.13 sources.
 - `init` scaffolds name `sdk: ^3.13.0`.
 
 ## 0.1.3

@@ -19,7 +19,7 @@ import 'status_code.dart';
 /// }
 /// ```
 class HttpException implements Exception {
-  /// Creates an exception for [status]; [message] defaults to the reason
+  /// Creates an exception for [status]; `message` defaults to the reason
   /// phrase of [status].
   const HttpException(
     this.status, {

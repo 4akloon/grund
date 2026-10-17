@@ -8,7 +8,7 @@ import 'session_store.dart';
 /// removes all expired ones, so the map does not grow with sessions nobody
 /// reads again.
 final class InMemorySessionStore implements SessionStore {
-  /// Creates an empty store; [now] is the clock (tests pass their own).
+  /// Creates an empty store; `now` is the clock (tests pass their own).
   InMemorySessionStore({this._now = DateTime.now});
 
   final DateTime Function() _now;

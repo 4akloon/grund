@@ -10,7 +10,7 @@ environment:
   sdk: ^3.13.0
 resolution: workspace
 dependencies:
-  analyzer: '>=13.1.0 <15.0.0'
+  analyzer: '>=13.3.0 <15.0.0'
   build: ^4.0.2
   grund_generator: ^0.1.0
   grund_http_generator: ^0.1.0

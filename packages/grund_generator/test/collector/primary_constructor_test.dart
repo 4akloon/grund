@@ -39,8 +39,10 @@ void main() {
     expect(
       result.files['lib/providers/primary_constructors.g.dart'],
       allOf(
-        contains('PrimaryConstructorRepo('),
-        contains('PrivateNamedGreeter(repo:'),
+        contains('i1.PrimaryConstructorRepo(i<i1.PrimaryConstructorDb>())'),
+        contains(
+          'i1.PrivateNamedGreeter(repo: i<i1.PrimaryConstructorRepo>())',
+        ),
       ),
     );
   });

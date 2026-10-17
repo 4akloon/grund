@@ -10,7 +10,7 @@ otherwise `grund gen` and `grund dev` are faster and need no configuration.
 ```yaml
 # pubspec.yaml
 dev_dependencies:
-  build_runner: ^2.10.5
+  build_runner: ^2.16.0
   grund_build: ^0.1.0
 ```
 

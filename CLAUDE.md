@@ -188,12 +188,14 @@ only. It has not run yet.
   3.13): patterns, switch expressions, records, class modifiers
   (`final`/`sealed`/`interface`), extension types, null-aware elements,
   dot shorthands (`.blue`, `.new()`), private named parameters
-  (`this._x`, 3.12) and primary constructors
-  (`class Point(var int x, var int y);`, 3.13). New and changed code uses
+  (`X({required this._dep})` with a body field `final Dep _dep;`, 3.12) and
+  primary constructors (`class Point(var int x, var int y);`, 3.13; a
+  declaring parameter, so `final class Repo(final Db _db);`, never
+  `Repo(this._db)`, which does not compile). New and changed code uses
   them where they shorten the code without hiding its meaning: a dot
   shorthand only where the expected type is evident from the line itself or
   its parameter name; a primary constructor for plain value classes and for
-  `final class X(this._dep);`-style injectables; an ordinary constructor
+  `final class X(final Dep _dep);`-style injectables; an ordinary constructor
   stays when it has logic, asserts or documentation worth keeping. Existing
   code is migrated when it is touched, never in a bulk rewrite. When the
   floor is raised, this rule follows it. Since 3.13, `final` or `var` on a
