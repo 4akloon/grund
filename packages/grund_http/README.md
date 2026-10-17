@@ -38,7 +38,8 @@ Future<void> main() => App(root: const AppModule()).run();
 ```
 
 - **`HttpModule`** binds the `HttpServer` (a `Runner` named `http`) and the
-  `HttpConfig` (address, port, `maxBodyBytes`, `debug`, `accessLog`), and
+  `HttpConfig` (address, port, `maxBodyBytes`, `debug`, `accessLog`;
+  `HttpModule.fromEnvironment` reads `HOST` and `PORT`), and
   takes global hooks (`use:`), `middleware` and response codecs. It needs a
   module that provides the `HttpAdapter`.
 - **`HttpApi`** is a class with a `path`, route-level `use` hooks and

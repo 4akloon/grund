@@ -33,7 +33,8 @@ abstract final class FullstackTemplate {
 
   static const _grundHttp = ProjectTemplate.grundHttpVersion;
 
-  /// The release that goes with the `Environment` release of `grund`.
+  /// The `grund_jaspr` release that goes with `grund` 0.2.0 and `grund_http`
+  /// 0.3.0, which have `HttpModule.fromEnvironment`.
   static const _grundJaspr = '^0.3.0';
 
   static String _pubspec(String name) =>

@@ -25,7 +25,8 @@ my_app/
   analysis_options.yaml
   .gitignore              .dart_tool/
   bin/main.dart           App(root: const AppModule()).run(...)
-  lib/src/app_module.dart AppModule: HttpModule, IoAdapterModule, the providers
+  lib/src/app_module.dart AppModule: EnvironmentModule, HttpModule.fromEnvironment,
+                          IoAdapterModule, the providers
   lib/src/hello.dart      HelloService and HelloApi
   test/hello_test.dart    a smoke test of GET /hello, in process (dart test)
 ```
@@ -41,6 +42,9 @@ curl 'http://localhost:8080/hello?name=you'   # {"message":"Hello, you!"}
 curl 'http://localhost:8080/hello'            # {"message":"Hello, world!"}
 curl 'http://localhost:8080/nothing'          # 404, application/problem+json
 ```
+
+The server listens on `HOST` and `PORT` (`localhost:8080` when they are not
+set); see [configuration.md](configuration.md#http-address-and-port).
 
 ```json
 {"type":"about:blank","title":"Not Found","status":404,
@@ -134,7 +138,12 @@ Import it from the root module, in `lib/src/app_module.dart`
 
 ```dart
 @Module(
-  imports: [HttpModule(), IoAdapterModule(), TodosModule()],
+  imports: [
+    grund.EnvironmentModule(),
+    HttpModule.fromEnvironment(),
+    IoAdapterModule(),
+    TodosModule(),
+  ],
   providers: [HelloService, HelloApi],
 )
 final class AppModule extends grund.Module with $AppModule {

@@ -83,7 +83,22 @@ HOST=0.0.0.0 PORT=9090 dart run bin/main.dart   # reachable from outside
   the adapter binds a socket, and reaches the caller of `App.start` /
   `App.run` as it is (the container passes a `GrundError` through).
   `example/` catches `EnvironmentError` in `main`, prints one line and
-  exits with code 64.
+  exits with code 64:
+
+  ```dart
+  import 'dart:io';
+
+  import 'package:grund/grund.dart';
+
+  Future<void> main() async {
+    try {
+      await App(root: const AppModule()).run();
+    } on EnvironmentError catch (error) {
+      stderr.writeln(error.message);
+      exitCode = 64;
+    }
+  }
+  ```
 - Check that your shell does not export `HOST` for another purpose (some
   shells keep the machine name in a variable of that name); an exported
   `HOST=<machine>` would bind the server to that address.
@@ -152,9 +167,11 @@ check partial for the whole package. In a real application
 `HttpModule.fromEnvironment()` or `IoAdapterModule()` is exactly such an
 import, so a forgotten `EnvironmentModule()` usually shows up as a
 `MissingProviderError` for `Environment` when the application starts, not as
-a diagnostic. Importing it in the module that takes `Environment` gives the
-generator's check the best chance to see the dependency; importing the
-global module again from several modules is safe, it is built once.
+a diagnostic. Importing `EnvironmentModule()` in the module that takes `Environment` is
+still right: `EnvironmentModule()` is a foreign module, so the generator
+treats it as opaque and the check stays partial, but the import documents the
+dependency and makes the module work on its own. Importing the global module
+again from several modules is safe, it is built once.
 
 ## Tests
 
@@ -231,7 +248,6 @@ In a Jaspr component (see [jaspr.md](jaspr.md)); a page reads
 that provides it (`ContentModule` here):
 
 ```dart
-import 'package:grund/grund.dart';
 import 'package:grund_jaspr/grund_jaspr.dart';
 import 'package:jaspr/dom.dart';
 import 'package:jaspr/server.dart';
