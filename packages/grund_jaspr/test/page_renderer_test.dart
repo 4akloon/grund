@@ -21,6 +21,16 @@ final class _MatchReader extends StatelessComponent {
       Component.text('slug ${context.pageMatch?.params['slug']}');
 }
 
+final class _OwnStatus extends StatelessComponent {
+  const _OwnStatus();
+
+  @override
+  Component build(BuildContext context) {
+    context.setStatusCode(203);
+    return const Component.text('own');
+  }
+}
+
 final class _Thrower extends StatelessComponent {
   const _Thrower();
 
@@ -42,6 +52,10 @@ final class _RenderApi extends HttpApi {
     Route.get(
       '/match',
       (c) => _renderer.render(c, const _MatchReader(), match: _match),
+    ),
+    Route.get(
+      '/own-status',
+      (c) => _renderer.render(c, const _OwnStatus(), status: 404),
     ),
     Route.get('/plain', (c) => _renderer.render(c, const _MatchReader())),
     Route.get('/throws', (c) async {
@@ -82,6 +96,14 @@ void main() {
 
     expect(response.status, 404);
     expect(response.text, contains('hi'));
+  });
+
+  test('a status the component set itself wins over status', () async {
+    final client = await PagesApp.start([const _RenderModule()]);
+
+    final response = await client.get('/own-status');
+
+    expect(response.status, 203);
   });
 
   test('a component sees the match through context.pageMatch', () async {

@@ -21,6 +21,10 @@ final class PageRenderer {
   /// The response for [page] with [status], seen by [page] as the request
   /// [c] that matched [match]; throws [PageRenderError] when Jaspr answers
   /// 500.
+  ///
+  /// [status] applies unless the component set a non-200 status itself,
+  /// which then wins. A component that sets 200 cannot be told apart from
+  /// Jaspr's default, so [status] overrides it.
   Future<HttpResponse> render(
     HttpCtx c,
     Component page, {
