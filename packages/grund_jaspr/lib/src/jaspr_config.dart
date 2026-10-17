@@ -45,7 +45,7 @@ final class JasprConfig {
   final Duration sitemapCacheLifetime;
 
   /// Throws [JasprSetupError] for a [pageSuffixes] entry that starts with
-  /// `.`, a malformed [staticPath], a [rootFiles] entry with a `/` or a
+  /// `.`, a malformed [staticPath], a [rootFiles] entry that is not a plain file name (empty, `.`, `..`, or with a `/`) or a
   /// [sitemapChunkSize] below 1; `JasprModule` calls it when the
   /// application starts.
   void validate() {
@@ -56,9 +56,9 @@ final class JasprConfig {
       );
     }
     for (final file in rootFiles) {
-      if (file.contains('/')) {
+      if (file.isEmpty || file == '.' || file == '..' || file.contains('/')) {
         throw JasprSetupError(
-          'rootFiles entries are plain file names; "$file" contains "/".',
+          'rootFiles entries are plain file names; "$file" is not one.',
         );
       }
     }

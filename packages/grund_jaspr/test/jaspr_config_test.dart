@@ -25,6 +25,9 @@ void main() {
         'a rootFiles entry with a slash',
         const JasprConfig(rootFiles: ['a/b.txt']),
       ),
+      ('an empty rootFiles entry', const JasprConfig(rootFiles: [''])),
+      ('a "." rootFiles entry', const JasprConfig(rootFiles: ['.'])),
+      ('a ".." rootFiles entry', const JasprConfig(rootFiles: ['..'])),
       ('a sitemapChunkSize below 1', const JasprConfig(sitemapChunkSize: 0)),
     ]) {
       test('validate refuses $name', () {

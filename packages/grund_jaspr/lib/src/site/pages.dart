@@ -1,5 +1,7 @@
 import 'package:grund/grund.dart';
 
+import '../jaspr_config.dart';
+import '../page/non_page_requests.dart';
 import '../page/page.dart';
 import '../page/page_renderer.dart';
 import 'page_site.dart';
@@ -28,8 +30,19 @@ abstract final class Pages {
   ) => [
     Singleton<S>(create, dependsOn: const []),
     Singleton<SiteApi<S>>(
-      (i) => SiteApi<S>(i, i<S>(), i<PageRenderer>()),
-      dependsOn: [Key<S>(), Key<PageRenderer>()],
+      (i) => SiteApi<S>(
+        i,
+        i<S>(),
+        i<PageRenderer>(),
+        i<NonPageRequests>(),
+        i<JasprConfig>(),
+      ),
+      dependsOn: [
+        Key<S>(),
+        Key<PageRenderer>(),
+        Key<NonPageRequests>(),
+        Key<JasprConfig>(),
+      ],
     ),
   ];
 
@@ -38,7 +51,19 @@ abstract final class Pages {
   static Binding<Object> under<S extends PageSite>(
     List<Page> Function(Injector) pages,
   ) => Singleton<PagesApi<S>>(
-    (i) => PagesApi<S>(i, i<S>(), i<PageRenderer>(), pages),
-    dependsOn: [Key<S>(), Key<PageRenderer>()],
+    (i) => PagesApi<S>(
+      i,
+      i<S>(),
+      i<PageRenderer>(),
+      i<NonPageRequests>(),
+      i<JasprConfig>(),
+      pages,
+    ),
+    dependsOn: [
+      Key<S>(),
+      Key<PageRenderer>(),
+      Key<NonPageRequests>(),
+      Key<JasprConfig>(),
+    ],
   );
 }

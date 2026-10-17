@@ -81,3 +81,19 @@ final class AmbiguousPageSkipError extends PageDeclarationError {
       'The page $path skips $type, but the hooks of its site contain $type '
       'more than once, so it is unclear which one to skip.';
 }
+
+/// A page is declared at a path the framework serves files from.
+final class ReservedPagePathError extends PageDeclarationError {
+  /// Creates the error for the page at [path]; [reason] says what it
+  /// collides with.
+  const ReservedPagePathError({required this.path, required this.reason});
+
+  /// The full path of the page.
+  final String path;
+
+  /// What the path collides with.
+  final String reason;
+
+  @override
+  String get message => 'The page path "$path" is reserved: $reason';
+}

@@ -5,8 +5,11 @@ import 'package:grund/grund.dart';
 import 'jaspr_config.dart';
 import 'jaspr_setup.dart';
 import 'live_reload_script.dart';
+import 'page/non_page_requests.dart';
 import 'page/page_renderer.dart';
 import 'site/page_registry.dart';
+import 'site/static_api.dart';
+import 'site/static_files.dart';
 
 /// The rendering services of Jaspr pages: the configuration, the renderer
 /// and the registry of declared sites.
@@ -48,6 +51,27 @@ final class JasprModule extends Module {
       dependsOn: const [Key<JasprConfig>()],
     ),
     Singleton<PageRegistry>((_) => PageRegistry(), dependsOn: const []),
+    Singleton<StaticFiles>(
+      (i) => StaticFiles(i<JasprConfig>().staticDirectory),
+      dependsOn: const [Key<JasprConfig>()],
+    ),
+    Singleton<NonPageRequests>(
+      (i) => NonPageRequests(i<JasprConfig>()),
+      dependsOn: const [Key<JasprConfig>()],
+    ),
+    Singleton<StaticApi>(
+      (i) => StaticApi(
+        i,
+        i<JasprConfig>(),
+        i<StaticFiles>(),
+        i<NonPageRequests>(),
+      ),
+      dependsOn: const [
+        Key<JasprConfig>(),
+        Key<StaticFiles>(),
+        Key<NonPageRequests>(),
+      ],
+    ),
   ];
 
   @override
@@ -55,6 +79,7 @@ final class JasprModule extends Module {
     Key<JasprConfig>(),
     Key<PageRenderer>(),
     Key<PageRegistry>(),
+    Key<NonPageRequests>(),
   ];
 
   @override
