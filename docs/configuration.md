@@ -60,8 +60,9 @@ final class AppModule extends Module {
 }
 ```
 
-Because it is global, any module in the graph can depend on `Environment`
-once the module is imported anywhere.
+Because it is global, the core resolves `Environment` for any module in the
+graph once `EnvironmentModule()` is imported anywhere. The generator's
+dependency check is stricter; see [Your own settings](#your-own-settings).
 
 ## HTTP address and port
 
@@ -102,13 +103,15 @@ With annotations:
 import 'package:grund/annotations.dart';
 import 'package:grund/grund.dart' as grund;
 
+import 'greeting_module.g.dart';
+
 final class Greeting {
   const Greeting(this.text);
   final String text;
 }
 
 @Module(imports: [grund.EnvironmentModule()], exports: [Greeting])
-final class GreetingModule extends grund.Module {
+final class GreetingModule extends grund.Module with $GreetingModule {
   const GreetingModule();
 
   @Provides()
@@ -142,13 +145,16 @@ final class GreetingModule extends Module {
 
 A module whose `@Provides` takes `Environment` imports `EnvironmentModule()`
 itself, as above. The generator's dependency check reports `missing_provider`
-for a dependency that no module of the package declares, unless the package
-imports a module from another package, which it cannot look into. `Environment`
-comes from `EnvironmentModule` of the `grund` package, so without the import
-in that module the generator names `Environment` as missing; with it, the
-check is partial for the package (it only reports keys that a module of the
-package binds). Importing the global module again from several modules is
-safe: it is built once.
+for a dependency that no module of the package declares, but only while the
+package imports no module from another package: it cannot look into such a
+module, and one foreign (or hand-written) import in any module makes the
+check partial for the whole package. In a real application
+`HttpModule.fromEnvironment()` or `IoAdapterModule()` is exactly such an
+import, so a forgotten `EnvironmentModule()` usually shows up as a
+`MissingProviderError` for `Environment` when the application starts, not as
+a diagnostic. Importing it in the module that takes `Environment` gives the
+generator's check the best chance to see the dependency; importing the
+global module again from several modules is safe, it is built once.
 
 ## Tests
 
@@ -185,6 +191,10 @@ test replaces the value with an override, and a page reads it from the
 injector.
 
 ```dart
+import 'dart:io';
+
+import 'package:grund/grund.dart';
+
 final class SiteContent {
   const SiteContent(this.title);
   final String title;
@@ -216,9 +226,16 @@ final class ContentModule extends Module {
 }
 ```
 
-In a Jaspr component (see [jaspr.md](jaspr.md)):
+In a Jaspr component (see [jaspr.md](jaspr.md)); a page reads
+`SiteContent` only if the module that declares the site imports the module
+that provides it (`ContentModule` here):
 
 ```dart
+import 'package:grund/grund.dart';
+import 'package:grund_jaspr/grund_jaspr.dart';
+import 'package:jaspr/dom.dart';
+import 'package:jaspr/server.dart';
+
 final class HeaderBar extends StatelessComponent {
   const HeaderBar();
 
