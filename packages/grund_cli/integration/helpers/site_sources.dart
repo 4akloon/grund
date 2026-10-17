@@ -1,6 +1,6 @@
 /// Sources of a small application `site` in the explicit API: one Jaspr
-/// page at `/` of a site that shows its version and the pid, served on the loopback
-/// port of its first argument; it prints `listening on <port>`.
+/// page at `/` of a site that shows its version and the pid, served on the
+/// loopback port of its first argument; it prints `listening on <port>`.
 abstract final class SiteSources {
   /// The entry point.
   static const main = '''

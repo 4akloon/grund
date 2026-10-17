@@ -6,7 +6,8 @@ import 'project_template.dart';
 ///
 /// A flat catalog of file contents without logic: the long string-literal
 /// methods (`_appTest`) are literals, not code, and may exceed the method
-/// limit like those of `ProjectTemplate`.
+/// limit like those of `ProjectTemplate`; for the same reason the file may
+/// exceed the file limit.
 abstract final class FullstackTemplate {
   /// The files of application [name] (relative path to content), sorted by
   /// path.
@@ -82,8 +83,7 @@ import 'account_api.dart';
 import 'home_site_module.dart';
 
 /// The root module: the HTTP server over dart:io, cookie sessions, the
-/// sign-in API and the pages of
-/// [HomeSiteModule].
+/// sign-in API and the pages of [HomeSiteModule].
 final class AppModule extends Module {
   /// Creates the module.
   const AppModule();
@@ -239,7 +239,8 @@ final class HomePage extends StatelessComponent {
 import 'package:jaspr/dom.dart';
 import 'package:jaspr/server.dart';
 
-/// The content of the sign-in page: the form that posts the name to `AccountApi`.
+/// The content of the sign-in page: the form that posts the name to
+/// `AccountApi`.
 final class LoginPage extends StatelessComponent {
   /// Creates the page.
   const LoginPage();
@@ -278,6 +279,19 @@ void main() {
     client = TestClient.of(app);
   });
   tearDown(() => app.close());
+
+  test('a path without a page is a 404 HTML page', () async {
+    final page = await client.get('/nowhere');
+
+    expect(page.status, 404);
+    expect(page.headers['content-type'], 'text/html; charset=utf-8');
+  });
+
+  test('the stylesheet is served under /static', () async {
+    final css = await client.get('/static/styles.css');
+
+    expect(css.status, 200);
+  });
 
   test('GET / renders the start page', () async {
     final page = await client.get('/');

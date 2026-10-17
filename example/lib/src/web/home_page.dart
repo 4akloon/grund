@@ -5,7 +5,8 @@ import 'package:jaspr/server.dart';
 
 import '../tasks/tasks_service.dart';
 
-/// The content of the `/` page: the task list, who is signed in, and the form to sign out.
+/// The content of the `/` page: the task list, who is signed in, and the form
+/// to sign out.
 final class HomePage extends StatelessComponent {
   /// Creates the page.
   const HomePage();

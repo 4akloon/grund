@@ -25,6 +25,8 @@ final class WebModule extends Module {
     // Plain http in the example; keep the default secure: true in an
     // application served over HTTPS.
     const SessionModule(config: SessionConfig(secure: false)),
+    // Imported once here: this web part is shared by both roots, AppModule
+    // and ExplicitAppModule.
     const JasprModule(),
     tasks,
   ];
