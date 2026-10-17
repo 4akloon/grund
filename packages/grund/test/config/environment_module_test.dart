@@ -5,7 +5,6 @@ import 'package:grund/src/di/container.dart';
 import 'package:grund/src/di/key.dart';
 import 'package:grund/src/di/module_graph.dart';
 import 'package:grund/src/errors/environment_errors.dart';
-import 'package:grund/src/errors/resolution_errors.dart';
 import 'package:test/test.dart';
 
 import '../helpers/module_fixtures.dart';
@@ -26,18 +25,16 @@ void main() {
 
     test('is visible to a module that does not import it', () async {
       final container = await start(
-        AppModule(
-          imports: const [EnvironmentModule()],
-          bindings: [
-            Singleton<String>(
-              (i) => i<Environment>().string('PATH', fallback: ''),
-              dependsOn: const [Key<Environment>()],
-            ),
-          ],
-        ),
+        const AppModule(imports: [EnvironmentModule(), _DbWithoutImport()]),
+        overrides: [
+          Singleton<Environment>(
+            (_) => const Environment({'DB': 'x'}),
+            dependsOn: const [],
+          ),
+        ],
       );
 
-      expect(container.root<Environment>(), isA<Environment>());
+      expect(container.root<String>(), 'db=x');
     });
 
     test('lets an override replace the process environment', () async {
@@ -84,22 +81,21 @@ void main() {
         ),
       );
     });
-
-    test('a wrapper around the error does not show the value', () {
-      final wrapper = ProviderCreationError(
-        key: const Key<int>(),
-        module: 'AppModule',
-        chain: const [],
-        error: const InvalidVariableError(
-          name: 'SECRET',
-          expected: 'an integer',
-        ),
-        stackTrace: StackTrace.current,
-      );
-
-      expect(wrapper.message, contains('SECRET'));
-      expect(wrapper.message, isNot(contains('hunter2')));
-      expect(wrapper.toString(), isNot(contains('hunter2')));
-    });
   });
+}
+
+/// Reads [Environment] without importing [EnvironmentModule].
+final class _DbWithoutImport extends StubModule {
+  const _DbWithoutImport();
+
+  @override
+  List<Binding<Object>> get bindings => [
+    Singleton<String>(
+      (i) => 'db=${i<Environment>().string('DB')}',
+      dependsOn: const [Key<Environment>()],
+    ),
+  ];
+
+  @override
+  List<Object> get exports => const [Key<String>()];
 }

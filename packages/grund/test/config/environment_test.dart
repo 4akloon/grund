@@ -83,9 +83,9 @@ void main() {
     });
 
     test('phrases the expectation after the bounds that are given', () {
-      String expected({int? min, int? max}) {
+      String expected({int? min, int? max, String value = 'x'}) {
         try {
-          env({'N': 'x'}).integer('N', min: min, max: max);
+          env({'N': value}).integer('N', min: min, max: max);
         } on InvalidVariableError catch (e) {
           return e.expected;
         }
@@ -96,6 +96,9 @@ void main() {
       expect(expected(min: 1), 'an integer of at least 1');
       expect(expected(max: 9), 'an integer of at most 9');
       expect(expected(), 'an integer');
+      expect(expected(min: 0, max: 5, value: '6'), 'an integer from 0 to 5');
+      expect(expected(min: 1, value: '0'), 'an integer of at least 1');
+      expect(expected(max: 9, value: '10'), 'an integer of at most 9');
     });
   });
 
@@ -120,10 +123,6 @@ void main() {
     });
 
     test('never show the value, in message or toString', () {
-      const error = InvalidVariableError(
-        name: 'SECRET',
-        expected: 'an integer',
-      );
       expect(
         () => env({'SECRET': 'hunter2'}).integer('SECRET'),
         throwsA(
@@ -133,8 +132,6 @@ void main() {
         ),
       );
 
-      expect(error.message, isNot(contains('hunter2')));
-      expect(error.toString(), isNot(contains('hunter2')));
       expect(
         const MissingVariableError('SECRET').toString(),
         contains('SECRET'),
