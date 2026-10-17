@@ -8,6 +8,9 @@ final class FakeAdapter implements HttpAdapter {
   int? port;
   final List<bool> closeCalls = [];
 
+  /// How many times `listen` was called, failed or not.
+  int listenCalls = 0;
+
   /// Thrown (once) by the next `listen` when set, e.g. a port in use.
   Object? listenFailure;
 
@@ -20,6 +23,7 @@ final class FakeAdapter implements HttpAdapter {
     required Object address,
     required int port,
   }) async {
+    listenCalls++;
     final failure = listenFailure;
     if (failure != null) {
       listenFailure = null;

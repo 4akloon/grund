@@ -24,6 +24,9 @@ import 'http_server.dart';
 /// }
 /// ```
 ///
+/// `HttpModule.fromEnvironment()` takes the address from `HOST` and the port
+/// from `PORT` instead; import `EnvironmentModule` too.
+///
 /// It binds the `HttpServer` (a `Runner` named `http`), the `HttpConfig`, and
 /// exports both; replace the config with an override of the same key.
 /// Without an adapter the application does not start: `HttpAdapter` is
@@ -39,7 +42,18 @@ final class HttpModule extends Module {
     this.middleware = const [],
     this.codecs = const [],
     this.config = const HttpConfig(),
-  });
+  }) : _readsEnvironment = false;
+
+  /// Creates the module whose `HttpConfig` is [HttpConfig.fromEnvironment] of
+  /// the [Environment] in the graph, with [defaults] for what is unset;
+  /// import `EnvironmentModule` too.
+  const HttpModule.fromEnvironment({
+    this.use = const [],
+    this.middleware = const [],
+    this.codecs = const [],
+    HttpConfig defaults = const HttpConfig(),
+  }) : config = defaults,
+       _readsEnvironment = true;
 
   /// Hooks that wrap every route.
   final List<HookRef<HttpHook>> use;
@@ -50,12 +64,20 @@ final class HttpModule extends Module {
   /// Codecs for the response serializer.
   final List<ResponseCodec<Object>> codecs;
 
-  /// The default configuration.
+  /// The configuration, or the defaults with `fromEnvironment`.
   final HttpConfig config;
+
+  final bool _readsEnvironment;
 
   @override
   List<Binding<Object>> get bindings => [
-    Singleton<HttpConfig>((i) => config, dependsOn: const []),
+    if (_readsEnvironment)
+      Singleton<HttpConfig>(
+        (i) => HttpConfig.fromEnvironment(i<Environment>(), defaults: config),
+        dependsOn: const [Key<Environment>()],
+      )
+    else
+      Singleton<HttpConfig>((i) => config, dependsOn: const []),
     Singleton<HttpServer>(
       (i) =>
           HttpServer(this, adapter: i<HttpAdapter>(), config: i<HttpConfig>()),
