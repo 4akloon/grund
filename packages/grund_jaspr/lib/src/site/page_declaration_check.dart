@@ -53,15 +53,15 @@ abstract final class PageDeclarationCheck {
     final types = <String>{};
     final suffixes = <String>{};
     for (final alternate in page.alternates) {
-      final reason =
-          _reasonFor(alternate, page, site, config) ??
-          (types.add(alternate.mediaType)
-              ? null
-              : 'the page already has an alternate of this type') ??
-          (suffixes.add(alternate.suffix)
-              ? null
-              : 'the page already has an alternate with the suffix '
-                    '"${alternate.suffix}"');
+      var reason = _reasonFor(alternate, page, site, config);
+      if (reason == null && !types.add(alternate.mediaType)) {
+        reason = 'the page already has an alternate of this type';
+      }
+      if (reason == null && !suffixes.add(alternate.suffix)) {
+        reason =
+            'the page already has an alternate with the suffix '
+            '"${alternate.suffix}"';
+      }
       if (reason == null) continue;
       throw InvalidPageAlternateError(
         path: fullPath,

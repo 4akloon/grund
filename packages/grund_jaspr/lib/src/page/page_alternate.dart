@@ -13,7 +13,8 @@ typedef AlternateBuilder = FutureOr<String> Function(
 /// Another representation of a page, such as Markdown for agents.
 ///
 /// It is served at the page URL plus [suffix] and at the page URL itself for
-/// a request whose `Accept` header prefers [mediaType] to `text/html`.
+/// a request whose `Accept` header names [mediaType] with a quality at least
+/// that of `text/html`.
 final class PageAlternate {
   /// Creates the alternate of [mediaType] served at the page URL plus
   /// [suffix].

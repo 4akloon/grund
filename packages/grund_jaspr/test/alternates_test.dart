@@ -197,7 +197,9 @@ void main() {
   });
 
   test('the skip warning is logged once per page, not per route', () async {
+    final previous = Logger.root.level;
     Logger.root.level = Level.ALL;
+    addTearDown(() => Logger.root.level = previous);
     final records = <String>[];
     final sub = Logger('grund.jaspr').onRecord
         .listen((record) => records.add(record.message));
@@ -246,10 +248,10 @@ void main() {
       );
     });
 
-    test('rejects a media type the page lacks', () {
+    test('is null for a media type the page lacks', () {
       expect(
-        () => _matchOf(page, p: {'slug': 'a'}).alternatePath('text/plain'),
-        throwsArgumentError,
+        _matchOf(page, p: {'slug': 'a'}).alternatePath('text/plain'),
+        isNull,
       );
     });
   });

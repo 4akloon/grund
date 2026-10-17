@@ -2,6 +2,7 @@ import 'package:grund_http/grund_http.dart';
 import 'package:jaspr/server.dart' hide Key;
 
 import '../page/page.dart';
+import '../page/page_address.dart';
 import '../page/page_alternate.dart';
 import '../page/page_match.dart';
 import 'alternate_negotiation.dart';
@@ -59,6 +60,7 @@ final class PageResponder {
       site.trailingSlash,
     );
     if (redirect != null) return redirect;
+    _requireAddressable(match);
     final response = await _alternateText(c, alternate, match);
     final url = match.url;
     if (url == null) return response;
@@ -80,6 +82,15 @@ final class PageResponder {
       headers.set('cache-control', 'private, no-cache');
     }
     return HttpResponse.text(text, headers: headers);
+  }
+
+  /// A parameter value of `.` or `..` has no address, so such a request names
+  /// no page; checked before the builder runs. Only an alternate needs it: a
+  /// dot segment of a page URL is removed by URI normalization before routing.
+  static void _requireAddressable(PageMatch match) {
+    for (final value in match.params.values) {
+      if (value == '.' || value == '..') throw const NotFoundException();
+    }
   }
 
   Future<HttpResponse> _alternateText(
@@ -124,7 +135,12 @@ final class PageResponder {
   HeaderMap _alternateLinks(PageSite site, Page page, PageMatch match) {
     final links = HeaderMap();
     for (final alternate in page.alternates) {
-      final path = match.alternatePath(alternate.mediaType);
+      final path = PageAddress.alternatePathOf(
+        site.path,
+        page.path,
+        match.params,
+        alternate.suffix,
+      );
       final target = site.baseUrl?.resolve(path) ?? Uri(path: path);
       links.add(
         'link',
