@@ -227,7 +227,7 @@ both styles and tested end to end on both adapters.
 
 ## Requirements
 
-Dart SDK 3.8 or later. Developed and tested on Linux; see
+Dart SDK 3.13 or later. Developed and tested on Linux; see
 [docs/faq.md](docs/faq.md) for macOS and Windows.
 
 ## Development

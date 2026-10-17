@@ -7,7 +7,7 @@ repository: https://github.com/4akLoon/grund/tree/master/packages/grund_http
 issue_tracker: https://github.com/4akLoon/grund/issues
 topics: [server, http, framework]
 environment:
-  sdk: ^3.8.0
+  sdk: ^3.13.0
 resolution: workspace
 dependencies:
   grund: ^0.1.0

@@ -5,7 +5,7 @@ repository: https://github.com/4akLoon/grund/tree/master/packages/grund_shelf
 issue_tracker: https://github.com/4akLoon/grund/issues
 topics: [server, http, shelf, framework]
 environment:
-  sdk: ^3.8.0
+  sdk: ^3.13.0
 resolution: workspace
 dependencies:
   grund: ^0.1.0

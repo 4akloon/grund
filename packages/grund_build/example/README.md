@@ -7,7 +7,7 @@ such as `json_serializable`.
 # pubspec.yaml
 name: shop
 environment:
-  sdk: ^3.8.0
+  sdk: ^3.13.0
 dependencies:
   grund: ^0.1.0
   grund_http: ^0.2.0

@@ -1,6 +1,6 @@
 # Getting started
 
-grund needs the Dart SDK 3.8 or later (`dart --version`).
+grund needs the Dart SDK 3.13 or later (`dart --version`).
 
 ## Create an application
 

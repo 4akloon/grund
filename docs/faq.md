@@ -86,10 +86,9 @@ Not yet. The generator already collects what an OpenAPI document needs
 milestone.
 
 **Which Dart versions are supported?**
-The packages declare `sdk: ^3.8.0` and use no language feature newer than
-Dart 3.8. Development and the tests ran on Dart 3.13. The CI workflow is set
-up to test 3.8.0 and stable, but it has never run, so the 3.8 floor is
-unverified.
+The packages declare `sdk: ^3.13.0`. Development and the tests ran on Dart
+3.13. The CI workflow is set up to test 3.13.0 and stable, but it has never
+run.
 
 ## Not in 0.1.0
 
@@ -175,6 +174,6 @@ work like Linux but is not tested. Windows is not verified: path handling in
 the CLI is written for it, but `dev` (signals, the terminal keys, process
 restarts) has never run there.
 
-**The SDK floor is declared, not yet tested.** The packages declare Dart 3.8;
-the local runs used Dart 3.13. The CI workflow tests 3.8.0, but it has not run
-yet.
+**The SDK floor is declared, not yet tested.** The packages declare Dart 3.13;
+the local runs used Dart 3.13.5. The CI workflow tests 3.13.0, but it has not
+run yet.

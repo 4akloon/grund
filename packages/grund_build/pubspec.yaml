@@ -7,10 +7,10 @@ repository: https://github.com/4akLoon/grund/tree/master/packages/grund_build
 issue_tracker: https://github.com/4akLoon/grund/issues
 topics: [build-runner, codegen, server]
 environment:
-  sdk: ^3.8.0
+  sdk: ^3.13.0
 resolution: workspace
 dependencies:
-  analyzer: '>=8.1.1 <15.0.0'
+  analyzer: '>=13.1.0 <15.0.0'
   build: ^4.0.2
   grund_generator: ^0.1.0
   grund_http_generator: ^0.1.0

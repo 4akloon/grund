@@ -153,14 +153,10 @@ Generate such a package with `grund_cli gen`.
 
 ## Versions
 
-`build` `^4.0.2`; `analyzer` `>=8.1.1 <15.0.0`, the range of
-`grund_generator`. With build_runner 2.10.5 to 2.16.2 the builder was
-checked on both edges. `--only-check` needs build_runner 2.16, which needs
-Dart 3.11; `grund_build` itself keeps the SDK floor `^3.8.0`.
-
-The `users_app` fixture depends on `build_runner` `>=2.10.5 <3.0.0`, so the
-workspace is expected to resolve on every SDK from 3.8 (pub picks 2.16 on Dart 3.11 or
-newer; on 3.8 it is expected to pick 2.10, which was not verified here).
+`build` `^4.0.2`; `analyzer` `>=13.1.0 <15.0.0`, the range of
+`grund_generator`. The `users_app` fixture depends on `build_runner`
+`^2.16.0` (Dart 3.11 or newer, which the SDK floor `^3.13.0` satisfies), the
+version whose `build --only-check` the integration test runs.
 
 ## Tests
 

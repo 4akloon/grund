@@ -8,12 +8,12 @@ repository: https://github.com/4akLoon/grund/tree/master/packages/grund_cli
 issue_tracker: https://github.com/4akLoon/grund/issues
 topics: [cli, codegen, hot-reload, server]
 environment:
-  sdk: ^3.8.0
+  sdk: ^3.13.0
 resolution: workspace
 executables:
   grund: grund_cli
 dependencies:
-  analyzer: '>=8.1.1 <15.0.0'
+  analyzer: '>=13.1.0 <15.0.0'
   args: ^2.7.0
   grund_generator: ^0.1.1
   grund_http_generator: ^0.1.0

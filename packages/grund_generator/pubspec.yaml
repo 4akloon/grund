@@ -7,10 +7,10 @@ repository: https://github.com/4akLoon/grund/tree/master/packages/grund_generato
 issue_tracker: https://github.com/4akLoon/grund/issues
 topics: [codegen, analyzer, server, framework]
 environment:
-  sdk: ^3.8.0
+  sdk: ^3.13.0
 resolution: workspace
 dependencies:
-  analyzer: '>=8.1.1 <15.0.0'
+  analyzer: '>=13.1.0 <15.0.0'
   code_builder: ^4.11.1
   dart_style: ^3.1.2
   path: ^1.9.0

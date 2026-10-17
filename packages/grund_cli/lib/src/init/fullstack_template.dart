@@ -44,7 +44,7 @@ version: 0.1.0
 publish_to: none
 
 environment:
-  sdk: ^3.8.0
+  sdk: ^3.13.0
 
 dependencies:
   grund: $_grund

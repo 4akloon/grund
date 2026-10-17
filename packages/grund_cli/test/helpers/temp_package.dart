@@ -17,7 +17,7 @@ final class TempPackage {
     Map<String, String> files = const {},
   ]) async {
     final dir = TempDir.create();
-    dir.write('pubspec.yaml', 'name: $name\nenvironment:\n  sdk: ^3.8.0\n');
+    dir.write('pubspec.yaml', 'name: $name\nenvironment:\n  sdk: ^3.13.0\n');
     Directory(dir.resolve('lib')).createSync();
     await WorkspacePackageConfig.write(dir.path, name);
     files.forEach(dir.write);

@@ -8,7 +8,7 @@ on:
 permissions:
   contents: read
 
-# Every package and the example, on the SDK floor (3.8.0) and on stable.
+# Every package and the example, on the SDK floor (3.13.0) and on stable.
 # Formatting, lints and the publish dry-run use stable only: the formatter's
 # output and the lint set change between SDKs, and pub's checks are those of
 # the SDK a release is published with.
@@ -20,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        sdk: ['3.8.0', stable]
+        sdk: ['3.13.0', stable]
     steps:
       - uses: actions/checkout@v5
 

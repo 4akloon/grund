@@ -29,7 +29,7 @@ abstract final class WorkspacePackageConfig {
         'name': name,
         'rootUri': '../',
         'packageUri': 'lib/',
-        'languageVersion': '3.8',
+        'languageVersion': '3.13',
       },
     ];
     final file = File(p.join(root, '.dart_tool', 'package_config.json'));

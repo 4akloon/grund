@@ -24,7 +24,7 @@ void main() {
     final copy = TempDir.create();
     copy.write(
       'pubspec.yaml',
-      'name: tasks_api\nenvironment:\n  sdk: ^3.8.0\n',
+      'name: tasks_api\nenvironment:\n  sdk: ^3.13.0\n',
     );
     (await ExampleSources.sources()).forEach(copy.write);
     await WorkspacePackageConfig.write(copy.path, 'tasks_api');
