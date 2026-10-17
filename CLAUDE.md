@@ -38,14 +38,12 @@ pluggable HTTP adapters. It is a Dart pub workspace of pure-Dart packages.
   `grund_conformance` (adapter test suite), the fixture packages
   `cases_app`, `http_cases_app`, `users_app`, and `example`.
 
-Minimum SDK: Dart 3.8 (`^3.8.0`), also for generated code.
+Minimum SDK: Dart 3.13 (`^3.13.0`), also for generated code.
 
 The `users_app` fixture (`packages/grund_http_generator/test/fixtures/`) has
-the dev dependency `build_runner: '>=2.10.5 <3.0.0'` for the `grund_build`
-integration test: pub picks 2.16 on Dart 3.11 or newer and (expected, not
-verified here) 2.10 on Dart 3.8, so the workspace is expected to resolve on
-the `^3.8.0` floor. The integration test skips itself below build_runner 2.16
-(`--only-check` is missing there).
+the dev dependency `build_runner: ^2.16.0` for the `grund_build` integration
+test (`build --only-check` needs build_runner 2.16, which needs Dart 3.11;
+the floor satisfies it).
 
 ## Commands
 
@@ -78,7 +76,7 @@ dart run grund_cli gen --directory ../grund_http_generator/test/fixtures/users_a
 
 Git commands run from the repo root. Commit messages are Conventional Commits
 (`feat(core): ...`, `fix(...)`, `refactor(...)`, `docs: ...`, `test(...)`).
-`.github/workflows/ci.yaml` is set up to run these: tests on Dart 3.8.0 and
+`.github/workflows/ci.yaml` is set up to run these: tests on Dart 3.13.0 and
 stable; format, analyze (`--fatal-infos`) and the publish dry-run on stable
 only. It has not run yet.
 
@@ -186,10 +184,21 @@ only. It has not run yet.
 
 ## Code rules
 
-- **Use Dart 3.8 features** (patterns, switch expressions, records, class
-  modifiers `final`/`sealed`/`interface`, extension types). Dot shorthands and
-  null-aware elements need Dart 3.10 and are not used until the SDK floor is
-  raised. Primary constructors are not used.
+- **Use the newest language features available at the SDK floor** (Dart
+  3.13): patterns, switch expressions, records, class modifiers
+  (`final`/`sealed`/`interface`), extension types, null-aware elements,
+  dot shorthands (`.blue`, `.new()`), private named parameters
+  (`this._x`, 3.12) and primary constructors
+  (`class Point(var int x, var int y);`, 3.13). New and changed code uses
+  them where they shorten the code without hiding its meaning: a dot
+  shorthand only where the expected type is evident from the line itself or
+  its parameter name; a primary constructor for plain value classes and for
+  `final class X(this._dep);`-style injectables; an ordinary constructor
+  stays when it has logic, asserts or documentation worth keeping. Existing
+  code is migrated when it is touched, never in a bulk rewrite. When the
+  floor is raised, this rule follows it. Since 3.13, `final` or `var` on a
+  parameter that does not declare a field (`void f(final int x)`,
+  `(var x) => ...`) is a compile error; leave the keyword out.
 - **Prefer classes and static members to top-level helper functions** inside
   `lib/src`. Constants live in the class they belong to. Exception: functions
   that the spec defines as public API (dynamic-module factories such as
@@ -378,6 +387,5 @@ English.
 ## Deviations from typed_openapi's rules
 
 - "No top-level functions" is relaxed for spec-mandated public functions.
-- Dart 3.10 features (dot shorthands) are off: the floor here is Dart 3.8.
 - No `DiagnosticBag` requirement in the core: it reports through typed
   exceptions; the generator reports through diagnostics.
