@@ -11,7 +11,7 @@ import 'page_site.dart';
 final class SiteApi<S extends PageSite> extends HttpApi {
   /// Creates the API of [site] in the module of [injector]; throws
   /// [InvalidSitePathError] when the site lies on the `staticPath` of
-  /// [config].
+  /// [config] and [GuardedSiteSitemapError] when it has hooks and a sitemap.
   SiteApi(
     super.injector,
     this.site,
@@ -25,6 +25,9 @@ final class SiteApi<S extends PageSite> extends HttpApi {
         path: path,
         reason: 'it is the static path "${config.staticPath}" or lies under it',
       );
+    }
+    if (site.use.isNotEmpty && site.sitemapBaseUrl != null) {
+      throw GuardedSiteSitemapError(S);
     }
   }
 

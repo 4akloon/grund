@@ -98,3 +98,20 @@ final class MissingSiteIndexError extends SiteDeclarationError {
       'The site $siteType has no page "/". Add Page(\'/\', ...) in a '
       'Pages.under<$siteType> declaration.';
 }
+
+/// A site with guarding hooks also asks for a sitemap, which is served
+/// without those hooks.
+final class GuardedSiteSitemapError extends SiteDeclarationError {
+  /// Creates the error for [siteType].
+  const GuardedSiteSitemapError(this.siteType);
+
+  /// The site with both `use` and `sitemapBaseUrl`.
+  final Type siteType;
+
+  @override
+  String get message =>
+      'The site $siteType has hooks in use and a sitemapBaseUrl, but its '
+      'sitemap is served without the hooks of the site. Return null from '
+      'sitemapBaseUrl or move the guarded pages to a site without a '
+      'sitemap.';
+}

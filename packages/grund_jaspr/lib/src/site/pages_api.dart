@@ -48,6 +48,7 @@ final class PagesApi<S extends PageSite> extends HttpApi {
 
   Route _route(Page page) {
     _checkNotReserved(page);
+    _checkSitemap(page);
     return Route.get(
       page.path,
       (c) => _serve(c, page),
@@ -70,6 +71,15 @@ final class PagesApi<S extends PageSite> extends HttpApi {
         reason: 'static files are served under "$staticPath"',
       );
     }
+    if (path == '${site.path}/sitemap.xml' ||
+        path.startsWith('${site.path}/sitemap/')) {
+      throw ReservedPagePathError(
+        path: path,
+        reason:
+            'the sitemap of the site is served at "${site.path}/sitemap.xml" '
+            'and under "${site.path}/sitemap/"',
+      );
+    }
     for (final file in _config.rootFiles) {
       if (path == '/$file') {
         throw ReservedPagePathError(
@@ -77,6 +87,18 @@ final class PagesApi<S extends PageSite> extends HttpApi {
           reason: 'the static file "$file" is served at the root',
         );
       }
+    }
+  }
+
+  // Throws when the sitemap settings of [page] contradict its path.
+  void _checkSitemap(Page page) {
+    final entries = page.meta.sitemap.entries;
+    final hasParams = PagePath.parse(page.path).hasParams;
+    final fullPath = fullPathOf(page);
+    if (!hasParams && entries != null) throw UnusedPageEntriesError(fullPath);
+    final decided = entries != null || page.meta.sitemap.included == false;
+    if (hasParams && site.sitemapBaseUrl != null && !decided) {
+      throw UndecidedPageSitemapError(fullPath);
     }
   }
 

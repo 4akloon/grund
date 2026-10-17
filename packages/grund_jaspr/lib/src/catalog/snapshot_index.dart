@@ -21,6 +21,7 @@ final class SnapshotIndex {
   final NonPageRequests _nonPage;
 
   PageSnapshot? _indexed;
+  List<DeclaredPage> _declared = const [];
   List<SitePage> _pages = const [];
   PageMatcher _matcher = PageMatcher(const []);
 
@@ -28,6 +29,16 @@ final class SnapshotIndex {
   List<SitePage> pages(PageSnapshot snapshot) {
     _load(snapshot);
     return _pages;
+  }
+
+  /// The pages of the site of exactly the type [siteType] with the
+  /// injectors of their declaring modules.
+  List<DeclaredPage> declaredOf(PageSnapshot snapshot, Type siteType) {
+    _load(snapshot);
+    return [
+      for (final declared in _declared)
+        if (declared.page.site.runtimeType == siteType) declared,
+    ];
   }
 
   /// The pages of the site of exactly the type [siteType].
@@ -69,11 +80,13 @@ final class SnapshotIndex {
 
   void _load(PageSnapshot snapshot) {
     if (identical(_indexed, snapshot)) return;
-    final pages = SnapshotPages.all(snapshot);
+    final declared = SnapshotPages.all(snapshot);
+    final pages = [for (final entry in declared) entry.page];
     _matcher = PageMatcher(
       pages,
       sitePaths: [for (final api in snapshot.sites) api.path],
     );
+    _declared = declared;
     _pages = pages;
     _indexed = snapshot;
   }

@@ -124,3 +124,34 @@ final class MisplacedPagePathError extends PageDeclarationError {
       'so it would bypass the hooks of $owner. Declare it with '
       'Pages.under<$owner> or move it to another path.';
 }
+
+/// A parameterised page in a site with a sitemap says neither where its
+/// addresses are nor that it stays out.
+final class UndecidedPageSitemapError extends PageDeclarationError {
+  /// Creates the error for the page at [path].
+  const UndecidedPageSitemapError(this.path);
+
+  /// The full path of the page.
+  final String path;
+
+  @override
+  String get message =>
+      'The page $path has path parameters and its site has a '
+      'sitemapBaseUrl, but the page lists no addresses. Give it '
+      'PageSitemap(entries: ...) or PageSitemap(included: false).';
+}
+
+/// A page without path parameters declares `entries`.
+final class UnusedPageEntriesError extends PageDeclarationError {
+  /// Creates the error for the page at [path].
+  const UnusedPageEntriesError(this.path);
+
+  /// The full path of the page.
+  final String path;
+
+  @override
+  String get message =>
+      'The page $path has PageSitemap.entries but no path parameter, so the '
+      'entries would never be used. Remove the entries or add a ":param" to '
+      'the path.';
+}

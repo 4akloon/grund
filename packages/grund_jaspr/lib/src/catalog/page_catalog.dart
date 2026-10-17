@@ -6,8 +6,10 @@ import '../page/site_page.dart';
 import '../site/page_registry.dart';
 import '../site/page_site.dart';
 import '../site/page_snapshot.dart';
+import '../sitemap/sitemap_url.dart';
 import 'nav_item.dart';
 import 'navigation_builder.dart';
+import 'sitemap_source.dart';
 import 'snapshot_index.dart';
 
 /// The pages of the running application: per site, as navigation, by URL
@@ -20,10 +22,12 @@ final class PageCatalog {
   /// Reads the snapshot held by [_registry]; [config] decides what is a
   /// file request and where the static files lie.
   PageCatalog(this._registry, JasprConfig config)
-    : _index = SnapshotIndex(config);
+    : _index = SnapshotIndex(config),
+      _sitemap = SitemapSource(config);
 
   final PageRegistry _registry;
   final SnapshotIndex _index;
+  final SitemapSource _sitemap;
 
   PageSnapshot get _snapshot =>
       _registry.current ?? (throw const PageCatalogNotReadyError());
@@ -42,6 +46,17 @@ final class PageCatalog {
   /// `:param` has no concrete URL and is left out.
   List<NavItem> navOf<S extends PageSite>() =>
       NavigationBuilder.of(pagesOf<S>());
+
+  /// The addresses of the sitemap of the site [S], by path: its static
+  /// pages and the `entries` of its parameterised pages, loaded in chunks
+  /// of `JasprConfig.sitemapChunkSize` while the stream is read.
+  ///
+  /// Empty when the site has no `sitemapBaseUrl`. A page with `included:
+  /// false` or with its own `hooks.use` (unless `included: true`) is left
+  /// out. Throws [PageEntriesMismatchError] when an entry's parameters are
+  /// not those of the page path.
+  Stream<SitemapUrl> sitemapOf<S extends PageSite>() =>
+      _sitemap.urls(_index.declaredOf(_snapshot, S));
 
   /// The page that would serve [uri] and its path parameters, or `null`
   /// where no page would: a file request, a URL of the static files, or no
