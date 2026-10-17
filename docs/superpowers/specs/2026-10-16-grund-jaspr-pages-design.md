@@ -164,9 +164,9 @@ PagesRunner (раннер 'pages'): на prepare/reassemble бере СВІЖИ�
     доходять до компонентів.
 
   ```dart
-  // модуль сайту (не імпортує модулі сторінок)
-  Module(bindings: [...Pages.site<AdminSite>(AdminSite.new), /* охоронці */],
-         exports: [AdminSite, AdminGuard]),
+  // модуль сайту (не імпортує модулі сторінок); гетери класу Module
+  bindings => [...Pages.site<AdminSite>(AdminSite.new), /* охоронці */];
+  exports => [Key<AdminSite>(), Key<AdminGuard>()];
   // будь-який модуль сторінок (імпортує модуль сайту)
   Pages.under<AdminSite>((injector) => [
     Page('/', build: (c) => DashboardPage()),
@@ -187,8 +187,9 @@ PagesRunner (раннер 'pages'): на prepare/reassemble бере СВІЖИ�
   компонента Jaspr робить 500.
 - `PageHooks({List<Type> skip = const [], List<HookRef<HttpHook>> use =
   const []})`: що пропустити з хуків сайту (за типом) і що додати після них.
-- `PageMeta({required String title, String? description, PageNav? nav,
-  PageSitemap sitemap})`; `PageNav({String? label, String group = 'main', int
+- `PageMeta({String title = '', String? description, PageNav? nav,
+  PageSitemap sitemap})` (`title` має типове порожнє значення, щоб `Page('/',
+  build: ...)` без метаданих працювало, як у прикладах); `PageNav({String? label, String group = 'main', int
   order = 0})` (`label` за замовчуванням дорівнює `title`);
   `PageSitemap({bool included = true, DateTime? lastModified,
   SitemapChangeFrequency? changeFrequency, double? priority, SitemapEntries?
@@ -511,9 +512,9 @@ NotFoundException`) оновлюються. Портфоліо мігрує ок
 
 ## 9. Ризики
 
-- `Singleton`/`Module.exports`: що `dependsOn` приймає generic-типи (`[S,
-  PageRenderer]`) і що `Pages.site` як spread із двох прив'язок працює з
-  `exports: [S]`: перевіряє перша задача плану.
+- `dependsOn` приймає `Key`-и (`[Key<S>(), Key<PageRenderer>()]`, не `const`), а
+  `exports` — `Key`-и власних прив'язок; spread із двох прив'язок `Pages.site`
+  перевіряє перша наскрізна задача плану.
 - Паритет `PageMatcher` з router: `Router` не експортується, тож тест
   реєструє ті самі шаблони в справжньому сервері.
 - Порядок раннерів не гарантований: при hot reload глобальна помилка
