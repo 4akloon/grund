@@ -362,11 +362,12 @@ true)`. Параметрична сторінка в сайті з `sitemapBaseU
 `DuplicateRouteError`. Де перевіряється:
 - **локально**, у `routes`-геттері `SiteApi`/`PagesApi` або в їхніх
   фабриках: шляхи, зарезервовані шляхи, `skip`, `entries`, рішення про
-  sitemap, `GuardedSiteSitemapError`,
-  `MismatchedSiteTypeError`. Виняток тут лишає стару таблицю (hot reload) і
-  валить старт;
+  sitemap, `GuardedSiteSitemapError`. Виняток тут лишає стару таблицю
+  (hot reload) і валить старт;
 - **глобально**, у `PagesRunner.prepare/reassemble` над свіжим знімком:
-  `DuplicateSiteError`, `DuplicateSitePathError`, `NestedSitePathError`,
+  `DuplicateSiteError`, `MismatchedSiteTypeError` (порівнює тип сайту з `S`
+  у знімку; конструктор `SiteApi` цього не бачить без обгортки
+  `ProviderCreationError`), `DuplicateSitePathError`, `NestedSitePathError`,
   `MissingSiteIndexError`, `MisplacedPagePathError`. На старті це зупиняє
   застосунок до першого запиту; при hot reload `HttpServer` міг уже підмінити
   таблицю (порядок раннерів не гарантований), тож помилка лише повідомляється,
