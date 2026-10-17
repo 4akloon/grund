@@ -8,7 +8,6 @@ import 'page_site.dart';
 import '../sitemap/sitemap_handlers.dart';
 import 'pages_api.dart';
 import 'site_api.dart';
-import 'site_extensions.dart';
 import 'site_services.dart';
 
 /// Bindings that declare sites and pages in a module.
@@ -52,7 +51,6 @@ abstract final class Pages {
     Key<NonPageRequests>(),
     Key<JasprConfig>(),
     Key<SitemapHandlers>(),
-    Key<SiteExtensions>(),
   ];
 
   static SiteServices _services(Injector i) => SiteServices(
@@ -60,6 +58,5 @@ abstract final class Pages {
     nonPage: i<NonPageRequests>(),
     config: i<JasprConfig>(),
     sitemap: i<SitemapHandlers>(),
-    extensions: i<SiteExtensions>(),
   );
 }

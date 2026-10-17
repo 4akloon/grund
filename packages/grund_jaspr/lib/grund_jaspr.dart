@@ -15,7 +15,6 @@ export 'src/error/page_declaration_error.dart';
 export 'src/error/page_runtime_error.dart';
 export 'src/error/site_declaration_error.dart';
 export 'src/page/page.dart';
-export 'src/page/page_extension.dart';
 export 'src/page/page_hooks.dart';
 export 'src/page/page_match.dart';
 export 'src/page/page_meta.dart';

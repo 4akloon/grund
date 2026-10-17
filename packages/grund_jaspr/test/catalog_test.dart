@@ -31,10 +31,6 @@ void main() {
         () => catalog.match(Uri.parse('/')),
         throwsA(isA<PageCatalogNotReadyError>()),
       );
-      expect(
-        catalog.pagesWith<MarkdownLike>,
-        throwsA(isA<PageCatalogNotReadyError>()),
-      );
     });
 
     test(
@@ -180,18 +176,6 @@ void main() {
       expect(catalog.navOf<PublicSite>().map((item) => item.label), ['Home']);
     });
 
-    test('pagesWith returns only the pages with that extension', () async {
-      final catalog = await startCatalog([
-        _publicWith([
-          markedPage('/', extensions: const [OtherExtension()]),
-          markedPage('/doc', extensions: const [MarkdownLike()]),
-          markedPage('/plain'),
-        ]),
-      ]);
-
-      expect(_paths(catalog.pagesWith<MarkdownLike>()), ['/doc']);
-    });
-
     test(
       'match treats trailing-slash static and root file URLs as files',
       () async {
@@ -247,7 +231,6 @@ void main() {
 
         catalog.pagesOf<PublicSite>();
         catalog.navOf<PublicSite>();
-        catalog.pagesWith<MarkdownLike>();
         catalog.match(Uri.parse('http://x/'));
 
         expect(declared, 0);

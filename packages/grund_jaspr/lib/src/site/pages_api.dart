@@ -67,7 +67,7 @@ final class PagesApi<S extends PageSite> extends HttpApi {
 
   Future<HttpResponse> _serve(HttpCtx c, Page page) async {
     if (!_services.nonPage.isPageRequest(c.request.uri)) {
-      return _services.nonPage.answer(c, _services.extensions.of(S));
+      _services.nonPage.notFound(c.request.uri);
     }
     return _responder.page(c, site: site, page: page, match: _matchOf(c, page));
   }

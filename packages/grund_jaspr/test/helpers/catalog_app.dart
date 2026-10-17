@@ -42,12 +42,10 @@ Page markedPage(
   String path, {
   PageMeta meta = const PageMeta(),
   PageHooks hooks = const PageHooks(),
-  List<PageExtension> extensions = const [],
 }) => Page(
   path,
   meta: meta,
   hooks: hooks,
-  extensions: extensions,
   build: (_) =>
       Component.element(tag: 'h1', children: [Component.text('id:$path')]),
 );
@@ -57,18 +55,6 @@ Page navPage(String path, {String title = '', PageNav? nav}) => markedPage(
   path,
   meta: PageMeta(title: title, nav: nav),
 );
-
-/// An extension that marks a page as markdown-like.
-final class MarkdownLike extends PageExtension {
-  /// Creates the extension.
-  const MarkdownLike();
-}
-
-/// Another extension, to check the filter by type.
-final class OtherExtension extends PageExtension {
-  /// Creates the extension.
-  const OtherExtension();
-}
 
 /// Starts the modules with `JasprModule` and returns the catalog.
 Future<PageCatalog> startCatalog(

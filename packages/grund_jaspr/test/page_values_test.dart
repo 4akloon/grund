@@ -16,7 +16,6 @@ void main() {
     expect(page.meta.nav, isNull);
     expect(page.hooks.skip, isEmpty);
     expect(page.hooks.use, isEmpty);
-    expect(page.extensions, isEmpty);
   });
 
   test('PageSitemap can include a page explicitly', () {

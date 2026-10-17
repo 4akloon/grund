@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:grund_http/grund_http.dart';
 import 'package:jaspr/server.dart';
 
-import 'page_extension.dart';
 import 'page_hooks.dart';
 import 'page_meta.dart';
 
@@ -18,7 +17,6 @@ final class Page {
     required this.build,
     this.meta = const PageMeta(),
     this.hooks = const PageHooks(),
-    this.extensions = const [],
   });
 
   /// The path relative to the site.
@@ -32,7 +30,4 @@ final class Page {
 
   /// Hook changes for this page.
   final PageHooks hooks;
-
-  /// Capabilities this page opts into.
-  final List<PageExtension> extensions;
 }

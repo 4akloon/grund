@@ -13,8 +13,7 @@ final class PageResponder {
 
   final SiteServices _services;
 
-  /// The response for [match] of [page]: an answer of one of the page's
-  /// extensions, the rendered page, or the site's not-found page when the
+  /// The response for [match] of [page]: the rendered page or the site's not-found page when the
   /// builder throws [NotFoundException].
   Future<HttpResponse> page(
     HttpCtx c, {
@@ -22,10 +21,6 @@ final class PageResponder {
     required Page page,
     required PageMatch match,
   }) async {
-    for (final extension in page.extensions) {
-      final response = await extension.respond(c, match);
-      if (response != null) return response;
-    }
     final Component content;
     try {
       content = await page.build(c);

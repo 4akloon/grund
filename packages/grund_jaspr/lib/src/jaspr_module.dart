@@ -13,7 +13,6 @@ import 'page/non_page_requests.dart';
 import 'page/page_renderer.dart';
 import 'site/page_registry.dart';
 import 'site/pages_runner.dart';
-import 'site/site_extensions.dart';
 import 'site/site_validator.dart';
 import 'site/static_api.dart';
 import 'site/static_files.dart';
@@ -102,10 +101,6 @@ final class JasprModule extends Module {
         Key<SitemapChunkCache>(),
       ],
     ),
-    Singleton<SiteExtensions>(
-      (i) => SiteExtensions(i<PageRegistry>(), i<SnapshotIndex>()),
-      dependsOn: const [Key<PageRegistry>(), Key<SnapshotIndex>()],
-    ),
     Singleton<StaticFiles>(
       (i) => StaticFiles(i<JasprConfig>().staticDirectory),
       dependsOn: const [Key<JasprConfig>()],
@@ -137,7 +132,6 @@ final class JasprModule extends Module {
     Key<PageCatalog>(),
     Key<NonPageRequests>(),
     Key<SitemapHandlers>(),
-    Key<SiteExtensions>(),
   ];
 
   @override

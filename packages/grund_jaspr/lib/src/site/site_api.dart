@@ -45,9 +45,9 @@ final class SiteApi<S extends PageSite> extends HttpApi {
     Route.get('/*', _notFound, use: site.use),
   ];
 
-  Future<HttpResponse> _notFound(HttpCtx c) {
+  Future<HttpResponse> _notFound(HttpCtx c) async {
     if (!_services.nonPage.isPageRequest(c.request.uri)) {
-      return _services.nonPage.answer(c, _services.extensions.of(S));
+      _services.nonPage.notFound(c.request.uri);
     }
     return _responder.notFound(c, site);
   }

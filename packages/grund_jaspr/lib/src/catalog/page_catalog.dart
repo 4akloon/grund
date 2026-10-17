@@ -1,6 +1,5 @@
 import '../error/page_runtime_error.dart';
 import '../jaspr_config.dart';
-import '../page/page_extension.dart';
 import '../page/page_match.dart';
 import '../page/site_page.dart';
 import '../site/page_registry.dart';
@@ -13,8 +12,7 @@ import 'navigation_builder.dart';
 import 'sitemap_source.dart';
 import 'snapshot_index.dart';
 
-/// The pages of the running application: per site, as navigation, by URL
-/// and by extension.
+/// The pages of the running application: per site, as navigation and by URL.
 ///
 /// It reads the snapshot of the pages runner, so it follows hot reloads.
 /// Every read before the application has started throws
@@ -83,10 +81,4 @@ final class PageCatalog {
   /// matters. It knows only pages, the static layer and the sites: a route
   /// of a user `HttpApi`, such as `/api/x`, is not considered.
   PageMatch? match(Uri uri) => _index.match(_snapshot, uri);
-
-  /// The pages that carry an extension of type [T].
-  List<SitePage> pagesWith<T extends PageExtension>() => [
-    for (final page in _index.pages(_snapshot))
-      if (page.page.extensions.any((extension) => extension is T)) page,
-  ];
 }
