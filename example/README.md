@@ -86,11 +86,11 @@ password before `Sessions.start`. The session cookie is not `Secure` here
 | Adapter choice | `lib/src/server/serving_module.dart`, `bin/main.dart` |
 | The generated glue | `lib/src/**/*.g.dart` |
 | The explicit-API twin | `lib/explicit.dart` |
-| Jaspr pages reading DI and the session | `lib/src/web/tasks_site.dart`, `home_page.dart`, `login_page.dart` |
+| Jaspr pages reading DI and the session | `lib/src/web/public_site.dart`, `home_page.dart`, `login_page.dart` |
 | Sign-in and sign-out with `Sessions`, a cookie of the handler's own | `lib/src/web/login_api.dart` |
 | `JasprModule`, `SessionModule` (explicit in both graphs) | `lib/src/web/web_module.dart` |
 | The `SessionHook`, global | `lib/src/server/serving_module.dart` |
-| Static files | `web/styles.css` |
+| Static files, served under `/static` | `web/styles.css` |
 
 ## Generated files
 

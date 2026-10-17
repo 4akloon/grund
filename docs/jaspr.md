@@ -151,7 +151,10 @@ Rules:
   is not allowed, not among the site's hooks, or ambiguous is a declaration
   error at startup (`ForbiddenPageSkipError`, `UnknownPageSkipError`,
   `AmbiguousPageSkipError`).
-- The 404 pages of a site go through all of its hooks and ignore `skip`.
+- The fallback 404 page of a site (no page matched) goes through all of
+  the site's hooks and ignores `skip`. A `NotFoundException` from a builder
+  is rendered inside that page's own route, with the page's resolved hooks
+  (`skip` applied).
 
 ## The module
 
@@ -161,6 +164,10 @@ the rendering services and is imported once by the application.
 ```dart
 final class HomeSiteModule extends Module {
   const HomeSiteModule();
+
+  // The pages read what the module that declares their site can see.
+  @override
+  List<Module> get imports => const [TasksModule()];
 
   @override
   List<Binding<Object>> get bindings => [
@@ -261,7 +268,8 @@ Uri? get sitemapBaseUrl => Uri.parse('https://example.com');
 
 The site then serves `<site>/sitemap.xml` and, when it holds more than
 `sitemapChunkSize` addresses, an index with `<site>/sitemap/<n>.xml`
-chunks. These two paths are reserved (`ReservedPagePathError`).
+chunks. These two paths are reserved in every site, whether or not it has
+a `sitemapBaseUrl` (`ReservedPagePathError`).
 
 - The sitemap is served **without the site's hooks**, so a site with `use`
   and a `sitemapBaseUrl` does not start (`GuardedSiteSitemapError`): put
@@ -269,7 +277,8 @@ chunks. These two paths are reserved (`ReservedPagePathError`).
 - A page without parameters is listed with its `PageSitemap(lastModified:,
   changeFrequency:, priority:)`.
 - A page with `:param` needs `entries`, or `PageSitemap(included: false)`
-  (`UndecidedPageSitemapError`). `SitemapEntries.all((injector) async =>
+  (`UndecidedPageSitemapError`; this applies only to a site with a
+  `sitemapBaseUrl`). `SitemapEntries.all((injector) async =>
   [...])` loads the whole list at once, for small sets;
   `SitemapEntries.paged(count:, load:)` counts and loads by `offset` and
   `limit`, for big ones. A `SitemapEntry` carries the `params` of the path
@@ -284,7 +293,7 @@ chunks. These two paths are reserved (`ReservedPagePathError`).
   row can take up to 60 seconds to appear in the sitemap.
   `PageCatalog.invalidateSitemap()` clears the cache. A failing entries
   source gives a 500 on the sitemap request and a SEVERE log on
-  `grund.jaspr`. The page structure itself is never cached.
+  `grund.http`, from the request boundary like any failing route. The page structure itself is never cached.
 
 `PageCatalog` is a global binding that answers questions about the running
 pages (it follows hot reloads; reading it before the application has
@@ -388,11 +397,22 @@ next response, without a restart (the process id stays). A page list
 page or a site in a reload works. A new field restarts the process, as
 everywhere in [dev mode](dev-mode.md).
 
-If the new set of sites and pages breaks a rule (a site without `/`,
-two pages on one path, a nested site, a forbidden `skip`), the reload
-fails with that error, `dev` prints it, and the previous set keeps
-serving until the next successful reload. At startup the same error stops
-the application before it listens.
+If the new set breaks a rule, the reload fails with that error, `dev`
+prints it, and the application keeps serving. Two kinds of rule exist:
+
+- Rules that need every site at once (a site without `/`, duplicate or
+  nested site paths, a mismatched site type) are checked by the pages
+  runner before it replaces its snapshot, so the pages catalog keeps the
+  old set.
+- Rules of one site or page (a forbidden `skip`, a reserved or invalid
+  page path, an undecided sitemap) are checked when the HTTP server builds
+  its route table; a failure there leaves the old routes serving. The
+  pages runner may already have replaced the catalog's snapshot, depending
+  on the order of the application's runners, so after such a failed
+  reload `PageCatalog` can describe the new pages while the routes are
+  still the old ones; the next successful reload makes them agree.
+
+At startup the same errors stop the application before it listens.
 
 Open pages reload themselves: `dev` passes the URL of its event stream in
 `GRUND_LIVE_RELOAD_URL`, and `JasprModule` adds a small script before the
@@ -423,8 +443,10 @@ build.
 - **Page extensions** (`PageExtension`) are capabilities a page opts into
   through `Page(extensions:)`. After the hooks, `respond(c, match)` may
   answer instead of the page (an alternative representation of the same
-  address) and `claim(c, uri)` may answer a request below the site that
-  matched no page; both return `null` to let the default happen. It is the
+  address) and `claim(c, uri)` may answer a file request (a last segment with an
+  extension outside `pageSuffixes`) before the JSON 404 `file_not_found`;
+  an unmatched page-like path such as `/blog/nope` goes to `notFound()`
+  and never to `claim`. Both return `null` to let the default happen. It is the
   extension point a Markdown layer would use; this release ships none.
 - **Sessions live in memory**: they end with the process (a restart under
   `grund dev` signs everyone out) and are not shared between processes.

@@ -185,9 +185,10 @@ runs it without `--target`.
 `--template fullstack` is a site written with the explicit API, served by
 `grund_jaspr` with sessions from `grund_auth`: `lib/src/app_module.dart`
 (`HttpModule` with the `SessionHook`, `SessionModule`, `JasprModule`, the
-`AccountApi` that signs in and out through forms), the pages in
-`lib/src/pages/` (a home page that greets the signed-in user, a sign-in
-page), `web/styles.css`, `bin/main.dart` and `test/app_test.dart` (the
+`AccountApi` that signs in and out through forms),
+`lib/src/home_site_module.dart` (the site and its pages), the pages in
+`lib/src/pages/` (`public_site.dart`, the site with its shell; a home page
+that greets the signed-in user; a sign-in page), `web/styles.css`, `bin/main.dart` and `test/app_test.dart` (the
 home page and a sign-in through `TestApp`). It needs no `gen`:
 
 ```sh
@@ -201,7 +202,7 @@ over plain `http` under `dev`; serve a product build behind HTTPS.
 
 The api scaffold depends on `grund`, `grund_http`, `grund_io` and
 `grund_cli` at `^0.1.0`; the fullstack one also on `grund_auth` and
-`grund_jaspr` at `^0.1.0`, on `grund_http` at `^0.2.0` and on `jaspr`
+`grund_jaspr` at `^0.2.0`, on `grund_http` at `^0.2.0` and on `jaspr`
 `>=0.23.5 <0.24.0`. To try a scaffold against a checkout of the
 repository instead of pub.dev, add to its `pubspec.yaml` (with your path):
 

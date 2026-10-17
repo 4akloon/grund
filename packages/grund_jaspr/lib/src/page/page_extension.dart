@@ -12,6 +12,8 @@ abstract base class PageExtension {
   /// or returns `null` to let the page render.
   Future<HttpResponse?> respond(HttpCtx c, PageMatch match) async => null;
 
-  /// Answers a request for [uri] that matched no page, or returns `null`.
+  /// Answers a file request for [uri] (a last path segment with an extension
+  /// outside `JasprConfig.pageSuffixes`) before the JSON 404, or returns
+  /// `null`. A page-like path that matches no page never reaches it.
   Future<HttpResponse?> claim(HttpCtx c, Uri uri) async => null;
 }

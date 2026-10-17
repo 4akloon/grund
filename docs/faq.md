@@ -10,8 +10,8 @@ import a hand-written one and the other way round.
 
 **Can grund serve HTML pages?**
 Yes, server-side rendered with Jaspr in the same process as the API:
-`grund_jaspr` serves the sites, pages, static files and sitemaps, `grund_auth` adds a
-cookie session that pages and handlers share. Hydration (`@client`) is not
+`grund_jaspr` serves the sites, pages, static files and sitemaps,
+`grund_auth` adds a cookie session that pages and handlers share. Hydration (`@client`) is not
 supported yet. See [jaspr.md](jaspr.md).
 
 **Where is the controller, the guard, the pipe, the interceptor, the filter?**

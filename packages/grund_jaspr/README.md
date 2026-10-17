@@ -34,6 +34,10 @@ final class PublicSite extends PageSite {
 final class SiteModule extends Module {
   const SiteModule();
 
+  // Pages see the providers of the module that declares their site.
+  @override
+  List<Module> get imports => const [CounterModule()];
+
   @override
   List<Binding<Object>> get bindings => [
     ...Pages.site<PublicSite>(PublicSite.new),
@@ -51,7 +55,6 @@ final class AppModule extends Module {
     HttpModule(),
     IoAdapterModule(),
     JasprModule(),
-    CounterModule(),
     SiteModule(),
   ];
 }
@@ -81,7 +84,7 @@ Future<void> main() => App(root: const AppModule()).run();
 - Hooks run in this order: the global ones of `HttpModule`, the site's
   `use`, the page's `hooks.use`. `PageHooks(skip: [...])` leaves a site
   hook out for one page, only for the types the site lists in
-  `skippableHooks`. The 404 pages of a site go through all its hooks.
+  `skippableHooks`. The fallback 404 page of a site goes through all its hooks and ignores `skip`.
 - `JasprModule({config})` does not import `HttpModule`: the application
   imports it once, with its own hooks, middleware and configuration, and
   pages go through them like any route. API routes and pages share one
@@ -164,5 +167,5 @@ the URL by hand.
   it cannot be silenced, and there are no client components in this
   release.
 - Do not run the application under `jaspr serve`; use `grund dev`.
-- Not in this release: Markdown pages, hydration (`@client`), `jaspr_builder`, HTML error
-  pages.
+- Not in this release: Markdown pages, hydration (`@client`),
+  `jaspr_builder`, HTML error pages.

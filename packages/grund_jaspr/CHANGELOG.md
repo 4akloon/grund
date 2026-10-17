@@ -24,13 +24,16 @@ Pages and sites replace the single root component.
   declaration and runtime errors (`SiteDeclarationError`,
   `PageDeclarationError`, `PageRuntimeError`).
 - A page builder throws `NotFoundException` for an unknown parameter value:
-  the answer is the site's 404 page. The 404 pages of a site go through its
-  hooks.
+  the answer is the site's 404 page. The fallback 404 page of a site goes through
+  its hooks and ignores `skip`.
 - Sitemaps: a site with `sitemapBaseUrl` serves `<site>/sitemap.xml` and
   chunked `<site>/sitemap/<n>.xml`, without the site's hooks.
 - Structural mistakes (a site without `/`, nested or duplicate paths, a
   forbidden hook skip, a reserved page path) fail at startup, and a hot
   reload that breaks one keeps the previous pages serving.
+- Unmatched `GET`s get the HTML 404 page only below a site path (0.1.0: any
+  unmatched `GET` did); elsewhere the JSON `route_not_found` stays.
+- `JasprError` is now an `abstract base class`.
 - New dependencies: `logging` and `path`.
 
 ## 0.1.0
