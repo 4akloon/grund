@@ -388,11 +388,16 @@ true)`. Параметрична сторінка в сайті з `sitemapBaseU
 Пакет-шар (назва відкрита, умовно `grund_jaspr_markdown`) вмикає `.md`-двійники,
 `llms.txt` і `Accept: text/markdown`. Від `grund_jaspr` йому потрібно: список
 `Page.extensions` (він оголошує `MarkdownTwin extends PageExtension`),
-`PageCatalog.match/pagesWith/sitemapOf` і дві **охоронювані** точки, обидві
-після хуків сайту й сторінки: `PageExtension.respond(HttpCtx, PageMatch)`
-(викликається перед рендером HTML на роуті сторінки; так працює
+`PageCatalog.match/pagesWith/sitemapOf` і дві **охоронювані** точки:
+`PageExtension.respond(HttpCtx, PageMatch)` (викликається перед рендером HTML
+на роуті сторінки, після хуків сайту й сторінки; так працює
 `Accept: text/markdown`) і `PageExtension.claim(HttpCtx, Uri)` (викликається
-правилом `NonPageRequests` для варіантів з суфіксом на кшталт `/about.md`).
+правилом `NonPageRequests` для варіантів з суфіксом на кшталт `/about.md`,
+після хуків **сайту**). `claim` не має `PageMatch`, тож фреймворк не може
+застосувати хуки сторінки, на яку вказує варіант: розширення сторінок із
+власними `hooks.use` у ланцюжок `claim` не входять (варіант охоронюваної
+сторінки не віддається взагалі; шар віддає його через `respond` на роуті самої
+сторінки).
 Шар ніколи не віддає вміст глобальним хуком чи middleware, бо вони
 виконуються до охоронців сайту. Режим «суворо» пакета-шару на старті вимагає
 від кожної сторінки або `MarkdownTwin`, або явного `NoMarkdown`, тож забутий
