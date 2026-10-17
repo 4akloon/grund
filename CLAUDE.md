@@ -319,13 +319,13 @@ producing a response):
   `RequestDispatcher` answers 400 for a malformed percent-encoding of the
   path (`FormatException` of `Uri.pathSegments`);
 - the page boundary (`grund_jaspr`): `PagesApi` catches `on
-  NotFoundException` around the page builder (nothing else) and answers the
-  site's `notFound()` page, inside the site's shell, with status 404; the
-  builder of an alternate (chosen by `Accept` on the page URL or by its own
-  URL) and a `SiteFile` builder have the same entry: a `NotFoundException`
-  becomes the problem 404, any other failure propagates to the request
-  boundary; any other failure of a page builder or component propagates to
-  the request boundary too (`PageRenderError` for a component that throws);
+  NotFoundException` around the page builder and around the alternate chosen
+  by `Accept` on the page URL (nothing else) and answers the site's
+  `notFound()` page, inside the site's shell, with status 404; the builder
+  of an alternate on its own URL and a `SiteFile` builder are not caught:
+  their `NotFoundException` reaches the request boundary as the problem 404;
+  any other failure propagates to the request boundary
+  (`PageRenderError` for a component that throws);
 - the `dev` command boundary (`grund_cli`): `DevCommand` catches `on
   Exception` (not `on Object`: an `Error` is a bug and stays loud) around
   the user's application process, a run and the key actions, and turns the

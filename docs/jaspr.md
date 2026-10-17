@@ -397,10 +397,15 @@ client controls.
   `/evil.test/x`, never to a URL on another host, and a `%2F` stays
   encoded.
 - It runs after the hooks of the site, so a hook that refuses (a guest on a
-  protected page) answers first, and before the page builder. The
-  redirect is only for URLs that match a page: the fallback 404, file
-  requests (`/feed.xml`) and static files are not redirected. `always` adds
-  no slash to the root of a site or to a last segment with an extension.
+  protected page) answers first, and before the page builder. Page
+  URLs get the canonical form of the policy (a slash is added only under
+  `always` and removed under `never`). Alternate, site file and sitemap URLs
+  only ever lose a trailing slash, never gain one (`/robots.txt/` and
+  `/about.md/` answer 308 to the URL without it). A file request (a last
+  segment with a dot, no trailing slash, such as `/feed.xml`) is not
+  redirected and not served by a page, and neither are static files or the
+  fallback 404. `always` adds no slash to the root of a site or to a last
+  segment with an extension.
 - With `ignore`, links and the sitemap use the declared path, without a
   slash.
 
@@ -417,8 +422,9 @@ match.alternatePath('text/markdown'); // '/projects/grund.md', or null
 `path` and `alternatePath` throw `ArgumentError` for a missing parameter
 and for a value that is empty, `.` or `..`. The same dot segments answer
 404 on the request side: `..` is normalized by URI parsing before routing
-(`/projects/..` is `/`), and a `.` slug on a page or an alternate is the
-site's 404.
+(`/projects/..` is `/`), and a `.` slug answers 404 (the site's 404 page on a
+page and on the negotiated URL, the problem 404 on the alternate's own
+URL).
 
 ## Alternate representations
 
@@ -432,6 +438,7 @@ Page(
   alternates: [
     PageAlternate.markdown((c, match) async {
       final project = await projects.find(match.params['slug']!);
+      if (project == null) throw const NotFoundException();
       return '# ${project.name}\n\n${project.summary}\n';
     }),
   ],
@@ -441,7 +448,9 @@ Page(
 `PageAlternate(mediaType:, suffix:, build:)` is the general form;
 `PageAlternate.markdown` is `text/markdown` at `.md`. The builder returns
 the text and throws `NotFoundException` for a parameter it does not know,
-which answers the site's problem 404. The suffix matches `^(\.[a-z0-9]+)+$`.
+which answers the site's 404 page when the alternate was chosen by `Accept`
+on the page URL, and the `application/problem+json` 404 on the alternate's
+own URL. The suffix matches `^(\.[a-z0-9]+)+$`.
 
 An alternate has **its own URL**: the page URL plus the suffix
 (`/projects/grund.md`; the root page of a site at `/blog` gets
@@ -462,8 +471,10 @@ unreadable header gets HTML, and there is no `406`. (`AcceptHeader` in
   `rel="alternate"` to the alternate URL.
 - An alternate is served as `<mediaType>; charset=utf-8` with
   `cache-control: private, no-cache` unless `c.response` already set its
-  own. With a `baseUrl` it also sends `Link: <page URL>; rel="canonical"`:
-  the canonical is the **page** URL, so search engines index the page and not
+  own. On its **own URL** and with a `baseUrl` it also sends
+  `Link: <page URL>; rel="canonical"` (the response negotiated on the page
+  URL needs none: that URL is the canonical one). The canonical is the
+  **page** URL, so search engines index the page and not
   the `.md` copy. There is no `noindex` by default; a builder that wants one
   sets it itself: `c.response.headers.set('x-robots-tag', 'noindex')`.
 - A cache or CDN in front of the application must key the page URL on
@@ -490,7 +501,7 @@ SiteFile(
       final match = catalog.match(url.location);
       final markdown = match?.alternatePath('text/markdown');
       if (markdown != null) {
-        lines.add('- ${baseUrl.resolve(markdown)}: ${match!.meta.title}');
+        lines.add('- ${url.location.resolve(markdown)}: ${match!.meta.title}');
       }
     }
     return lines.join('\n');
@@ -498,7 +509,8 @@ SiteFile(
 )
 ```
 
-Here `baseUrl` is the site's own `baseUrl`. For pages without parameters
+`url.location` is absolute (the site's `baseUrl` is applied), so the link
+is too. For pages without parameters
 `catalog.pagesOf<PublicSite>()` and `PageMatch(page:, params: const {})`
 give the same without the sitemap.
 
@@ -527,8 +539,9 @@ List<SiteFile> get files => [
 - The path is relative to the site; the site `/docs` serves `/docs/llms.txt`.
 - A file is a territory of its own: a **literal site file path wins over a
   parametric page**, so `/projects/x` beats `/projects/:slug`, as a literal
-  `/projects/new` beats the parameter in any router. It is not
-  redirected by the trailing slash policy.
+  `/projects/new` beats the parameter in any router. The trailing slash policy
+  only removes a slash from its URL (`/robots.txt/` is a 308 to
+  `/robots.txt`).
 - A path the framework cannot serve is a startup error,
   `InvalidSiteFileError`, with the path and the reason: no leading `/`,
   the site root `/`, a trailing slash, an empty segment (`//`), `:` or
