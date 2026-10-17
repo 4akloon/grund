@@ -1,11 +1,8 @@
 import 'package:grund_http/grund_http.dart';
-import 'package:jaspr/server.dart';
+import 'package:jaspr/jaspr.dart' show Component;
 
-import '../error/jaspr_error.dart';
-import '../grund_scope.dart';
-import '../jaspr_request.dart';
-import '../jaspr_response.dart';
 import '../live_reload_script.dart';
+import 'component_rendering.dart';
 import 'page_match.dart';
 
 /// Renders one component under a [GrundScope], through Jaspr, into an
@@ -31,18 +28,12 @@ final class PageRenderer {
     int status = 200,
     PageMatch? match,
   }) async {
-    final rendered = await renderComponent(
-      GrundScope(httpContext: c, pageMatch: match, child: page),
-      request: JasprRequest.from(c.request),
+    final response = await ComponentRendering.render(
+      c,
+      page,
+      status: status,
+      match: match,
     );
-    if (rendered.statusCode == StatusCode.internalServerError) {
-      throw PageRenderError(method: c.request.method, path: c.request.uri.path);
-    }
-    final built = JasprResponse.from(rendered);
-    // A status the component set itself (not Jaspr's default 200) wins.
-    final response = built.status == StatusCode.ok
-        ? HttpResponse(status, headers: built.headers, body: built.body)
-        : built;
     final url = liveReloadUrl;
     return url == null ? response : LiveReloadScript.addTo(response, url);
   }
