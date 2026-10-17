@@ -27,7 +27,7 @@ final class AcceptHeader {
   final Map<String, double> _ranges;
 
   static final _range = RegExp(
-    r"^(\*/\*|[!#$%&'*+.^_`|~0-9A-Za-z-]+/(\*|[!#$%&'*+.^_`|~0-9A-Za-z-]+))$",
+    r"^(\*/\*|[!#$%&'+.^_`|~0-9A-Za-z-]+/(\*|[!#$%&'+.^_`|~0-9A-Za-z-]+))$",
   );
   static final _weight = RegExp(r'^(0(\.\d{0,3})?|1(\.0{0,3})?)$');
 

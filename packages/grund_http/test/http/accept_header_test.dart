@@ -144,5 +144,17 @@ void main() {
       expect(accept.qualityOf('image/png'), 0);
       expect(accept.qualityOf('text/html'), 1);
     });
+
+    test('*/html is skipped, not named', () {
+      expect(AcceptHeader.parse('*/html').names('*/html'), isFalse);
+    });
+
+    test('*/*, text/* and text/html are still parsed', () {
+      final accept = AcceptHeader.parse('*/*;q=0.1, text/*;q=0.5, text/html');
+
+      expect(accept.qualityOf('image/png'), 0.1);
+      expect(accept.qualityOf('text/plain'), 0.5);
+      expect(accept.names('text/html'), isTrue);
+    });
   });
 }
