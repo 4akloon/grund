@@ -6,6 +6,7 @@ import 'package:test/test.dart';
 
 import 'helpers/api_response.dart';
 import 'helpers/loopback_server.dart';
+import 'helpers/web_session.dart';
 
 void main() {
   for (final style in ModuleStyle.values) {
@@ -69,12 +70,7 @@ void _pages(LoopbackServer Function() server) {
 /// Signing in through the form.
 void _signIn(LoopbackServer Function() server) {
   Future<ApiResponse> signIn(String name, {Map<String, String>? headers}) =>
-      server().send(
-        'POST',
-        '/login',
-        form: 'name=${Uri.encodeQueryComponent(name)}',
-        headers: headers ?? const {},
-      );
+      WebSession.login(server(), name, headers: headers ?? const {});
 
   test('signing in sets the session and the flash cookie (RF4, RF5)', () async {
     final login = await signIn('ann');
@@ -100,7 +96,7 @@ void _signIn(LoopbackServer Function() server) {
     'the flash shows on the next page and is gone on the one after',
     () async {
       final login = await signIn('ann');
-      final cookie = _cookieHeader(login);
+      final cookie = WebSession.cookieHeader(login);
 
       final first = await server().send(
         'GET',
@@ -111,7 +107,7 @@ void _signIn(LoopbackServer Function() server) {
       final second = await server().send(
         'GET',
         '/',
-        headers: {'cookie': _sessionOnly(login)},
+        headers: {'cookie': WebSession.sessionOnly(login)},
       );
 
       expect(first.body, contains('Signed in as ann.'));
@@ -128,7 +124,7 @@ void _signIn(LoopbackServer Function() server) {
     final home = await server().send(
       'GET',
       '/',
-      headers: {'cookie': _cookieHeader(login)},
+      headers: {'cookie': WebSession.cookieHeader(login)},
     );
 
     expect(home.body, contains('&lt;script&gt;alert(1)&lt;/script&gt;'));
@@ -143,7 +139,7 @@ void _signIn(LoopbackServer Function() server) {
       headers: {'cookie': 'grund_sid=$planted'},
     );
 
-    expect(_sessionOnly(login), isNot(contains(planted)));
+    expect(WebSession.sessionOnly(login), isNot(contains(planted)));
     final home = await server().send(
       'GET',
       '/',
@@ -153,9 +149,9 @@ void _signIn(LoopbackServer Function() server) {
   });
 
   test('signing in again replaces the session and kills the old id', () async {
-    final first = _sessionOnly(await signIn('ann'));
+    final first = WebSession.sessionOnly(await signIn('ann'));
 
-    final second = _sessionOnly(
+    final second = WebSession.sessionOnly(
       await signIn('bob', headers: {'cookie': first}),
     );
 
@@ -196,7 +192,7 @@ void _signIn(LoopbackServer Function() server) {
     final home = await server().send(
       'GET',
       '/',
-      headers: {'cookie': _cookieHeader(login)},
+      headers: {'cookie': WebSession.cookieHeader(login)},
     );
     expect(home.body, contains('Signed in as ann.'));
   });
@@ -223,7 +219,7 @@ void _signIn(LoopbackServer Function() server) {
 void _signOut(LoopbackServer Function() server) {
   Future<Map<String, String>> signedIn() async {
     final login = await server().send('POST', '/login', form: 'name=ann');
-    return {'cookie': _cookieHeader(login)};
+    return {'cookie': WebSession.cookieHeader(login)};
   }
 
   test('signing out ends the session', () async {
@@ -256,14 +252,3 @@ void _signOut(LoopbackServer Function() server) {
     });
   }
 }
-
-/// The `cookie` header a browser sends after [response]: the name and value
-/// of every cookie it set.
-String _cookieHeader(ApiResponse response) =>
-    response.setCookies.map((cookie) => cookie.split(';').first).join('; ');
-
-/// Only the session cookie of [response], as a browser keeps it after the
-/// flash cookie was deleted.
-String _sessionOnly(ApiResponse response) => response.setCookies
-    .map((cookie) => cookie.split(';').first)
-    .firstWhere((pair) => pair.startsWith('grund_sid='));
