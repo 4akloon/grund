@@ -22,8 +22,12 @@ void main() {
     expect(pubspec, contains('  grund_auth: ^0.1.0\n'));
     expect(pubspec, contains('  grund_cli: ^0.1.2\n'));
     expect(pubspec, contains('  grund_http: ^0.2.0\n'));
-    expect(pubspec, contains('  grund_jaspr: ^0.1.0\n'));
+    expect(pubspec, contains('  grund_jaspr: ^0.2.0\n'));
     expect(pubspec, contains("  jaspr: '>=0.23.5 <0.24.0'\n"));
+    expect(
+      dir.read('my_site/lib/src/home_site_module.dart'),
+      contains('Pages.under<PublicSite>'),
+    );
     expect(await DartDiagnostics.of(target), isEmpty);
   });
 

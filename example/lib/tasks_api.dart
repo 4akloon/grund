@@ -35,5 +35,5 @@ export 'src/tasks/update_task.dart';
 export 'src/web/home_page.dart';
 export 'src/web/login_api.dart';
 export 'src/web/login_page.dart';
-export 'src/web/tasks_site.dart';
+export 'src/web/public_site.dart';
 export 'src/web/web_module.dart';

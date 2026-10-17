@@ -1,5 +1,5 @@
 /// Sources of a small application `site` in the explicit API: one Jaspr
-/// page at `/` that shows its version and the pid, served on the loopback
+/// page at `/` of a site that shows its version and the pid, served on the loopback
 /// port of its first argument; it prints `listening on <port>`.
 abstract final class SiteSources {
   /// The entry point.
@@ -44,7 +44,22 @@ final class SiteModule extends Module {
   List<Module> get imports => const [
     HttpModule(),
     IoAdapterModule(),
-    JasprModule(app: HomePage.new),
+    JasprModule(),
+    HomeSiteModule(),
+  ];
+}
+
+final class HomeSite extends PageSite {
+  HomeSite(super.injector);
+}
+
+final class HomeSiteModule extends Module {
+  const HomeSiteModule();
+
+  @override
+  List<Binding<Object>> get bindings => [
+    ...Pages.site<HomeSite>(HomeSite.new),
+    Pages.under<HomeSite>((_) => [Page('/', build: (_) => const HomePage())]),
   ];
 }
 

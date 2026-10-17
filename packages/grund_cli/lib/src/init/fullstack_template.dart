@@ -21,7 +21,8 @@ abstract final class FullstackTemplate {
     'lib/src/app_module.dart': _appModule,
     'lib/src/pages/home_page.dart': _homePage,
     'lib/src/pages/login_page.dart': _loginPage,
-    'lib/src/pages/site.dart': _site,
+    'lib/src/home_site_module.dart': _homeSiteModule,
+    'lib/src/pages/public_site.dart': _publicSite,
     'pubspec.yaml': _pubspec(name),
     'test/app_test.dart': _appTest(name),
     'web/styles.css': _styles,
@@ -30,6 +31,9 @@ abstract final class FullstackTemplate {
   static const _grund = ProjectTemplate.grundVersion;
 
   static const _grundHttp = ProjectTemplate.grundHttpVersion;
+
+  /// The release with sites and pages (`Pages.site`, `Pages.under`).
+  static const _grundJaspr = '^0.2.0';
 
   static String _pubspec(String name) =>
       '''
@@ -46,7 +50,7 @@ dependencies:
   grund_auth: $_grund
   grund_http: $_grundHttp
   grund_io: $_grund
-  grund_jaspr: $_grund
+  grund_jaspr: $_grundJaspr
   jaspr: '>=0.23.5 <0.24.0'
 
 dev_dependencies:
@@ -75,10 +79,11 @@ import 'package:grund_io/grund_io.dart';
 import 'package:grund_jaspr/grund_jaspr.dart';
 
 import 'account_api.dart';
-import 'pages/site.dart';
+import 'home_site_module.dart';
 
 /// The root module: the HTTP server over dart:io, cookie sessions, the
-/// sign-in API and the pages.
+/// sign-in API and the pages of
+/// [HomeSiteModule].
 final class AppModule extends Module {
   /// Creates the module.
   const AppModule();
@@ -94,7 +99,9 @@ final class AppModule extends Module {
     HttpModule(use: [HookRef<SessionHook>.type()]),
     IoAdapterModule(),
     SessionModule(config: SessionConfig(secure: _isProduct)),
-    JasprModule(app: Site.new),
+    // Once, in the application: the sites of the modules below need it.
+    JasprModule(),
+    HomeSiteModule(),
   ];
 
   @override
@@ -138,29 +145,65 @@ final class AccountApi extends HttpApi {
 }
 ''';
 
-  static const _site = '''
-import 'package:jaspr/server.dart';
+  static const _homeSiteModule = '''
+import 'package:grund/grund.dart';
+import 'package:grund_jaspr/grund_jaspr.dart';
 
-import 'home_page.dart';
-import 'login_page.dart';
+import 'pages/home_page.dart';
+import 'pages/login_page.dart';
+import 'pages/public_site.dart';
 
-/// The root component of every page: picks the page for the path.
-final class Site extends StatelessComponent {
-  /// Creates the site.
-  const Site();
+/// Declares [PublicSite] and its pages.
+final class HomeSiteModule extends Module {
+  /// Creates the module.
+  const HomeSiteModule();
 
   @override
-  Component build(BuildContext context) {
-    switch (Uri.parse(context.url).path) {
-      case '/':
-        return const HomePage();
-      case '/login':
-        return const LoginPage();
-      default:
-        context.setStatusCode(404);
-        return Component.text('No page here.');
-    }
-  }
+  List<Binding<Object>> get bindings => [
+    ...Pages.site<PublicSite>(PublicSite.new),
+    Pages.under<PublicSite>(
+      (_) => [
+        Page(
+          '/',
+          build: (_) => const HomePage(),
+          meta: const PageMeta(title: 'Home'),
+        ),
+        Page(
+          '/login',
+          build: (_) => const LoginPage(),
+          meta: const PageMeta(title: 'Sign in'),
+        ),
+      ],
+    ),
+  ];
+}
+''';
+
+  static const _publicSite = '''
+import 'package:grund_jaspr/grund_jaspr.dart';
+import 'package:jaspr/dom.dart';
+import 'package:jaspr/server.dart';
+
+/// The pages of the application, served at the root of the site.
+///
+/// Its shell makes every page, and the not-found answer, a document with
+/// the stylesheet and the page title. The files of `web/` are served under
+/// `/static`.
+final class PublicSite extends PageSite {
+  /// Creates the site.
+  PublicSite(super.injector);
+
+  @override
+  Component shell(Component content) => Builder(
+    builder: (context) => Document(
+      title: context.pageMatch?.page.page.meta.title ?? 'grund',
+      head: [link(href: '/static/styles.css', rel: 'stylesheet')],
+      body: main_([content]),
+    ),
+  );
+
+  @override
+  Component notFound() => const Component.text('No page here.');
 }
 ''';
 
@@ -170,7 +213,7 @@ import 'package:grund_jaspr/grund_jaspr.dart';
 import 'package:jaspr/dom.dart';
 import 'package:jaspr/server.dart';
 
-/// The start page: who is signed in, and how to sign in or out.
+/// The content of the start page: who is signed in, and how to sign in or out.
 final class HomePage extends StatelessComponent {
   /// Creates the page.
   const HomePage();
@@ -178,20 +221,16 @@ final class HomePage extends StatelessComponent {
   @override
   Component build(BuildContext context) {
     final user = context.maybe<CurrentUser>();
-    return Document(
-      title: 'Home',
-      head: [link(href: '/styles.css', rel: 'stylesheet')],
-      body: main_([
-        h1([Component.text('Hello from grund and Jaspr')]),
-        if (user == null)
-          a(href: '/login', [Component.text('Sign in')])
-        else
-          form(action: '/logout', method: FormMethod.post, [
-            Component.text('Signed in as \${user.id}. '),
-            button(type: ButtonType.submit, [Component.text('Sign out')]),
-          ]),
-      ]),
-    );
+    return Component.fragment([
+      h1([Component.text('Hello from grund and Jaspr')]),
+      if (user == null)
+        a(href: '/login', [Component.text('Sign in')])
+      else
+        form(action: '/logout', method: FormMethod.post, [
+          Component.text('Signed in as \${user.id}. '),
+          button(type: ButtonType.submit, [Component.text('Sign out')]),
+        ]),
+    ]);
   }
 }
 ''';
@@ -200,24 +239,20 @@ final class HomePage extends StatelessComponent {
 import 'package:jaspr/dom.dart';
 import 'package:jaspr/server.dart';
 
-/// The sign-in form; it posts the name to `AccountApi`.
+/// The content of the sign-in page: the form that posts the name to `AccountApi`.
 final class LoginPage extends StatelessComponent {
   /// Creates the page.
   const LoginPage();
 
   @override
-  Component build(BuildContext context) => Document(
-    title: 'Sign in',
-    head: [link(href: '/styles.css', rel: 'stylesheet')],
-    body: main_([
-      h1([Component.text('Sign in')]),
-      form(action: '/login', method: FormMethod.post, [
-        label(htmlFor: 'name', [Component.text('Name ')]),
-        input(id: 'name', name: 'name', type: InputType.text),
-        button(type: ButtonType.submit, [Component.text('Sign in')]),
-      ]),
+  Component build(BuildContext context) => Component.fragment([
+    h1([Component.text('Sign in')]),
+    form(action: '/login', method: FormMethod.post, [
+      label(htmlFor: 'name', [Component.text('Name ')]),
+      input(id: 'name', name: 'name', type: InputType.text),
+      button(type: ButtonType.submit, [Component.text('Sign in')]),
     ]),
-  );
+  ]);
 }
 ''';
 

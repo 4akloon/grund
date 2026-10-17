@@ -38,10 +38,11 @@ void _pages(LoopbackServer Function() server) {
     expect(page.headers['cache-control'], 'private, no-cache');
     expect(page.body, contains('<li>Read the grund README</li>'));
     expect(page.body, contains('href="/login"'));
+    expect(page.body, contains('href="/static/styles.css"'));
   });
 
   test('the stylesheet is served from web/', () async {
-    final css = await server().send('GET', '/styles.css');
+    final css = await server().send('GET', '/static/styles.css');
 
     expect(css.status, 200);
     expect(css.headers['content-type'], 'text/css; charset=utf-8');
@@ -60,6 +61,7 @@ void _pages(LoopbackServer Function() server) {
     final page = await server().send('GET', '/nowhere');
 
     expect(page.status, 404);
+    expect(page.headers['content-type'], 'text/html; charset=utf-8');
     expect(page.body, contains('No page here.'));
   });
 }
