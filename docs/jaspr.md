@@ -395,19 +395,21 @@ client controls.
   `cache-control: max-age=3600` (`private, max-age=3600` when the route has
   hooks, so a shared cache cannot answer a client the hooks did not check),
   and the query string is kept as sent.
-  Only the last slash changes: `//evil.test/x/` redirects to
-  `/evil.test/x`, never to a URL on another host, and a `%2F` stays
-  encoded.
+  Every empty segment is dropped, not only the last slash: `/about//` and
+  `///about` both redirect to `/about`, and `//evil.test/x/` redirects to
+  `/evil.test/x`, never to a URL on another host. A `%2F` stays encoded.
 - It runs after the hooks of the site, so a hook that refuses (a guest on a
   protected page) answers first, and before the page builder. Page
   URLs get the canonical form of the policy (a slash is added only under
   `always` and removed under `never`). Alternate, site file and sitemap URLs
   only ever lose a trailing slash, never gain one (`/robots.txt/` and
   `/about.md/` answer 308 to the URL without it). A file request (a last
-  segment with a dot, no trailing slash, such as `/feed.xml`) is not
-  redirected and not served by a page, and neither are static files or the
-  fallback 404. `always` adds no slash to the root of a site or to a last
-  segment with an extension.
+  segment with a dot that is not a page suffix, no trailing slash, such as
+  `/logo.png`) is not redirected and not served by a page, and neither are
+  static files or the fallback 404 (`/feed.xml` is a page request: `xml` is
+  a default page suffix). `always` adds no slash to `/` itself or to a last
+  segment with an extension; the root of a prefixed site is not exempt
+  (`/blog` answers 308 to `/blog/`).
 - With `ignore`, links and the sitemap use the declared path, without a
   slash.
 
@@ -796,7 +798,12 @@ build.
   `Document`: your shell does.
 - **Dotted last segments** (`/projects/v1.2`) are still file requests, but
   a declared alternate suffix (`/projects/grund.md`) and a declared site file
-  are matched first.
+  are matched first; the page of such a value is at `/projects/v1.2/`.
+- **A root page and `/:slug`, both with an alternate:** the literal
+  `/index.md` (the Markdown of the root page) wins over the alternate of
+  `/:slug`, so a page whose slug is `index` links to the root's Markdown.
+  Routing is literal first; avoid the slug `index` or give the root page no
+  alternate.
 - **Sessions live in memory**: they end with the process (a restart under
   `grund dev` signs everyone out) and are not shared between processes.
 - **Jaspr is initialized once per process**, without isolates. Calling
