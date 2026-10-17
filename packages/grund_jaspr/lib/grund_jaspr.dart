@@ -4,6 +4,7 @@
 library;
 
 export 'src/grund_context.dart';
+export 'src/fragments.dart';
 export 'src/grund_scope.dart';
 export 'src/jaspr_config.dart';
 export 'src/error/jaspr_error.dart';
