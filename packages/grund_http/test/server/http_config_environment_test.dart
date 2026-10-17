@@ -67,7 +67,15 @@ void main() {
       test('rejects the port "$port"', () {
         expect(
           () => HttpConfig.fromEnvironment(_env({'PORT': port})),
-          _invalid('PORT'),
+          throwsA(
+            isA<InvalidVariableError>()
+                .having((e) => e.name, 'name', 'PORT')
+                .having(
+                  (e) => e.expected,
+                  'expected',
+                  'an integer from 0 to 65535',
+                ),
+          ),
         );
       });
     }
@@ -153,7 +161,16 @@ void main() {
         ]),
       );
 
-      await expectLater(app.start(), throwsA(isA<MissingProviderError>()));
+      await expectLater(
+        app.start(),
+        throwsA(
+          isA<MissingProviderError>().having(
+            (e) => e.key,
+            'key',
+            const Key<Environment>(),
+          ),
+        ),
+      );
       expect(adapter.listenCalls, 0);
     });
   });

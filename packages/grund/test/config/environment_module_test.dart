@@ -81,6 +81,49 @@ void main() {
         ),
       );
     });
+
+    test('imported from several modules it is built once and shared', () async {
+      final seen = <Environment>[];
+      final root = AppModule(
+        imports: [
+          const EnvironmentModule(),
+          StubModule(
+            qualifier: 'first',
+            imports: const [EnvironmentModule()],
+            bindings: [
+              Singleton<String>((i) {
+                seen.add(i<Environment>());
+                return 'first';
+              }, dependsOn: const [Key<Environment>()]),
+            ],
+            exports: const [Key<String>()],
+          ),
+          StubModule(
+            qualifier: 'second',
+            imports: const [EnvironmentModule()],
+            bindings: [
+              Singleton<int>((i) {
+                seen.add(i<Environment>());
+                return 2;
+              }, dependsOn: const [Key<Environment>()]),
+            ],
+            exports: const [Key<int>()],
+          ),
+        ],
+        bindings: [
+          Singleton<bool>(
+            (i) => i<String>() == 'first' && i<int>() == 2,
+            dependsOn: const [Key<String>(), Key<int>()],
+          ),
+        ],
+      );
+
+      final container = await start(root);
+
+      expect(container.root<bool>(), isTrue);
+      expect(seen, hasLength(2));
+      expect(identical(seen.first, seen.last), isTrue);
+    });
   });
 }
 
