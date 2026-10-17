@@ -132,7 +132,6 @@ final class JasprModule extends Module {
     Key<PageCatalog>(),
     Key<NonPageRequests>(),
     Key<SitemapHandlers>(),
-    Key<SitemapChunkCache>(),
   ];
 
   @override

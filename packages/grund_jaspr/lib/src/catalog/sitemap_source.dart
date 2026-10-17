@@ -69,7 +69,7 @@ final class SitemapSource {
     var first = 0;
     for (var i = 0; i < listed.length && first < end; i++) {
       final last = first + counts[i];
-      if (last > start) {
+      if (counts[i] > 0 && last > start) {
         final from = start > first ? start - first : 0;
         final to = (end < last ? end : last) - first;
         urls.addAll(await _slice(listed[i], from, to));

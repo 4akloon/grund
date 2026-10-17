@@ -109,12 +109,7 @@ void main() {
     test('a failing source is 500, logged, and not cached', () async {
       final source = RecordingEntries(2)..failure = StateError('db down');
       final h = await startSitemap([mapModule(_projects(source))]);
-      final records = <LogRecord>[];
-      final subscription = Logger.root.onRecord.listen(records.add);
-      addTearDown(subscription.cancel);
-      final level = Logger.root.level;
-      Logger.root.level = Level.ALL;
-      addTearDown(() => Logger.root.level = level);
+      final records = captureLog();
 
       final failed = await h.client.get('/sitemap.xml');
       source.failure = null;
@@ -142,7 +137,10 @@ void main() {
         ]),
       ]);
 
+      final records = captureLog();
+
       expect((await h.client.get('/sitemap.xml')).status, 500);
+      expect(records.where((r) => r.level == Level.SEVERE), isNotEmpty);
     });
   });
 

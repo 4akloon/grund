@@ -1,6 +1,9 @@
 import 'package:grund/grund.dart';
 import 'package:grund_http/testing.dart';
+import 'package:logging/logging.dart';
+import 'package:test/test.dart';
 import 'package:grund_jaspr/grund_jaspr.dart';
+import 'package:grund_jaspr/src/site/page_registry.dart';
 import 'package:grund_jaspr/src/sitemap/sitemap_chunk_cache.dart';
 
 import 'pages_app.dart';
@@ -18,6 +21,7 @@ final class FakeClock {
 
 /// A started application with its client, catalog and clock.
 typedef SitemapHarness = ({
+  PageRegistry registry,
   TestClient client,
   PageCatalog catalog,
   FakeClock clock,
@@ -39,6 +43,7 @@ Future<SitemapHarness> startSitemap(
     ],
   );
   return (
+    registry: app.injector<PageRegistry>(),
     client: TestClient.of(app),
     catalog: app.injector<PageCatalog>(),
     clock: clock,
@@ -79,4 +84,17 @@ final class RecordingEntries {
       ];
     },
   );
+}
+
+/// Collects the log records of the test; restored after it.
+List<LogRecord> captureLog() {
+  final records = <LogRecord>[];
+  final level = Logger.root.level;
+  Logger.root.level = Level.ALL;
+  final subscription = Logger.root.onRecord.listen(records.add);
+  addTearDown(() {
+    Logger.root.level = level;
+    return subscription.cancel();
+  });
+  return records;
 }

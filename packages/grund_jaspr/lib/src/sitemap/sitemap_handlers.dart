@@ -27,13 +27,14 @@ final class SitemapHandlers {
   final JasprConfig _config;
   final SitemapSource _source;
 
-  static final _chunkName = RegExp(r'^([0-9]+)\.xml$');
+  static final _chunkName = RegExp(r'^([1-9][0-9]*)\.xml$');
 
   /// `GET <path>/sitemap.xml` of [site]: the only file, or the index.
   Future<HttpResponse> document(PageSite site) async {
-    final plan = await _plan(site);
+    final view = _view(site);
+    final plan = await _plan(view);
     final chunks = _chunkCount(plan);
-    if (chunks == 1) return _xml(await _chunk(site, plan, 1));
+    if (chunks == 1) return _xml(await _chunk(view, plan, 1));
     final prefix = site.path.endsWith('/')
         ? site.path.substring(0, site.path.length - 1)
         : site.path;
@@ -47,27 +48,27 @@ final class SitemapHandlers {
   }
 
   /// `GET <path>/sitemap/:chunk` of [site], where [name] is `<n>.xml`;
-  /// throws [NotFoundException] for any other name or an `n` outside the
-  /// plan.
+  /// throws [NotFoundException] for any other name (before the sources are
+  /// touched) or an `n` outside the plan.
   Future<HttpResponse> chunk(PageSite site, String name) async {
     final number = int.tryParse(_chunkName.firstMatch(name)?.group(1) ?? '');
-    final plan = await _plan(site);
-    if (number == null || number < 1 || number > _chunkCount(plan)) {
-      throw const NotFoundException();
-    }
-    return _xml(await _chunk(site, plan, number));
+    if (number == null) throw const NotFoundException();
+    final view = _view(site);
+    final plan = await _plan(view);
+    if (number > _chunkCount(plan)) throw const NotFoundException();
+    return _xml(await _chunk(view, plan, number));
   }
 
-  Future<List<int>> _plan(PageSite site) =>
-      _cache.get('${site.runtimeType}/plan', () => _source.plan(_listed(site)));
+  Future<List<int>> _plan(_SiteView view) =>
+      _cache.get('${view.key}/plan', () => _source.plan(view.listed));
 
-  Future<String> _chunk(PageSite site, List<int> plan, int number) {
+  Future<String> _chunk(_SiteView view, List<int> plan, int number) {
     final size = _config.sitemapChunkSize;
-    return _cache.get('${site.runtimeType}/chunk/$number', () async {
+    return _cache.get('${view.key}/chunk/$number', () async {
       final total = plan.fold(0, (sum, count) => sum + count);
       final start = (number - 1) * size;
       final end = start + size < total ? start + size : total;
-      final urls = await _source.range(_listed(site), plan, start, end);
+      final urls = await _source.range(view.listed, plan, start, end);
       return SitemapWriter.urlSet(urls);
     });
   }
@@ -78,15 +79,28 @@ final class SitemapHandlers {
     return total <= size ? 1 : (total + size - 1) ~/ size;
   }
 
-  // Reads the snapshot at the time of the request, never the live module.
-  List<DeclaredPage> _listed(PageSite site) {
+  // Reads the snapshot and its generation in one synchronous step, so the
+  // cache key always belongs to the pages the plan is computed from. Never
+  // the live module.
+  _SiteView _view(PageSite site) {
     final snapshot =
         _registry.current ?? (throw const PageCatalogNotReadyError());
-    return SitemapSource.listed(_index.declaredOf(snapshot, site.runtimeType));
+    return _SiteView(
+      '${site.runtimeType}/${_registry.generation}',
+      SitemapSource.listed(_index.declaredOf(snapshot, site.runtimeType)),
+    );
   }
 
   static HttpResponse _xml(String body) => HttpResponse.text(
     body,
     headers: HeaderMap.of({'content-type': 'application/xml; charset=utf-8'}),
   );
+}
+
+// The sitemap pages of one site in one snapshot and the cache key prefix.
+final class _SiteView {
+  const _SiteView(this.key, this.listed);
+
+  final String key;
+  final List<DeclaredPage> listed;
 }
