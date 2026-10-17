@@ -8,8 +8,12 @@ import 'package:tasks_api/tasks_api.dart';
 Future<void> main(List<String> arguments) async {
   final ServerOptions options;
   try {
-    options = ServerOptions.parse(arguments, Platform.environment);
+    options = ServerOptions.parse(arguments, Environment(Platform.environment));
   } on FormatException catch (error) {
+    stderr.writeln(error.message);
+    exitCode = 64;
+    return;
+  } on EnvironmentError catch (error) {
     stderr.writeln(error.message);
     exitCode = 64;
     return;
@@ -22,7 +26,7 @@ Future<void> main(List<String> arguments) async {
   try {
     print(
       'Starting the ${options.style.name} module graph with '
-      '${options.adapter.name} on http://localhost:${options.port}',
+      '${options.adapter.name} on http://${options.address}:${options.port}',
     );
     await TasksApp.create(options).run(
       only: Runners.fromArgs(arguments),

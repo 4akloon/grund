@@ -26,7 +26,7 @@ Future<List<ServerSocket>> _blockLocalhost() async {
 Future<Process> _start(int port) => Process.start(
   Platform.resolvedExecutable,
   ['run', 'bin/main.dart'],
-  environment: {'PORT': '$port'},
+  environment: {'HOST': 'localhost', 'PORT': '$port'},
 );
 
 void main() {

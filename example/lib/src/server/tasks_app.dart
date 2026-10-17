@@ -20,6 +20,7 @@ abstract final class TasksApp {
     root: ServingModule(
       graph(options.style),
       options.adapter,
+      address: options.address,
       port: options.port,
     ),
   );
