@@ -9,7 +9,7 @@ import 'session_store.dart';
 /// reads again.
 final class InMemorySessionStore implements SessionStore {
   /// Creates an empty store; [now] is the clock (tests pass their own).
-  InMemorySessionStore({DateTime Function() now = DateTime.now}) : _now = now;
+  InMemorySessionStore({this._now = DateTime.now});
 
   final DateTime Function() _now;
   final Map<String, Session> _sessions = {};

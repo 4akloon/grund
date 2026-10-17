@@ -23,14 +23,14 @@ class HttpException implements Exception {
   /// phrase of [status].
   const HttpException(
     this.status, {
-    String? message,
+    this._message,
     this.code,
     this.pointer,
     this.details,
     this.headers = const {},
     this.cause,
     this.causeStackTrace,
-  }) : _message = message;
+  });
 
   /// HTTP status code of the response.
   final int status;
