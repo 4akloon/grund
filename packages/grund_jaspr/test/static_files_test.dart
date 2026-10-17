@@ -148,7 +148,10 @@ void main() {
     final dir = TempDir.create();
     final files = _web(dir);
 
-    final response = await files.respond(dir.resolve('web/app.css'));
+    final response = await files.respond(
+      dir.resolve('web/app.css'),
+      requestHeaders: HeaderMap(),
+    );
 
     expect(response.status, 200);
     expect(response.headers['content-type'], 'text/css; charset=utf-8');

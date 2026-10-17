@@ -24,15 +24,15 @@ final class StaticApi extends HttpApi {
 
   Future<HttpResponse> _serveStatic(HttpCtx c) {
     final prefix = _config.staticPath.split('/').length - 1;
-    return _serve(c.request.uri, c.request.uri.pathSegments.skip(prefix));
+    return _serve(c, c.request.uri.pathSegments.skip(prefix));
   }
 
   Future<HttpResponse> _serveRoot(HttpCtx c) =>
-      _serve(c.request.uri, c.request.uri.pathSegments);
+      _serve(c, c.request.uri.pathSegments);
 
-  Future<HttpResponse> _serve(Uri uri, Iterable<String> segments) async {
+  Future<HttpResponse> _serve(HttpCtx c, Iterable<String> segments) async {
     final file = _files.find(segments.toList());
-    if (file == null) _nonPage.notFound(uri);
-    return _files.respond(file);
+    if (file == null) _nonPage.notFound(c.request.uri);
+    return _files.respond(file, requestHeaders: c.request.headers);
   }
 }

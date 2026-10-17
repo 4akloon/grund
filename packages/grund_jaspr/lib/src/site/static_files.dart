@@ -4,6 +4,7 @@ import 'package:grund_http/grund_http.dart';
 import 'package:path/path.dart' as p;
 
 import '../content_types.dart';
+import 'static_validators.dart';
 
 /// The files of a directory, served as they are.
 ///
@@ -39,18 +40,34 @@ final class StaticFiles {
     }
   }
 
-  /// The response with the bytes of [file], its type,
-  /// `cache-control: no-cache` (the browser revalidates every time) and
-  /// `x-content-type-options: nosniff` (the browser trusts the type, not the
-  /// content).
-  Future<HttpResponse> respond(String file) async => HttpResponse.bytes(
-    await File(file).readAsBytes(),
-    headers: HeaderMap.of({
-      'content-type': ContentTypes.forPath(file),
+  /// The response for [file]: `304` without a body when [requestHeaders]
+  /// show the client has it, otherwise `200` with its bytes and type.
+  ///
+  /// Both carry `etag`, `last-modified`, `cache-control: no-cache` (the
+  /// browser revalidates every time) and `x-content-type-options: nosniff`
+  /// (the browser trusts the type, not the content).
+  Future<HttpResponse> respond(
+    String file, {
+    required HeaderMap requestHeaders,
+  }) async {
+    final stat = await File(file).stat();
+    final etag = StaticValidators.etag(stat);
+    final headers = HeaderMap.of({
+      'etag': etag,
+      'last-modified': StaticValidators.lastModified(stat.modified),
       'cache-control': 'no-cache',
       'x-content-type-options': 'nosniff',
-    }),
-  );
+    });
+    if (StaticValidators.isNotModified(
+      requestHeaders,
+      etag: etag,
+      modified: stat.modified,
+    )) {
+      return HttpResponse(304, headers: headers);
+    }
+    headers.set('content-type', ContentTypes.forPath(file));
+    return HttpResponse.bytes(await File(file).readAsBytes(), headers: headers);
+  }
 
   static bool _isPlainName(String segment) =>
       segment.isNotEmpty &&
