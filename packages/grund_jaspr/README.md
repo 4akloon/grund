@@ -113,9 +113,14 @@ Future<void> main() => App(root: const AppModule()).run();
 Static files live outside the sites. `JasprConfig(staticDirectory: 'web')`
 (the default) is served under `JasprConfig(staticPath: '/static')`:
 `GET /static/styles.css` is `web/styles.css`, with its type and
-`cache-control: no-cache`. Files that must sit at the root are listed in
-`JasprConfig(rootFiles: ['robots.txt', 'favicon.ico'])` and come from the
-same directory.
+`cache-control: no-cache`, a weak `ETag` and `Last-Modified` (a matching
+conditional request gets `304`). Files that must sit at the root are listed
+in `JasprConfig(rootFiles: ['robots.txt', 'favicon.ico'])` and come from the
+same directory. A prepared `x.js.br` or `x.js.gz` next to `x.js` (a regular
+file inside the directory, not older than the original) is served by
+`Accept-Encoding`; every static response has `Vary: Accept-Encoding`.
+Nothing is compressed for you (`gzip -k -9`, `brotli -k`, a CDN or a build
+step does it).
 
 - The directory is resolved against the working directory: run the
   application from its package root. A directory that does not exist
@@ -167,6 +172,11 @@ the URL by hand.
   Jaspr print this one harmless notice at the first render of each process;
   it cannot be silenced, and there are no client components in this
   release.
+- Interactivity: `Fragments.respond` answers a request with an HTML fragment
+  that htmx swaps into the page (see `docs/jaspr.md`, "Fragments and
+  htmx"). A fragment request that is not swapped (`401`, `403`, `404` with
+  the default htmx 2 settings) shows the user nothing: swap the codes you
+  want shown or handle `htmx:responseError`.
 - Do not run the application under `jaspr serve`; use `grund dev`.
-- Not in this release: Markdown pages, hydration (`@client`),
-  `jaspr_builder`, HTML error pages.
+- Not in this release: Markdown pages, hydration (`@client`; server
+  fragments exist), `jaspr_builder`, HTML error pages.

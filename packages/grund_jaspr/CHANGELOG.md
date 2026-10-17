@@ -1,6 +1,11 @@
 ## 0.3.0
 
 - **Breaking:** requires Dart 3.13 (`sdk: ^3.13.0`).
+- New `Fragments.respond(c, component, {status})`: a Jaspr component as an
+  HTML fragment without a document, live reload script or client script,
+  for htmx-style swaps.
+- Static files carry a weak `ETag` and `Last-Modified` and answer
+  `If-None-Match` / `If-Modified-Since` with `304`.
 - Static files answer `Accept-Encoding` with a precompressed `.br` or `.gz`
   sibling when one exists and is not older than the file; every static
   response carries `Vary: Accept-Encoding`.

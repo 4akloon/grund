@@ -33,7 +33,8 @@ pluggable HTTP adapters. It is a Dart pub workspace of pure-Dart packages.
   `grund_http_generator` (`@Api` generator), `grund_cli` (`gen`, `dev`,
   `init`), `grund_build` (build_runner builder), `grund_jaspr`
   (server-side rendered Jaspr sites and pages declared as module bindings,
-  static files under `/static`, sitemaps), `grund_auth`
+  static files under `/static` with `ETag`/`304` and precompressed
+  siblings, HTML fragments for htmx, sitemaps), `grund_auth`
   (cookie sessions). Unpublished:
   `grund_conformance` (adapter test suite), the fixture packages
   `cases_app`, `http_cases_app`, `users_app`, and `example`.

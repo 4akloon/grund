@@ -13,8 +13,10 @@ injection, one lifecycle and one cookie session:
   the `CurrentUser` of every request with a live session in its call scope,
   where handlers and pages read it.
 
-This release renders on the server only: there is no hydration (`@client`),
-no client bundle and no `jaspr_builder`.
+Pages are rendered on the server. Interactivity comes from HTML fragments
+that the server sends and htmx swaps in (see
+[Fragments and htmx](#fragments-and-htmx)); there is no hydration
+(`@client`), no client bundle and no `jaspr_builder` yet.
 
 ```sh
 grund init --template fullstack my_site   # `--template api` is the default
@@ -234,6 +236,89 @@ final class AppModule extends Module {
 
 A malformed value is a `JasprSetupError` at startup.
 
+## Fragments and htmx
+
+A fragment is a piece of HTML without a document around it: the answer to a
+request that htmx swaps into a page. `Fragments.respond` renders any Jaspr
+component under the same call scope as a page (`context.call<T>()` works),
+with no shell, no live reload script and no Jaspr client script:
+
+```dart
+Route.post('/fragments/tasks', (c) async {
+  final title = (await c.form()).stringOrNull('title') ?? '';
+  try {
+    tasks.create(CreateTask.fromJson({'title': title}));
+  } on FormatException catch (refusal) {
+    // The form comes back in place, with the message and what was typed.
+    return Fragments.respond(
+      c,
+      TaskPanel(tasks: tasks.list(), editable: true, draft: title,
+          error: refusal.message),
+      status: 422,
+    );
+  }
+  return Fragments.respond(
+    c,
+    TaskPanel(tasks: tasks.list(), editable: true),
+    status: 201,
+  );
+}),
+```
+
+The handler's module must import `JasprModule`; otherwise `respond` throws
+`JasprSetupError`. A component that throws is a `PageRenderError`. The
+response is `text/html` with `cache-control: private, no-cache`.
+
+To use htmx, serve the script as a static file and load it in the shell of
+the site (the example vendors htmx 2.0.11 in `web/vendor/`). htmx 2 does
+not swap `4xx` and `5xx` answers by default, so a refused form (`422`)
+would show nothing; say which codes to swap in an `htmx-config` meta:
+
+```dart
+static const _htmxConfig =
+    '{"responseHandling":['
+    '{"code":"204","swap":false},'
+    '{"code":"[23]..","swap":true},'
+    '{"code":"422","swap":true},'
+    '{"code":"[45]..","swap":false,"error":true}]}';
+
+// in PageSite.shell:
+head: [
+  meta(name: 'htmx-config', content: _htmxConfig),
+  script(src: '/static/vendor/htmx.min.js', defer: true),
+],
+```
+
+Elements then carry `hx-post`, `hx-delete`, `hx-target` and `hx-swap`
+attributes. The example's `TaskPanel` and `TaskFragments` show the whole
+loop: a form that posts, a `422` that re-renders the form with the message,
+a delete button, and guests getting `401`.
+
+**Things to know**
+
+- A failed request whose status is not swapped (`401`, `403`, `404` with
+  the configuration above) shows the user nothing: htmx only raises an
+  `htmx:responseError` event. Swap the codes you want shown (add them to
+  `responseHandling`) or listen for the event and show a message.
+- CSRF: `SessionHook` from `grund_auth` refuses a cross-site write with
+  `403 cross_site_request`. A same-origin XHR from htmx passes, and so does
+  a request without browser headers (curl); there is no token to add to the
+  forms.
+- htmx gives no offline work and no instant local state: every change is a
+  round trip.
+
+**Choosing the tool**
+
+- Server fragments for everything whose truth lives on the server: CRUD,
+  forms, lists, search, navigation.
+- Local state (a few lines of JS, or Alpine) for pure interface state, such
+  as tabs, menus and dialogs, that must react within about 50 ms or work
+  without the network.
+- A Jaspr island (hydration, when it ships) for typed logic that is shared
+  with the server or is not trivial. An island inside a fragment that is
+  swapped in later is not hydrated: the client reads the island markers
+  once, at start.
+
 ## Static files
 
 Static files live outside the sites: the files of `web/` (next to
@@ -254,6 +339,26 @@ served to everyone: keep the static path outside the guarded sites.
 Paths with dot segments, separators or links out of the directory are
 never files. Static files are served with their type and
 `cache-control: no-cache`.
+
+Every static response carries a weak `ETag` and `Last-Modified`. A request
+with a matching `If-None-Match` (or, without it, a not-newer
+`If-Modified-Since`) is answered `304` without a body. The `ETag` differs
+per encoding, and `cache-control: no-cache` means a browser revalidates
+each time, so unchanged files cost a `304`.
+
+`grund_jaspr` does not compress files; it serves compressed files you
+prepared. Next to `app.js` put `app.js.br` and/or `app.js.gz`
+(`brotli -k app.js`, `gzip -k -9 app.js`, a build step or a CDN does it):
+
+- the encoding follows `Accept-Encoding`, preferring `br`, then `gzip`,
+  then the original; `q=0` forbids an encoding;
+- a sibling is used only if it is a regular file inside the static
+  directory (a link that leaves it is ignored) and is not older than the
+  original, so a stale `.br` after an edit is never served;
+- the answer has `Content-Encoding`, the type of the original file and
+  `Vary: Accept-Encoding`; every static response has `Vary`, compressed or
+  not;
+- a direct request for `app.js.br` is an ordinary file request.
 
 A request whose last path segment has an extension that is not in
 `pageSuffixes` is a file request: if the file does not exist the answer is
