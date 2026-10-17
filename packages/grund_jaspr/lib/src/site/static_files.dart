@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:grund_http/grund_http.dart';
 import 'package:path/path.dart' as p;
 
-import 'content_types.dart';
+import '../content_types.dart';
 
 /// The files of a directory, served as they are.
 ///

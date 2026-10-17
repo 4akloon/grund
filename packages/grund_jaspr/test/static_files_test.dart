@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:grund_http/grund_http.dart';
 import 'package:grund_jaspr/src/content_types.dart';
-import 'package:grund_jaspr/src/static_files.dart';
+import 'package:grund_jaspr/src/site/static_files.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
