@@ -1,3 +1,4 @@
+import 'page_address.dart';
 import 'page_meta.dart';
 import 'site_page.dart';
 
@@ -14,4 +15,15 @@ final class PageMatch {
 
   /// The title, navigation and sitemap settings of the matched page.
   PageMeta get meta => page.page.meta;
+
+  /// The canonical path of the page with its parameter values:
+  /// percent-encoded segments, spelled by the `trailingSlash` of the site.
+  ///
+  /// Throws [ArgumentError] when [params] lacks a value for a path parameter
+  /// or has an empty, `.` or `..` value.
+  String get path =>
+      PageAddress.pathOf(page.path, params, page.site.trailingSlash);
+
+  /// [path] on the `baseUrl` of the site; `null` when the site has none.
+  Uri? get url => page.site.baseUrl?.resolve(path);
 }

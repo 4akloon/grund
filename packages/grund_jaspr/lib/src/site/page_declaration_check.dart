@@ -30,7 +30,7 @@ abstract final class PageDeclarationCheck {
     final hasParams = PagePath.parse(page.path).hasParams;
     if (!hasParams && entries != null) throw UnusedPageEntriesError(fullPath);
     final decided = entries != null || page.meta.sitemap.included == false;
-    if (hasParams && site.sitemapBaseUrl != null && !decided) {
+    if (hasParams && site.baseUrl != null && !decided) {
       throw UndecidedPageSitemapError(fullPath);
     }
   }

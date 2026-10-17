@@ -65,7 +65,7 @@ void main() {
     },
   );
 
-  test('a site without sitemapBaseUrl gives an empty stream', () async {
+  test('a site without baseUrl gives an empty stream', () async {
     final catalog = await startCatalog([
       CatalogPagesModule<PublicSite>(PublicSite.new, [markedPage('/')]),
     ]);

@@ -1,6 +1,7 @@
 import 'package:grund_http/grund_http.dart';
 
 import '../error/site_declaration_error.dart';
+import 'canonical_redirect.dart';
 import 'page_responder.dart';
 import 'page_site.dart';
 import 'site_declaration_check.dart';
@@ -35,15 +36,23 @@ final class SiteApi<S extends PageSite> extends HttpApi {
   List<Route> get routes => [
     // The sitemap routes carry no hooks: a site with hooks cannot have a
     // sitemap (checked in the constructor), so none can be skipped.
-    if (site.sitemapBaseUrl != null) ...[
-      Route.get('/sitemap.xml', (_) => _services.sitemap.document(site)),
+    if (site.baseUrl != null) ...[
+      Route.get(
+        '/sitemap.xml',
+        (c) async => _redirect(c) ?? await _services.sitemap.document(site),
+      ),
       Route.get(
         '/sitemap/:chunk',
-        (c) => _services.sitemap.chunk(site, c.path.string('chunk')),
+        (c) async =>
+            _redirect(c) ??
+            await _services.sitemap.chunk(site, c.path.string('chunk')),
       ),
     ],
     Route.get('/*', _notFound, use: site.use),
   ];
+
+  HttpResponse? _redirect(HttpCtx c) =>
+      CanonicalRedirect.forFile(c.request.uri, site.trailingSlash);
 
   Future<HttpResponse> _notFound(HttpCtx c) async {
     if (!_services.nonPage.isPageRequest(c.request.uri)) {

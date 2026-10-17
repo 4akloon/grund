@@ -7,8 +7,9 @@ import 'page_site.dart';
 abstract final class SiteDeclarationCheck {
   /// Throws [InvalidSitePathError] when the path of [site] is not `''` or
   /// `/segment[/segment]` of literals, lies on the `staticPath` of [config]
-  /// or is a `rootFiles` entry, and [GuardedSiteSitemapError] (naming
-  /// [siteType]) when the site has hooks and a sitemap.
+  /// or is a `rootFiles` entry, [InvalidSiteBaseUrlError] for a bad
+  /// `baseUrl`, and [GuardedSiteSitemapError] (naming [siteType]) when the
+  /// site has hooks and a sitemap.
   static void check(
     PageSite site, {
     required Type siteType,
@@ -28,8 +29,31 @@ abstract final class SiteDeclarationCheck {
         reason: 'it is the static path "${config.staticPath}" or lies under it',
       );
     }
-    if (site.use.isNotEmpty && site.sitemapBaseUrl != null) {
+    _checkBaseUrl(site, siteType);
+    if (site.use.isNotEmpty && site.baseUrl != null) {
       throw GuardedSiteSitemapError(siteType);
+    }
+  }
+
+  static void _checkBaseUrl(PageSite site, Type siteType) {
+    final url = site.baseUrl;
+    if (url == null) return;
+    final reason = switch (url) {
+      Uri(scheme: != 'http' && != 'https') =>
+        'the scheme must be http or https',
+      Uri(host: '') => 'it has no host',
+      Uri(path: != '' && != '/') => 'the path must be empty or "/"',
+      Uri(hasQuery: true) => 'it must not have a query',
+      Uri(hasFragment: true) => 'it must not have a fragment',
+      Uri(userInfo: != '') => 'it must not have userinfo',
+      _ => null,
+    };
+    if (reason != null) {
+      throw InvalidSiteBaseUrlError(
+        siteType: siteType,
+        url: url,
+        reason: reason,
+      );
     }
   }
 }

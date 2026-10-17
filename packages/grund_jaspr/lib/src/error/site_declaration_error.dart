@@ -105,13 +105,36 @@ final class GuardedSiteSitemapError extends SiteDeclarationError {
   /// Creates the error for [siteType].
   const GuardedSiteSitemapError(this.siteType);
 
-  /// The site with both `use` and `sitemapBaseUrl`.
+  /// The site with both `use` and `baseUrl`.
   final Type siteType;
 
   @override
   String get message =>
-      'The site $siteType has hooks in use and a sitemapBaseUrl, but its '
-      'sitemap is served without the hooks of the site. Return null from '
-      'sitemapBaseUrl or move the guarded pages to a site without a '
-      'sitemap.';
+      'The site $siteType has hooks in use and a baseUrl, but its sitemap is '
+      'served without the hooks of the site. Return null from baseUrl or '
+      'move the guarded pages to a site without a sitemap.';
+}
+
+/// The `baseUrl` of a `PageSite` is not an origin.
+final class InvalidSiteBaseUrlError extends SiteDeclarationError {
+  /// Creates the error for [url] of [siteType]; [reason] says what is wrong.
+  const InvalidSiteBaseUrlError({
+    required this.siteType,
+    required this.url,
+    required this.reason,
+  });
+
+  /// The site with the invalid base URL.
+  final Type siteType;
+
+  /// The invalid base URL.
+  final Uri url;
+
+  /// What is wrong with [url].
+  final String reason;
+
+  @override
+  String get message =>
+      'The baseUrl "$url" of the site $siteType is invalid: $reason. Use an '
+      'origin such as https://example.com.';
 }

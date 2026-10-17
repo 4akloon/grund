@@ -155,11 +155,14 @@ void main() {
       expect(response.status, 200);
     });
 
-    test('a doubled or trailing slash still reaches the page', () async {
+    test('a doubled or trailing slash redirects to the page', () async {
       final client = await startSites();
 
-      expect((await client.get('//about')).status, 200);
-      expect((await client.get('/about/')).status, 200);
+      for (final path in ['/about//', '/about/']) {
+        final response = await client.get(path);
+        expect(response.status, 308);
+        expect(response.headers['location'], '/about');
+      }
     });
 
     test('another letter case does not reach the admin site', () async {

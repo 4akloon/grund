@@ -65,12 +65,8 @@ final class PagesApi<S extends PageSite> extends HttpApi {
     return site.path.isEmpty ? '/' : site.path;
   }
 
-  Future<HttpResponse> _serve(HttpCtx c, Page page) async {
-    if (!_services.nonPage.isPageRequest(c.request.uri)) {
-      _services.nonPage.notFound(c.request.uri);
-    }
-    return _responder.page(c, site: site, page: page, match: _matchOf(c, page));
-  }
+  Future<HttpResponse> _serve(HttpCtx c, Page page) =>
+      _responder.page(c, site: site, page: page, match: _matchOf(c, page));
 
   PageMatch _matchOf(HttpCtx c, Page page) => PageMatch(
     page: SitePage(site: site, page: page, path: fullPathOf(page)),

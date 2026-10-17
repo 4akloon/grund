@@ -22,6 +22,7 @@ export 'src/page/page_nav.dart';
 export 'src/page/page_sitemap.dart';
 export 'src/page/site_page.dart';
 export 'src/site/page_site.dart';
+export 'src/site/trailing_slash.dart';
 export 'src/sitemap/sitemap_change_frequency.dart';
 export 'src/sitemap/sitemap_entries.dart';
 export 'src/sitemap/sitemap_entry.dart';

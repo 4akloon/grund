@@ -38,7 +38,8 @@ void main() {
       expect(site.path, '');
       expect(site.use, isEmpty);
       expect(site.skippableHooks, isEmpty);
-      expect(site.sitemapBaseUrl, isNull);
+      expect(site.baseUrl, isNull);
+      expect(site.trailingSlash, TrailingSlash.never);
     });
 
     test('shell returns the same content', () {

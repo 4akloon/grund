@@ -88,7 +88,7 @@ void main() {
     expect(response.headers['content-type'], contains('application/xml'));
   });
 
-  test('a site without sitemapBaseUrl has no sitemap route', () async {
+  test('a site without baseUrl has no sitemap route', () async {
     final h = await startSitemap([
       CatalogPagesModule<PublicSite>(PublicSite.new, [markedPage('/')]),
     ]);

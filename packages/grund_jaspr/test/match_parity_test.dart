@@ -79,7 +79,14 @@ void main() {
     final disagreements = <String>[];
 
     for (final path in _paths) {
-      final response = await client.get(path, headers: adminHeaders);
+      var response = await client.get(path, headers: adminHeaders);
+      // A canonical redirect names the URL that serves the page.
+      if (response.status == 308) {
+        response = await client.get(
+          response.headers['location']!,
+          headers: adminHeaders,
+        );
+      }
       final served = _servedBy(response.text);
       final match = catalog.match(Uri.parse('http://localhost$path'));
       final matched = match == null ? null : _label(match.page);

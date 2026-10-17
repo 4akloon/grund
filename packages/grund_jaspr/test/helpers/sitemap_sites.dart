@@ -12,7 +12,7 @@ final class MapSite extends PageSite {
   MapSite(super.injector);
 
   @override
-  Uri? get sitemapBaseUrl => Uri.parse('https://x.test');
+  Uri? get baseUrl => Uri.parse('https://x.test');
 }
 
 /// A guarded site that also asks for a sitemap: an invalid declaration.
@@ -24,7 +24,7 @@ final class GuardedMapSite extends PageSite {
   List<HookRef<HttpHook>> get use => const [HookRef<AdminGuard>.type()];
 
   @override
-  Uri? get sitemapBaseUrl => Uri.parse('https://x.test');
+  Uri? get baseUrl => Uri.parse('https://x.test');
 }
 
 /// A site under `/docs` with a sitemap.
@@ -36,7 +36,7 @@ final class DocsMapSite extends PageSite {
   String get path => '/docs';
 
   @override
-  Uri? get sitemapBaseUrl => Uri.parse('https://x.test');
+  Uri? get baseUrl => Uri.parse('https://x.test');
 }
 
 /// Entries for the parameter `slug`, one per name.

@@ -61,7 +61,7 @@ final class PageCatalog {
   /// pages and the `entries` of its parameterised pages, loaded in chunks
   /// of `JasprConfig.sitemapChunkSize` while the stream is read.
   ///
-  /// Empty when the site has no `sitemapBaseUrl`. A page with `included:
+  /// Empty when the site has no `baseUrl`. A page with `included:
   /// false` or with its own `hooks.use` (unless `included: true`) is left
   /// out. Throws [PageEntriesMismatchError] when an entry's parameters are
   /// not those of the page path.

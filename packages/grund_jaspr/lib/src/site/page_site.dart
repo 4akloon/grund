@@ -2,6 +2,8 @@ import 'package:grund/grund.dart';
 import 'package:grund_http/grund_http.dart';
 import 'package:jaspr/server.dart';
 
+import 'trailing_slash.dart';
+
 /// A group of pages that share a path prefix, hooks and a page shell.
 abstract base class PageSite {
   /// Creates the site; [injector] resolves what its pages need.
@@ -25,6 +27,10 @@ abstract base class PageSite {
   /// The component for a request the site's pages do not match.
   Component notFound() => const Component.text('Not found');
 
-  /// The base URL of the site's sitemap addresses; no sitemap when `null`.
-  Uri? get sitemapBaseUrl => null;
+  /// The public origin of the site (`https://example.com`), for the sitemap
+  /// and absolute URLs; no sitemap and no absolute URLs when `null`.
+  Uri? get baseUrl => null;
+
+  /// How page URLs end; see [TrailingSlash].
+  TrailingSlash get trailingSlash => TrailingSlash.never;
 }

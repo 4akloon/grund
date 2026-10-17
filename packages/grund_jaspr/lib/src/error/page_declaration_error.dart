@@ -137,7 +137,7 @@ final class UndecidedPageSitemapError extends PageDeclarationError {
   @override
   String get message =>
       'The page $path has path parameters and its site has a '
-      'sitemapBaseUrl, but the page lists no addresses. Give it '
+      'baseUrl, but the page lists no addresses. Give it '
       'PageSitemap(entries: ...) or PageSitemap(included: false).';
 }
 

@@ -35,7 +35,7 @@ final class SitemapHandlers {
     final plan = await _plan(view);
     final chunks = _chunkCount(plan);
     if (chunks == 1) return _xml(await _chunk(view, plan, 1));
-    final base = site.sitemapBaseUrl;
+    final base = site.baseUrl;
     if (base == null) throw const NotFoundException();
     return _xml(
       SitemapWriter.index([

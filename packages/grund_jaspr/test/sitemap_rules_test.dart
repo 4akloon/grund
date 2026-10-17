@@ -6,7 +6,7 @@ import 'helpers/sites.dart';
 import 'helpers/sitemap_sites.dart';
 
 void main() {
-  test('a guarded site with a sitemapBaseUrl is a GuardedSiteSitemapError', () {
+  test('a guarded site with a baseUrl is a GuardedSiteSitemapError', () {
     expect(
       startCatalog([
         CatalogPagesModule<GuardedMapSite>(GuardedMapSite.new, [

@@ -5,6 +5,7 @@ import '../jaspr_config.dart';
 import '../page/page_address.dart';
 import '../page/page_path.dart';
 import '../page/page_sitemap.dart';
+import '../site/page_site.dart';
 import '../sitemap/all_sitemap_entries.dart';
 import '../sitemap/sitemap_entries.dart';
 import '../sitemap/sitemap_entry.dart';
@@ -20,25 +21,24 @@ final class SitemapSource {
   final JasprConfig _config;
 
   /// The addresses of [pages] (all of one site, sorted by path); empty when
-  /// the site has no `sitemapBaseUrl`.
+  /// the site has no `baseUrl`.
   Stream<SitemapUrl> urls(List<DeclaredPage> pages) async* {
     for (final declared in listed(pages)) {
-      final base = declared.page.site.sitemapBaseUrl!;
       final sitemap = declared.page.page.meta.sitemap;
       final path = PagePath.parse(declared.page.path);
       if (!path.hasParams) {
-        yield _urlOf(base, declared.page.path, sitemap, null);
+        yield _urlOf(declared.page.site, declared.page.path, sitemap, null);
         continue;
       }
-      yield* _entryUrls(base, declared, sitemap, path.paramNames);
+      yield* _entryUrls(declared, sitemap, path.paramNames);
     }
   }
 
   /// The pages of [pages] that appear in the sitemap, in the same order;
-  /// none when the site has no `sitemapBaseUrl`.
+  /// none when the site has no `baseUrl`.
   static List<DeclaredPage> listed(List<DeclaredPage> pages) => [
     for (final declared in pages)
-      if (declared.page.site.sitemapBaseUrl != null &&
+      if (declared.page.site.baseUrl != null &&
           _isListed(declared, declared.page.page.meta.sitemap))
         declared,
   ];
@@ -85,11 +85,10 @@ final class SitemapSource {
     int from,
     int to,
   ) async {
-    final base = declared.page.site.sitemapBaseUrl!;
     final sitemap = declared.page.page.meta.sitemap;
     final path = PagePath.parse(declared.page.path);
     if (!path.hasParams) {
-      return [_urlOf(base, declared.page.path, sitemap, null)];
+      return [_urlOf(declared.page.site, declared.page.path, sitemap, null)];
     }
     final entries = sitemap.entries;
     if (entries == null) return const [];
@@ -106,19 +105,19 @@ final class SitemapSource {
     }
     return [
       for (final entry in loaded.take(to - from))
-        _checkedUrl(base, declared.page.path, path.paramNames, sitemap, entry),
+        _checkedUrl(declared, path.paramNames, sitemap, entry),
     ];
   }
 
   SitemapUrl _checkedUrl(
-    Uri base,
-    String path,
+    DeclaredPage declared,
     List<String> paramNames,
     PageSitemap sitemap,
     SitemapEntry entry,
   ) {
+    final path = declared.page.path;
     _checkParams(path, paramNames, entry);
-    return _urlOf(base, path, sitemap, entry);
+    return _urlOf(declared.page.site, path, sitemap, entry);
   }
 
   // The rules of the sitemap: an explicit `false` leaves a page out; a page
@@ -130,7 +129,6 @@ final class SitemapSource {
   }
 
   Stream<SitemapUrl> _entryUrls(
-    Uri base,
     DeclaredPage declared,
     PageSitemap sitemap,
     List<String> paramNames,
@@ -148,7 +146,7 @@ final class SitemapSource {
     }
     await for (final entry in chunks.expand((list) => list)) {
       _checkParams(path, paramNames, entry);
-      yield _urlOf(base, path, sitemap, entry);
+      yield _urlOf(declared.page.site, path, sitemap, entry);
     }
   }
 
@@ -196,13 +194,13 @@ final class SitemapSource {
   }
 
   static SitemapUrl _urlOf(
-    Uri base,
+    PageSite site,
     String path,
     PageSitemap sitemap,
     SitemapEntry? entry,
   ) => SitemapUrl(
-    location: base.resolve(
-      PageAddress.encodedPath(path, entry?.params ?? const {}),
+    location: site.baseUrl!.resolve(
+      PageAddress.pathOf(path, entry?.params ?? const {}, site.trailingSlash),
     ),
     lastModified: entry?.lastModified ?? sitemap.lastModified,
     changeFrequency: sitemap.changeFrequency,

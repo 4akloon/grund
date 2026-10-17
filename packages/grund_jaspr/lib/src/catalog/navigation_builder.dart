@@ -1,3 +1,4 @@
+import '../page/page_address.dart';
 import '../page/page_path.dart';
 import '../page/site_page.dart';
 import 'nav_item.dart';
@@ -36,7 +37,11 @@ abstract final class NavigationBuilder {
     final nav = page.meta.nav!;
     return NavItem(
       label: nav.label ?? page.meta.title,
-      path: sitePage.path,
+      path: PageAddress.pathOf(
+        sitePage.path,
+        const {},
+        sitePage.site.trailingSlash,
+      ),
       group: nav.group,
       order: nav.order,
     );
