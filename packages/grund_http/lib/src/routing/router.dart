@@ -7,10 +7,11 @@ import 'routing_error.dart';
 /// a value.
 ///
 /// Matching priority at every segment: static > `:param.suffix` (the longer
-/// suffix first) > `:param` > `*`, with backtracking, so `/users/me` (static) and `/users/:id/posts` both work
-/// and `DELETE /users/me` reaches `DELETE /users/:id` when the static route
-/// has no `DELETE`. The result does not depend on insertion order. A router
-/// is filled once at startup and only read afterwards.
+/// suffix first) > `:param` > `*`, with backtracking, so `/users/me` (static)
+/// and `/users/:id/posts` both work and `DELETE /users/me` reaches
+/// `DELETE /users/:id` when the static route has no `DELETE`. The result does
+/// not depend on insertion order. A router is filled once at startup and only
+/// read afterwards.
 final class Router<V> {
   /// Creates an empty router.
   Router();

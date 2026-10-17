@@ -1,32 +1,8 @@
 import 'package:grund_http/grund_http.dart';
 import 'package:grund_http/src/routing/route_match.dart';
-import 'package:grund_http/src/routing/route_pattern.dart';
-import 'package:grund_http/src/routing/router.dart';
 import 'package:test/test.dart';
 
-Router<String> routerOf(List<(String, String)> routes) {
-  final router = Router<String>();
-  for (final (method, path) in routes) {
-    router.add(
-      method,
-      RoutePattern.join('', path),
-      '$method $path',
-      source: '$method $path',
-    );
-  }
-  return router;
-}
-
-RouteMatch<String> match(Router<String> router, String method, String path) =>
-    router.match(method, [
-      for (final s in path.split('/'))
-        if (s.isNotEmpty) Uri.decodeComponent(s),
-    ]);
-
-Matcher found(String value, [Map<String, String> parameters = const {}]) =>
-    isA<RouteFound<String>>()
-        .having((m) => m.value, 'value', value)
-        .having((m) => m.parameters, 'parameters', parameters);
+import '../helpers/router_fixtures.dart';
 
 void main() {
   group('Router suffix parameters', () {
@@ -91,11 +67,11 @@ void main() {
       );
     });
 
-    test('a percent-encoded dot is decoded before matching', () {
+    test('a segment with a decoded dot matches the suffix', () {
       final router = routerOf([('GET', '/:slug.md')]);
 
       expect(
-        match(router, 'GET', '/grund%2Emd'),
+        match(router, 'GET', '/grund.md'),
         found('GET /:slug.md', {'slug': 'grund'}),
       );
     });
@@ -125,6 +101,24 @@ void main() {
       expect(
         match(router, 'HEAD', '/a.md'),
         found('GET /:slug.md', {'slug': 'a'}),
+      );
+    });
+
+    test('a failing suffixed subtree falls through to a parameter', () {
+      final router = routerOf([('GET', '/a/:x.md/c'), ('GET', '/a/:y/d')]);
+
+      expect(
+        match(router, 'GET', '/a/q.md/d'),
+        found('GET /a/:y/d', {'y': 'q.md'}),
+      );
+    });
+
+    test('a failing suffixed subtree falls through to a wildcard', () {
+      final router = routerOf([('GET', '/a/:x.md/c'), ('GET', '/a/*')]);
+
+      expect(
+        match(router, 'GET', '/a/q.md/d'),
+        found('GET /a/*', {'*': 'q.md/d'}),
       );
     });
 
