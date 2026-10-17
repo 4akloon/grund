@@ -2,10 +2,13 @@ import 'package:grund/grund.dart';
 import 'package:grund_auth/grund_auth.dart';
 import 'package:grund_jaspr/grund_jaspr.dart';
 
+import '../tasks/tasks_service.dart';
+
 import 'login_api.dart';
 import 'home_page.dart';
 import 'login_page.dart';
 import 'public_site.dart';
+import 'task_fragments.dart';
 
 /// The pages of the tasks application and the session they share with the
 /// API: [SessionModule], [LoginApi] and the pages of [PublicSite], which
@@ -51,6 +54,10 @@ final class WebModule extends Module {
     Singleton<LoginApi>(
       (i) => LoginApi(i, i<Sessions>()),
       dependsOn: const [Key<Sessions>()],
+    ),
+    Singleton<TaskFragments>(
+      (i) => TaskFragments(i, i<TasksService>()),
+      dependsOn: const [Key<TasksService>()],
     ),
   ];
 }

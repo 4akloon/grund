@@ -10,11 +10,24 @@ final class PublicSite extends PageSite {
   /// Creates the site.
   PublicSite(super.injector);
 
+  static const _htmxConfig =
+      '{"responseHandling":['
+      '{"code":"204","swap":false},'
+      '{"code":"[23]..","swap":true},'
+      '{"code":"422","swap":true},'
+      '{"code":"[45]..","swap":false,"error":true}]}';
+
   @override
   Component shell(Component content) => Builder(
     builder: (context) => Document(
       title: context.pageMatch?.meta.title ?? 'Tasks',
-      head: [link(href: '/static/styles.css', rel: 'stylesheet')],
+      head: [
+        link(href: '/static/styles.css', rel: 'stylesheet'),
+        // htmx swaps a 422 (a refused title) like a success and leaves
+        // other 4xx and 5xx answers alone.
+        meta(name: 'htmx-config', content: _htmxConfig),
+        script(src: '/static/vendor/htmx.min.js', defer: true),
+      ],
       body: main_([content]),
     ),
   );

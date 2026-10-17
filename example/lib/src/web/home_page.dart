@@ -4,6 +4,7 @@ import 'package:jaspr/dom.dart';
 import 'package:jaspr/server.dart';
 
 import '../tasks/tasks_service.dart';
+import 'task_panel.dart';
 
 /// The content of the `/` page: the task list, who is signed in, and the form
 /// to sign out.
@@ -20,10 +21,7 @@ final class HomePage extends StatelessComponent {
       if (_takeFlash(context))
         p(classes: 'flash', [Component.text('Signed in.')]),
       h1([Component.text('Tasks')]),
-      ul([
-        for (final task in tasks)
-          li([Component.text(task.done ? '${task.title} (done)' : task.title)]),
-      ]),
+      TaskPanel(tasks: tasks, editable: user != null),
       if (user == null)
         a(href: '/login', [Component.text('Sign in')])
       else
