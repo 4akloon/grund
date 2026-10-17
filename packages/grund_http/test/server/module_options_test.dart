@@ -60,6 +60,22 @@ void main() {
 
   tearDown(() => app.close());
 
+  group('TestClient.head', () {
+    test('returns the status and headers of the GET route', () async {
+      final client = await clientFor(HttpModule(), [
+        Route.get('/x', (c) {
+          c.response.headers.set('x-a', 'yes');
+          return 'ok';
+        }),
+      ]);
+
+      final response = await client.head('/x', headers: {'accept': '*/*'});
+
+      expect(response.status, 200);
+      expect(response.headers['x-a'], 'yes');
+    });
+  });
+
   group('middleware', () {
     test('run outermost first around the whole request', () async {
       final events = <String>[];

@@ -80,29 +80,75 @@ final class HttpResponse {
   /// The body.
   final ResponseBody body;
 
-  /// A copy that also carries the headers of [extra]: a name this response
-  /// does not set is added with all its values, and every `set-cookie` of
-  /// [extra] is added before the response's own, so both reach the client
-  /// and the response's own cookie wins where both set the same one. For
-  /// any other name the response's own values win.
+  /// A copy that also carries the headers of [extra]. A name this response
+  /// does not set is added with all its values. Three names are combined
+  /// instead of left to the response:
+  ///
+  /// - `set-cookie` and `link`: the values of [extra] come first, then the
+  ///   response's own; both reach the client, and the response's own cookie
+  ///   wins where both set the same one;
+  /// - `vary`: the response's own tokens, then the tokens of [extra] it does
+  ///   not name yet (case-insensitively), as a single line; `*` on either
+  ///   side gives a single `vary: *`.
+  ///
+  /// For any other name the response's own values win.
   HttpResponse mergeHeaders(HeaderMap extra) {
     final added = [
       for (final name in extra.names)
-        if (!headers.contains(name) || name == _setCookie) name,
+        if (!headers.contains(name) || _combined.contains(name)) name,
     ];
     if (added.isEmpty) return this;
     final merged = HeaderMap.copy(headers);
     for (final name in added) {
       final own = merged.all(name);
       merged.remove(name);
-      for (final value in [...extra.all(name), ...own]) {
+      final values = name == _vary
+          ? [_mergedVary(own, extra.all(name))]
+          : [...extra.all(name), ...own];
+      for (final value in values) {
         merged.add(name, value);
       }
     }
     return HttpResponse(status, headers: merged, body: body);
   }
 
+  /// A copy whose `vary` names [header] (compared case-insensitively), as a
+  /// single line with the existing tokens first. The same response when
+  /// [header] is already named or `vary` is `*`.
+  HttpResponse withVary(String header) {
+    final tokens = _varyTokens(headers.all(_vary));
+    if (tokens.contains('*') || tokens.contains(header.toLowerCase())) {
+      return this;
+    }
+    final merged = HeaderMap.copy(headers)
+      ..set(_vary, _mergedVary(headers.all(_vary), [header]));
+    return HttpResponse(status, headers: merged, body: body);
+  }
+
   static const _setCookie = 'set-cookie';
+  static const _link = 'link';
+  static const _vary = 'vary';
+  static const _combined = {_setCookie, _link, _vary};
+
+  static List<String> _varyTokens(List<String> values) => [
+    for (final value in values)
+      for (final token in value.split(','))
+        if (token.trim().isNotEmpty) token.trim().toLowerCase(),
+  ];
+
+  /// One `vary` line: [own] tokens, then those of [added] not yet named, in
+  /// the spelling they were written; `*` when either side holds it.
+  static String _mergedVary(List<String> own, List<String> added) {
+    final seen = <String>{};
+    final tokens = <String>[];
+    for (final value in [...own, ...added]) {
+      for (final token in value.split(',').map((t) => t.trim())) {
+        if (token.isNotEmpty && seen.add(token.toLowerCase()))
+          tokens.add(token);
+      }
+    }
+    return seen.contains('*') ? '*' : tokens.join(', ');
+  }
 
   static HttpResponse _typed(
     int status,

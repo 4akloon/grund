@@ -10,11 +10,18 @@ abstract final class StatusCode {
   /// 204 No Content.
   static const noContent = 204;
 
+  /// 301 Moved Permanently: for clients that do not know
+  /// [permanentRedirect]; prefer 308.
+  static const movedPermanently = 301;
+
   /// 302 Found.
   static const found = 302;
 
   /// 303 See Other: the redirect after a form `POST`, followed with `GET`.
   static const seeOther = 303;
+
+  /// 308 Permanent Redirect: the permanent redirect that keeps the method.
+  static const permanentRedirect = 308;
 
   /// 400 Bad Request.
   static const badRequest = 400;

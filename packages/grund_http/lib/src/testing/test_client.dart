@@ -45,6 +45,13 @@ final class TestClient {
     Map<String, String> headers = const {},
   }) => request('GET', target, headers: headers);
 
+  /// Sends `HEAD` to [target]. The response keeps its body here, unlike real
+  /// adapters, which drop it.
+  Future<TestResponse> head(
+    String target, {
+    Map<String, String> headers = const {},
+  }) => request('HEAD', target, headers: headers);
+
   /// Sends `DELETE` to [target].
   Future<TestResponse> delete(
     String target, {

@@ -10,6 +10,7 @@ export 'src/http/connection_info.dart';
 export 'src/http/header_map.dart';
 export 'src/http/http_exception.dart';
 export 'src/http/http_request.dart';
+export 'src/http/accept_header.dart';
 export 'src/http/http_response.dart';
 export 'src/http/problem.dart';
 export 'src/http/problem_code.dart';
