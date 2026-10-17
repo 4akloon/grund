@@ -8,6 +8,7 @@ import 'page_site.dart';
 import '../sitemap/sitemap_handlers.dart';
 import 'pages_api.dart';
 import 'site_api.dart';
+import 'site_extensions.dart';
 import 'site_services.dart';
 
 /// Bindings that declare sites and pages in a module.
@@ -32,23 +33,8 @@ abstract final class Pages {
   ) => [
     Singleton<S>(create, dependsOn: const []),
     Singleton<SiteApi<S>>(
-      (i) => SiteApi<S>(
-        i,
-        i<S>(),
-        SiteServices(
-          renderer: i<PageRenderer>(),
-          nonPage: i<NonPageRequests>(),
-          config: i<JasprConfig>(),
-          sitemap: i<SitemapHandlers>(),
-        ),
-      ),
-      dependsOn: [
-        Key<S>(),
-        Key<PageRenderer>(),
-        Key<NonPageRequests>(),
-        Key<JasprConfig>(),
-        Key<SitemapHandlers>(),
-      ],
+      (i) => SiteApi<S>(i, i<S>(), _services(i)),
+      dependsOn: [Key<S>(), ..._serviceKeys],
     ),
   ];
 
@@ -57,19 +43,23 @@ abstract final class Pages {
   static Binding<Object> under<S extends PageSite>(
     List<Page> Function(Injector) pages,
   ) => Singleton<PagesApi<S>>(
-    (i) => PagesApi<S>(
-      i,
-      i<S>(),
-      i<PageRenderer>(),
-      i<NonPageRequests>(),
-      i<JasprConfig>(),
-      pages,
-    ),
-    dependsOn: [
-      Key<S>(),
-      Key<PageRenderer>(),
-      Key<NonPageRequests>(),
-      Key<JasprConfig>(),
-    ],
+    (i) => PagesApi<S>(i, i<S>(), _services(i), pages),
+    dependsOn: [Key<S>(), ..._serviceKeys],
+  );
+
+  static const _serviceKeys = <Key<Object>>[
+    Key<PageRenderer>(),
+    Key<NonPageRequests>(),
+    Key<JasprConfig>(),
+    Key<SitemapHandlers>(),
+    Key<SiteExtensions>(),
+  ];
+
+  static SiteServices _services(Injector i) => SiteServices(
+    renderer: i<PageRenderer>(),
+    nonPage: i<NonPageRequests>(),
+    config: i<JasprConfig>(),
+    sitemap: i<SitemapHandlers>(),
+    extensions: i<SiteExtensions>(),
   );
 }

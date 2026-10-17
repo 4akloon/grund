@@ -2,6 +2,7 @@ import 'package:grund_http/grund_http.dart';
 import 'package:path/path.dart' as p;
 
 import '../jaspr_config.dart';
+import 'page_extension.dart';
 
 /// Tells page requests from requests for files, so a path like
 /// `/projects/logo.png` never reaches a page builder.
@@ -23,6 +24,21 @@ final class NonPageRequests {
     final extension = p.extension(segments.last);
     return extension.isEmpty ||
         _config.pageSuffixes.contains(extension.substring(1).toLowerCase());
+  }
+
+  /// Answers the request for the file [HttpCtx.request] with the first
+  /// non-`null` `claim` of [extensions], or 404 `file_not_found` when none
+  /// claims it.
+  Future<HttpResponse> answer(
+    HttpCtx c,
+    Iterable<PageExtension> extensions,
+  ) async {
+    final uri = c.request.uri;
+    for (final extension in extensions) {
+      final response = await extension.claim(c, uri);
+      if (response != null) return response;
+    }
+    notFound(uri);
   }
 
   /// Answers 404 `file_not_found` for the file [uri].

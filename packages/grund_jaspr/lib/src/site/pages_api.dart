@@ -3,35 +3,24 @@ import 'package:grund_http/grund_http.dart';
 import 'package:jaspr/server.dart' hide Key;
 
 import '../error/page_declaration_error.dart';
-import '../jaspr_config.dart';
-import '../page/non_page_requests.dart';
 import '../page/page.dart';
 import '../page/page_match.dart';
 import '../page/page_path.dart';
-import '../page/page_renderer.dart';
 import '../page/site_page.dart';
 import 'hook_resolver.dart';
 import 'page_site.dart';
+import 'site_services.dart';
 
 /// The page routes of one `Pages.under` declaration.
 final class PagesApi<S extends PageSite> extends HttpApi {
   /// Creates the API; [_declare] lists the pages and is called on every
   /// [pages] read.
-  PagesApi(
-    super.injector,
-    this.site,
-    this._renderer,
-    this._nonPage,
-    this._config,
-    this._declare,
-  );
+  PagesApi(super.injector, this.site, this._services, this._declare);
 
   /// The site the pages belong to.
   final S site;
 
-  final PageRenderer _renderer;
-  final NonPageRequests _nonPage;
-  final JasprConfig _config;
+  final SiteServices _services;
   final List<Page> Function(Injector) _declare;
 
   /// The type of the site this API belongs to.
@@ -64,7 +53,7 @@ final class PagesApi<S extends PageSite> extends HttpApi {
   // Throws when a page would take over a static file URL.
   void _checkNotReserved(Page page) {
     final path = fullPathOf(page);
-    final staticPath = _config.staticPath;
+    final staticPath = _services.config.staticPath;
     if (path == staticPath || path.startsWith('$staticPath/')) {
       throw ReservedPagePathError(
         path: path,
@@ -80,7 +69,7 @@ final class PagesApi<S extends PageSite> extends HttpApi {
             'and under "${site.path}/sitemap/"',
       );
     }
-    for (final file in _config.rootFiles) {
+    for (final file in _services.config.rootFiles) {
       if (path == '/$file') {
         throw ReservedPagePathError(
           path: path,
@@ -111,28 +100,32 @@ final class PagesApi<S extends PageSite> extends HttpApi {
   }
 
   Future<HttpResponse> _serve(HttpCtx c, Page page) async {
-    final uri = c.request.uri;
-    if (!_nonPage.isPageRequest(uri)) _nonPage.notFound(uri);
+    if (!_services.nonPage.isPageRequest(c.request.uri)) {
+      return _services.nonPage.answer(c, _services.extensions.of(S));
+    }
+    final match = _matchOf(c, page);
+    for (final extension in page.extensions) {
+      final response = await extension.respond(c, match);
+      if (response != null) return response;
+    }
     final Component content;
     try {
       content = await page.build(c);
     } on NotFoundException {
-      return _renderer.render(
+      return _services.renderer.render(
         c,
         site.shell(site.notFound()),
         status: StatusCode.notFound,
       );
     }
-    return _renderer.render(
-      c,
-      site.shell(content),
-      match: PageMatch(
-        page: SitePage(site: site, page: page, path: fullPathOf(page)),
-        params: {
-          for (final name in PagePath.parse(page.path).paramNames)
-            name: c.path.string(name),
-        },
-      ),
-    );
+    return _services.renderer.render(c, site.shell(content), match: match);
   }
+
+  PageMatch _matchOf(HttpCtx c, Page page) => PageMatch(
+    page: SitePage(site: site, page: page, path: fullPathOf(page)),
+    params: {
+      for (final name in PagePath.parse(page.path).paramNames)
+        name: c.path.string(name),
+    },
+  );
 }
