@@ -16,8 +16,13 @@ base class SiteValidator {
     final sites = snapshot.sites;
     _checkTypes(sites);
     _checkPaths(sites);
-    _checkIndexes(snapshot);
-    _checkTerritories(snapshot);
+    // User code declares the pages: read it once per api.
+    final declared = [
+      for (final api in snapshot.pages)
+        (api: api, paths: [for (final p in api.pages) api.fullPathOf(p)]),
+    ];
+    _checkIndexes(sites, declared);
+    _checkTerritories(sites, declared);
   }
 
   void _checkTypes(List<SiteApi<Object?>> sites) {
@@ -45,22 +50,22 @@ base class SiteValidator {
     }
   }
 
-  void _checkIndexes(PageSnapshot snapshot) {
-    for (final site in snapshot.sites) {
-      final hasIndex = snapshot.pages
-          .where((api) => api.siteType == site.siteType)
-          .any(
-            (api) => api.pages.any((p) => api.fullPathOf(p) == _index(site)),
-          );
+  void _checkIndexes(List<SiteApi<Object?>> sites, List<_Declared> declared) {
+    for (final site in sites) {
+      final hasIndex = declared
+          .where((d) => d.api.siteType == site.siteType)
+          .any((d) => d.paths.contains(_index(site)));
       if (!hasIndex) throw MissingSiteIndexError(site.siteType);
     }
   }
 
-  void _checkTerritories(PageSnapshot snapshot) {
-    for (final api in snapshot.pages) {
-      for (final page in api.pages) {
-        final path = api.fullPathOf(page);
-        _checkTerritory(snapshot.sites, api, path);
+  void _checkTerritories(
+    List<SiteApi<Object?>> sites,
+    List<_Declared> declared,
+  ) {
+    for (final d in declared) {
+      for (final path in d.paths) {
+        _checkTerritory(sites, d.api, path);
       }
     }
   }
@@ -90,3 +95,5 @@ base class SiteValidator {
   bool _lies(String path, {required String under}) =>
       under.isNotEmpty && path.startsWith('$under/');
 }
+
+typedef _Declared = ({PagesApi<Object?> api, List<String> paths});

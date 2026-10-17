@@ -88,3 +88,13 @@ SiteWithPagesModule<PublicSite> publicSite({
   extra: extra,
   withIndex: withIndex,
 );
+
+/// A site at `/admin2`, which shares a prefix with `/admin` but not a
+/// segment.
+final class Admin2Site extends PageSite {
+  /// Creates the site.
+  Admin2Site(super.injector);
+
+  @override
+  String get path => '/admin2';
+}

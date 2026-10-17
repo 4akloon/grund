@@ -1,6 +1,8 @@
 import 'package:grund/grund.dart';
 import 'package:grund_jaspr/grund_jaspr.dart';
 import 'package:grund_jaspr/src/site/page_registry.dart';
+import 'package:grund_jaspr/src/site/site_validator.dart';
+import 'package:jaspr/server.dart' hide Key;
 import 'package:test/test.dart';
 
 import 'helpers/pages_app.dart';
@@ -136,6 +138,57 @@ void main() {
       );
     });
 
+    test('a page sharing only a name prefix with a site is accepted', () async {
+      final app = await StartedPagesApp.start([
+        const JasprModule(),
+        publicSite(extra: ['/administrator/x']),
+        const SiteWithPagesModule<AdminSite>(AdminSite.new),
+      ]);
+      expect(app<PageRegistry>().current!.sites, hasLength(2));
+    });
+
+    test(
+      'a site sharing only a name prefix with another is accepted',
+      () async {
+        final app = await StartedPagesApp.start([
+          const JasprModule(),
+          const SiteWithPagesModule<AdminSite>(AdminSite.new),
+          const SiteWithPagesModule<Admin2Site>(Admin2Site.new),
+        ]);
+        expect(app<PageRegistry>().current!.sites, hasLength(2));
+      },
+    );
+
+    test('a nested site is rejected in either registration order', () {
+      expect(
+        StartedPagesApp.start([
+          const JasprModule(),
+          const SiteWithPagesModule<ReportsSite>(ReportsSite.new),
+          const SiteWithPagesModule<AdminSite>(AdminSite.new),
+        ]),
+        _throwsError<NestedSitePathError>('/admin/reports'),
+      );
+    });
+
+    test('the root page of the owner site is not misplaced', () async {
+      final app = await StartedPagesApp.start([
+        const JasprModule(),
+        const SiteWithPagesModule<AdminSite>(AdminSite.new, extra: ['/users']),
+      ]);
+      expect(app<PageRegistry>().current!.pages, hasLength(1));
+    });
+
+    test('check reads the pages of each declaration once', () async {
+      var reads = 0;
+      final app = await StartedPagesApp.start([
+        const JasprModule(),
+        _CountingModule(() => reads++),
+      ]);
+      reads = 0;
+      const SiteValidator().check(app<PageRegistry>().current!);
+      expect(reads, 1);
+    });
+
     test('an application without sites starts', () async {
       final app = await StartedPagesApp.start([const JasprModule()]);
       expect(app<PageRegistry>().current!.sites, isEmpty);
@@ -151,4 +204,20 @@ final class _SecondAdminModule extends Module {
 
   @override
   List<Binding<Object>> get bindings => Pages.site<AdminSite>(AdminSite.new);
+}
+
+/// Public site whose pages declaration counts how often it is called.
+final class _CountingModule extends Module {
+  const _CountingModule(this.onDeclare);
+
+  final void Function() onDeclare;
+
+  @override
+  List<Binding<Object>> get bindings => [
+    ...Pages.site<PublicSite>(PublicSite.new),
+    Pages.under<PublicSite>((_) {
+      onDeclare();
+      return [homePage(const Component.text('index'))];
+    }),
+  ];
 }
