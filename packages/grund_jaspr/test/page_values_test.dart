@@ -1,7 +1,8 @@
-import 'package:grund/grund.dart';
 import 'package:grund_jaspr/grund_jaspr.dart';
 import 'package:jaspr/server.dart';
 import 'package:test/test.dart';
+
+import 'helpers/no_injector.dart';
 
 final class _Site extends PageSite {
   _Site(super.injector);
@@ -31,10 +32,10 @@ void main() {
   });
 
   group('PageSite defaults', () {
-    late _Site site;
-    setUp(() => site = _Site(_NoInjector()));
+    _Site makeSite() => _Site(const NoInjector());
 
     test('has no prefix, hooks or base URL', () {
+      final site = makeSite();
       expect(site.path, '');
       expect(site.use, isEmpty);
       expect(site.skippableHooks, isEmpty);
@@ -42,17 +43,19 @@ void main() {
     });
 
     test('shell returns the same content', () {
+      final site = makeSite();
       const content = Component.text('x');
       expect(identical(site.shell(content), content), isTrue);
     });
 
     test('notFound is a text component', () {
+      final site = makeSite();
       expect(site.notFound(), isA<Component>());
     });
   });
 
   test('PageMatch has no params by default', () {
-    final site = _Site(_NoInjector());
+    final site = _Site(const NoInjector());
     final match = PageMatch(
       page: SitePage(
         site: site,
@@ -70,8 +73,3 @@ void main() {
 }
 
 Component _build(Object c) => const Component.text('x');
-
-final class _NoInjector implements Injector {
-  @override
-  dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError();
-}

@@ -18,7 +18,17 @@ void main() {
       expect(path.paramNames, isEmpty);
     });
 
-    for (final bad in ['users', '/a/*', '/a-:id', '/a/:', '/a//b']) {
+    for (final bad in [
+      'users',
+      '/a/*',
+      '/a-:id',
+      '/a/:',
+      '/a//b',
+      '/about/',
+      '/a/b-:id',
+      '/:a:b',
+      '/a/:id/b/:id',
+    ]) {
       test('rejects "$bad"', () {
         expect(
           () => PagePath.parse(bad),
@@ -30,6 +40,19 @@ void main() {
         );
       });
     }
+  });
+
+  test('names the repeated parameter', () {
+    expect(
+      () => PagePath.parse('/a/:id/b/:id'),
+      throwsA(
+        isA<InvalidPagePathError>().having(
+          (e) => e.message,
+          'message',
+          contains('"id"'),
+        ),
+      ),
+    );
   });
 
   group('PagePath.checkSitePath', () {

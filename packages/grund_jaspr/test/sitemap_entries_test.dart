@@ -1,14 +1,10 @@
-import 'package:grund/grund.dart';
 import 'package:grund_jaspr/grund_jaspr.dart';
 import 'package:test/test.dart';
 
-final class _NoInjector implements Injector {
-  @override
-  dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError();
-}
+import 'helpers/no_injector.dart';
 
 void main() {
-  final injector = _NoInjector();
+  const injector = NoInjector();
   const e1 = SitemapEntry(params: {'slug': 'a'});
   const e2 = SitemapEntry(params: {'slug': 'b'});
   const e3 = SitemapEntry(params: {'slug': 'c'});

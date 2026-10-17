@@ -24,8 +24,15 @@ final class PagePath {
     }
     if (path == '/') return PagePath._(const []);
     final segments = path.substring(1).split('/');
+    final names = <String>{};
     for (final segment in segments) {
       _checkSegment(path, segment);
+      if (segment.startsWith(':') && !names.add(segment.substring(1))) {
+        throw InvalidPagePathError(
+          path: path,
+          reason: 'parameter "${segment.substring(1)}" is repeated',
+        );
+      }
     }
     return PagePath._(segments);
   }

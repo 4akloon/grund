@@ -5,7 +5,8 @@ import 'sitemap_entry.dart';
 /// The source of the addresses of a parameterised page in the sitemap.
 abstract interface class SitemapEntries {
   /// Entries that [load] returns in one list; counting and slicing happen
-  /// on that list.
+  /// on that list. It loads the whole list on every [count] and [slice]
+  /// call, so the loader should be cheap or cached by the caller.
   factory SitemapEntries.all(
     Future<List<SitemapEntry>> Function(Injector injector) load,
   ) => _AllEntries(load);
