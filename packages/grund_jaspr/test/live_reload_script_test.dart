@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:grund_http/grund_http.dart';
-import 'package:grund_jaspr/src/jaspr_error.dart';
+import 'package:grund_jaspr/src/error/jaspr_error.dart';
 import 'package:grund_jaspr/src/live_reload_script.dart';
 import 'package:test/test.dart';
 

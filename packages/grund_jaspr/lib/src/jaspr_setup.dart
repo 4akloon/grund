@@ -1,6 +1,6 @@
 import 'package:jaspr/server.dart';
 
-import 'jaspr_error.dart';
+import 'error/jaspr_error.dart';
 
 /// Initializes Jaspr's process-wide state once, for every application of
 /// the process.

@@ -1,4 +1,4 @@
-import 'jaspr_error.dart';
+import 'error/jaspr_error.dart';
 
 /// How `JasprModule` serves pages and static files.
 final class JasprConfig {
@@ -7,6 +7,10 @@ final class JasprConfig {
     this.staticDirectory = 'web',
     this.pageSuffixes = const ['html', 'htm', 'xml'],
     this.liveReloadUrl,
+    this.staticPath = '/static',
+    this.rootFiles = const [],
+    this.sitemapChunkSize = 50000,
+    this.sitemapCacheLifetime = const Duration(seconds: 60),
   });
 
   /// The directory of the static files; a relative path is resolved
@@ -26,9 +30,43 @@ final class JasprConfig {
   /// builds, when it is `null`.
   final Uri? liveReloadUrl;
 
+  /// The URL prefix under which the static files are served; starts with
+  /// `/` and does not end with one.
+  final String staticPath;
+
+  /// Names of files of [staticDirectory] that are also served at the root
+  /// of the site (`robots.txt`); plain file names, without `/`.
+  final List<String> rootFiles;
+
+  /// The most addresses one sitemap file holds; a larger sitemap is split.
+  final int sitemapChunkSize;
+
+  /// How long a generated sitemap chunk is reused.
+  final Duration sitemapCacheLifetime;
+
   /// Throws [JasprSetupError] for a [pageSuffixes] entry that starts with
-  /// `.`; `JasprModule` calls it when the application starts.
+  /// `.`, a malformed [staticPath], a [rootFiles] entry with a `/` or a
+  /// [sitemapChunkSize] below 1; `JasprModule` calls it when the
+  /// application starts.
   void validate() {
+    if (!staticPath.startsWith('/') || staticPath.endsWith('/')) {
+      throw JasprSetupError(
+        'staticPath must start with "/" and not end with it; got '
+        '"$staticPath".',
+      );
+    }
+    for (final file in rootFiles) {
+      if (file.contains('/')) {
+        throw JasprSetupError(
+          'rootFiles entries are plain file names; "$file" contains "/".',
+        );
+      }
+    }
+    if (sitemapChunkSize < 1) {
+      throw JasprSetupError(
+        'sitemapChunkSize must be at least 1; got $sitemapChunkSize.',
+      );
+    }
     for (final suffix in pageSuffixes) {
       if (suffix.startsWith('.')) {
         throw JasprSetupError(
@@ -44,5 +82,9 @@ final class JasprConfig {
     staticDirectory: staticDirectory,
     pageSuffixes: pageSuffixes,
     liveReloadUrl: url,
+    staticPath: staticPath,
+    rootFiles: rootFiles,
+    sitemapChunkSize: sitemapChunkSize,
+    sitemapCacheLifetime: sitemapCacheLifetime,
   );
 }

@@ -1,7 +1,7 @@
 import 'package:grund_http/grund_http.dart';
 import 'package:jaspr/server.dart';
 
-import 'jaspr_error.dart';
+import 'error/jaspr_error.dart';
 
 /// Holds the [HttpCtx] of the request a page is rendered for; `JasprModule`
 /// puts it above the application's root component.

@@ -1,7 +1,7 @@
 import 'package:grund/grund.dart';
 
 /// A failure of `grund_jaspr`: setting Jaspr up or rendering a page.
-sealed class JasprError extends GrundError {
+abstract base class JasprError extends GrundError {
   /// Creates the error.
   const JasprError();
 }

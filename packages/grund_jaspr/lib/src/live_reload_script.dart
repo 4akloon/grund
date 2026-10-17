@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:grund_http/grund_http.dart';
 
-import 'jaspr_error.dart';
+import 'error/jaspr_error.dart';
 import 'jaspr_response.dart';
 
 /// The script that reloads a page in the browser when `grund dev` reloaded

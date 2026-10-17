@@ -2,7 +2,7 @@ import 'package:grund_http/grund_http.dart';
 import 'package:jaspr/server.dart';
 
 import 'grund_scope.dart';
-import 'jaspr_error.dart';
+import 'error/jaspr_error.dart';
 import 'jaspr_request.dart';
 import 'jaspr_response.dart';
 import 'live_reload_script.dart';
