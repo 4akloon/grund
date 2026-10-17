@@ -9,8 +9,9 @@ abstract final class SiteDeclarationCheck {
   /// Throws [InvalidSitePathError] when the path of [site] is not `''` or
   /// `/segment[/segment]` of literals, lies on the `staticPath` of [config]
   /// or is a `rootFiles` entry, [InvalidSiteBaseUrlError] for a bad
-  /// `baseUrl`, [InvalidSiteFileError] for a file that cannot be served, and [GuardedSiteSitemapError] (naming [siteType]) when the
-  /// site has hooks and a sitemap.
+  /// `baseUrl`, [InvalidSiteFileError] for a file that cannot be served, and
+  /// [GuardedSiteSitemapError] (naming [siteType]) when the site has hooks
+  /// and a sitemap.
   static void check(
     PageSite site, {
     required Type siteType,

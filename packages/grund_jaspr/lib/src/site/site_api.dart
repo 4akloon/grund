@@ -14,8 +14,9 @@ final class SiteApi<S extends PageSite> extends HttpApi {
   /// Creates the API of [site] in the module of [injector]; throws
   /// [InvalidSitePathError] when the site path is not `''` or
   /// `/segment[/segment]` of literals, lies on the `staticPath` of the
-  /// configuration or is a `rootFiles` entry, and [GuardedSiteSitemapError]
-  /// when it has hooks and a sitemap.
+  /// configuration or is a `rootFiles` entry, [InvalidSiteFileError] for a
+  /// file that cannot be served, and [GuardedSiteSitemapError] when it has
+  /// hooks and a sitemap.
   SiteApi(super.injector, this.site, this._services) {
     SiteDeclarationCheck.check(site, siteType: S, config: _services.config);
   }

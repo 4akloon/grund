@@ -2,6 +2,7 @@ import 'package:grund/grund.dart';
 import 'package:grund_http/grund_http.dart';
 import 'package:grund_http/testing.dart';
 import 'package:grund_jaspr/grund_jaspr.dart';
+import 'package:jaspr/server.dart' hide Key;
 import 'package:test/test.dart';
 
 import 'helpers/catalog_app.dart';
@@ -81,7 +82,7 @@ void main() {
       expect(response.headers['cache-control'], 'max-age=60');
     });
 
-    test('HEAD answers like GET without the body', () async {
+    test('HEAD answers 200 with the same content-type', () async {
       final client = await _start([
         _root([textFile('/robots.txt')]),
       ]);
@@ -117,6 +118,7 @@ void main() {
 
       expect(response.status, 308);
       expect(response.headers['location'], '/robots.txt');
+      expect(response.headers['cache-control'], 'max-age=3600');
     });
 
     test('a file is not redirected under always', () async {
@@ -128,6 +130,7 @@ void main() {
 
       expect((await client.get('/robots.txt')).status, 200);
       final slash = await client.get('/robots.txt/');
+      expect(slash.status, 308);
       expect(slash.headers['location'], '/robots.txt');
     });
   });
@@ -172,6 +175,24 @@ void main() {
       );
     });
 
+    test('the message names a file', () {
+      expect(
+        startCatalogApp([
+          SiteWithPagesModule<FilesSite>(
+            (i) => FilesSite(i, [textFile('/admin/x.txt')]),
+          ),
+          const SiteWithPagesModule<AdminSite>(AdminSite.new),
+        ]),
+        throwsA(
+          isA<MisplacedPagePathError>().having(
+            (e) => e.message,
+            'message',
+            contains('The page or file "/admin/x.txt"'),
+          ),
+        ),
+      );
+    });
+
     test('the same file in the owning site is accepted', () async {
       final client = await _start([
         SiteWithPagesModule<AdminFilesSite>(
@@ -201,6 +222,12 @@ void main() {
       ('an empty segment', textFile('/a//b'), 'empty'),
       ('the static path', textFile('/static/x.txt'), 'static'),
       ('the sitemap', textFile('/sitemap.xml'), 'sitemap'),
+      ('a query', textFile('/a.txt?x=1'), 'dot segment'),
+      ('a fragment', textFile('/a#x'), 'dot segment'),
+      ('a percent escape', textFile('/a%2Fb.txt'), 'dot segment'),
+      ('a parent segment', textFile('/a/../b.txt'), 'dot segment'),
+      ('a current segment', textFile('/./b.txt'), 'dot segment'),
+      ('a sitemap chunk', textFile('/sitemap/1'), 'sitemap'),
       (
         'a media type without a subtype',
         textFile('/a', mediaType: 'text'),
@@ -217,6 +244,25 @@ void main() {
         );
       });
     }
+
+    test('a file on the own URL of an alternate is a duplicate route', () {
+      expect(
+        startCatalogApp([
+          CatalogPagesModule<FilesSite>(
+            (i) => FilesSite(i, [textFile('/about.md')]),
+            [
+              markedPage('/'),
+              Page(
+                '/about',
+                alternates: [PageAlternate.markdown((c, m) => '#')],
+                build: (_) => const Component.text('x'),
+              ),
+            ],
+          ),
+        ]),
+        throwsA(isA<DuplicateRouteError>()),
+      );
+    });
 
     test('a path declared twice is a duplicate route', () {
       expect(

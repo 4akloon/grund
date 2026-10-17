@@ -98,31 +98,31 @@ final class ReservedPagePathError extends PageDeclarationError {
   String get message => 'The page path "$path" is reserved: $reason';
 }
 
-/// A page is declared at the path of another site or under it, where that
-/// site's hooks would not apply.
+/// A page or a site file is declared at the path of another site or under
+/// it, where that site's hooks would not apply.
 final class MisplacedPagePathError extends PageDeclarationError {
-  /// Creates the error for the page at [path] of [siteType], which lies in
-  /// the territory of the site [owner].
+  /// Creates the error for the page or file at [path] of [siteType], which
+  /// lies in the territory of the site [owner].
   const MisplacedPagePathError({
     required this.path,
     required this.siteType,
     required this.owner,
   });
 
-  /// The full path of the page.
+  /// The full path of the page or file.
   final String path;
 
-  /// The site the page is declared under.
+  /// The site the page or file is declared under.
   final Type siteType;
 
-  /// The site whose path the page lies on or under.
+  /// The site whose path the page or file lies on or under.
   final Type owner;
 
   @override
   String get message =>
-      'The page "$path" of $siteType lies on the path of the site $owner, '
-      'so it would bypass the hooks of $owner. Declare it with '
-      'Pages.under<$owner> or move it to another path.';
+      'The page or file "$path" of $siteType lies on the path of the site '
+      '$owner, so it would bypass the hooks of $owner. Declare a page with '
+      'Pages.under<$owner> and a file in $owner, or move it to another path.';
 }
 
 /// A parameterised page in a site with a sitemap says neither where its

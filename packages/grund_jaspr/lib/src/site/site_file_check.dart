@@ -34,7 +34,13 @@ abstract final class SiteFileCheck {
     if (path.contains(':') || path.contains('*')) {
       return 'the path must consist of literal segments';
     }
-    if (path.substring(1).split('/').any((segment) => segment.isEmpty)) {
+    final segments = path.substring(1).split('/');
+    final dotSegment = segments.any((s) => s == '.' || s == '..');
+    if (dotSegment || path.contains(RegExp('[?#%]'))) {
+      return 'the path has a query, a fragment, a percent escape or a dot '
+          'segment, which no request can match';
+    }
+    if (segments.any((segment) => segment.isEmpty)) {
       return 'the path has an empty segment';
     }
     if (!PageDeclarationCheck.mediaTypePattern.hasMatch(file.mediaType)) {
