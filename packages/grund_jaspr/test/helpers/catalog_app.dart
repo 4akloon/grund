@@ -10,13 +10,16 @@ import 'validation_sites.dart';
 /// Declares the site [S] and the [pages] under it.
 final class CatalogPagesModule<S extends PageSite> extends Module {
   /// Creates the module for the site made by [create].
-  const CatalogPagesModule(this.create, this.pages);
+  const CatalogPagesModule(this.create, this.pages, {this.onDeclare});
 
   /// Makes the site.
   final S Function(Injector) create;
 
   /// The pages of the site.
   final List<Page> pages;
+
+  /// Called each time the pages are declared.
+  final void Function()? onDeclare;
 
   @override
   List<Binding<Object>> get bindings => [
@@ -26,7 +29,10 @@ final class CatalogPagesModule<S extends PageSite> extends Module {
       (_) => const CurrentUserHook(),
       dependsOn: const [],
     ),
-    Pages.under<S>((_) => pages),
+    Pages.under<S>((_) {
+      onDeclare?.call();
+      return pages;
+    }),
   ];
 }
 

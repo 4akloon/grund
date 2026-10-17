@@ -15,6 +15,7 @@ List<Module> _modules() => [
     markedPage('/docs/new/edit'),
     markedPage('/docs/:slug/view'),
     markedPage('/:section/x'),
+    markedPage('/:a'),
   ]),
   CatalogPagesModule<AdminSite>(AdminSite.new, [
     markedPage('/'),
@@ -57,7 +58,11 @@ const _paths = [
   '/about.html',
   '/static/app.css',
   '/static',
+  '/static/',
   '/robots.txt',
+  '/robots.txt/',
+  '/LICENSE',
+  '/LICENSE/',
   '/%zz',
 ];
 
@@ -67,7 +72,7 @@ void main() {
   test('catalog.match agrees with the pages the server serves', () async {
     final app = await startCatalogApp(
       _modules(),
-      config: const JasprConfig(rootFiles: ['robots.txt']),
+      config: const JasprConfig(rootFiles: ['robots.txt', 'LICENSE']),
     );
     final client = TestClient.of(app);
     final catalog = app.injector<PageCatalog>();

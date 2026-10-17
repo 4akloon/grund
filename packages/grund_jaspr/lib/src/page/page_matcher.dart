@@ -45,7 +45,8 @@ final class PageMatcher {
   void _insert(SitePage page) {
     final pattern = PagePath.parse(page.path);
     final node = _nodeFor(_split(pattern.normalized));
-    node.page ??= page;
+    if (node.page != null) return; // The validator rules out duplicates.
+    node.page = page;
     node.names = pattern.paramNames;
   }
 

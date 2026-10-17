@@ -192,6 +192,65 @@ void main() {
       expect(_paths(catalog.pagesWith<MarkdownLike>()), ['/doc']);
     });
 
+    test(
+      'match treats trailing-slash static and root file URLs as files',
+      () async {
+        final catalog = await startCatalog([
+          _publicWith([markedPage('/'), markedPage('/:a')]),
+        ], config: const JasprConfig(rootFiles: ['robots.txt', 'LICENSE']));
+
+        for (final url in [
+          '/static/x.css',
+          '/robots.txt/',
+          '/LICENSE',
+          '/LICENSE/',
+        ]) {
+          expect(catalog.match(Uri.parse('http://x$url')), isNull, reason: url);
+        }
+        for (final url in ['/static', '/static/']) {
+          expect(catalog.match(Uri.parse('http://x$url'))!.page.path, '/:a');
+        }
+      },
+    );
+
+    test('follows a replaced snapshot', () async {
+      final first = await startCatalogApp([
+        _publicWith([markedPage('/'), markedPage('/old')]),
+      ]);
+      final second = await startCatalogApp([
+        _publicWith([markedPage('/'), markedPage('/new')]),
+      ]);
+      final catalog = first.injector<PageCatalog>();
+      expect(catalog.match(Uri.parse('http://x/old')), isNotNull);
+      expect(_paths(catalog.pagesOf<PublicSite>()), ['/', '/old']);
+
+      first.injector<PageRegistry>().replace(
+        second.injector<PageRegistry>().current!,
+      );
+
+      expect(catalog.match(Uri.parse('http://x/old')), isNull);
+      expect(catalog.match(Uri.parse('http://x/new')), isNotNull);
+      expect(_paths(catalog.pagesOf<PublicSite>()), ['/', '/new']);
+    });
+
+    test('declares the pages once per snapshot', () async {
+      var declared = 0;
+      final app = await startCatalogApp([
+        CatalogPagesModule<PublicSite>(PublicSite.new, [
+          navPage('/', nav: const PageNav(label: 'Home')),
+        ], onDeclare: () => declared++),
+      ]);
+      final catalog = app.injector<PageCatalog>();
+      declared = 0;
+
+      catalog.pagesOf<PublicSite>();
+      catalog.navOf<PublicSite>();
+      catalog.pagesWith<MarkdownLike>();
+      catalog.match(Uri.parse('http://x/'));
+
+      expect(declared, 1);
+    });
+
     test('is exported by JasprModule', () async {
       final app = await startCatalogApp(sampleSiteModules());
 
