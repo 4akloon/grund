@@ -1,3 +1,8 @@
+## 0.2.0
+
+- **Breaking:** requires Dart 3.13 (`sdk: ^3.13.0`).
+- `analyzer` is now `>=13.1.0 <15.0.0` (was `>=8.1.1`): the lowest version that parses Dart 3.13 sources.
+
 ## 0.1.1
 
 - Generated code imports a public library that exports a referenced declaration of another package instead of its `src/` file (fixes `implementation_imports` in generated files).

@@ -1,3 +1,7 @@
+## 0.2.0
+
+- **Breaking:** requires Dart 3.13 (`sdk: ^3.13.0`).
+
 ## 0.1.1
 
 - Requires `grund_http` ^0.2.0.
