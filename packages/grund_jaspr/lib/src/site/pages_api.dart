@@ -7,6 +7,7 @@ import '../page/page_match.dart';
 import '../page/page_path.dart';
 import '../page/page_renderer.dart';
 import '../page/site_page.dart';
+import 'hook_resolver.dart';
 import 'page_site.dart';
 
 /// The page routes of one `Pages.under` declaration.
@@ -36,7 +37,11 @@ final class PagesApi<S extends PageSite> extends HttpApi {
       Route.get(
         page.path,
         (c) => _serve(c, page),
-        use: [...site.use, ...page.hooks.use],
+        use: const HookResolver().forPage(
+          site: site,
+          page: page,
+          fullPath: _fullPath(page),
+        ),
         name: 'GET ${_fullPath(page)}',
       ),
   ];
