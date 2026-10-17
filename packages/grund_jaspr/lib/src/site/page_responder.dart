@@ -1,0 +1,41 @@
+import 'package:grund_http/grund_http.dart';
+import 'package:jaspr/server.dart' hide Key;
+
+import '../page/page.dart';
+import '../page/page_match.dart';
+import 'page_site.dart';
+import 'site_services.dart';
+
+/// Builds the responses of the pages of a site and of its not-found page.
+final class PageResponder {
+  /// Creates the responder on [_services].
+  const PageResponder(this._services);
+
+  final SiteServices _services;
+
+  /// The response for [match] of [page]: an answer of one of the page's
+  /// extensions, the rendered page, or the site's not-found page when the
+  /// builder throws [NotFoundException].
+  Future<HttpResponse> page(
+    HttpCtx c, {
+    required PageSite site,
+    required Page page,
+    required PageMatch match,
+  }) async {
+    for (final extension in page.extensions) {
+      final response = await extension.respond(c, match);
+      if (response != null) return response;
+    }
+    final Component content;
+    try {
+      content = await page.build(c);
+    } on NotFoundException {
+      return notFound(c, site);
+    }
+    return _services.renderer.render(c, site.shell(content), match: match);
+  }
+
+  /// The not-found page of [site], in its shell, with status 404.
+  Future<HttpResponse> notFound(HttpCtx c, PageSite site) => _services.renderer
+      .render(c, site.shell(site.notFound()), status: StatusCode.notFound);
+}

@@ -1,8 +1,9 @@
 import 'package:grund_http/grund_http.dart';
 
 import '../error/site_declaration_error.dart';
-import '../page/page_path.dart';
+import 'page_responder.dart';
 import 'page_site.dart';
+import 'site_declaration_check.dart';
 import 'site_services.dart';
 
 /// The fallback route of a site: everything below its path that no page
@@ -14,30 +15,15 @@ final class SiteApi<S extends PageSite> extends HttpApi {
   /// configuration or is a `rootFiles` entry, and [GuardedSiteSitemapError]
   /// when it has hooks and a sitemap.
   SiteApi(super.injector, this.site, this._services) {
-    final config = _services.config;
-    final path = site.path;
-    PagePath.checkSitePath(path);
-    if (config.rootFiles.any((file) => path == '/$file')) {
-      throw InvalidSitePathError(
-        path: path,
-        reason: 'it is the root file "${path.substring(1)}"',
-      );
-    }
-    if (path == config.staticPath || path.startsWith('${config.staticPath}/')) {
-      throw InvalidSitePathError(
-        path: path,
-        reason: 'it is the static path "${config.staticPath}" or lies under it',
-      );
-    }
-    if (site.use.isNotEmpty && site.sitemapBaseUrl != null) {
-      throw GuardedSiteSitemapError(S);
-    }
+    SiteDeclarationCheck.check(site, siteType: S, config: _services.config);
   }
 
   /// The site.
   final S site;
 
   final SiteServices _services;
+
+  PageResponder get _responder => PageResponder(_services);
 
   /// The type of the site this API belongs to.
   Type get siteType => S;
@@ -63,10 +49,6 @@ final class SiteApi<S extends PageSite> extends HttpApi {
     if (!_services.nonPage.isPageRequest(c.request.uri)) {
       return _services.nonPage.answer(c, _services.extensions.of(S));
     }
-    return _services.renderer.render(
-      c,
-      site.shell(site.notFound()),
-      status: StatusCode.notFound,
-    );
+    return _responder.notFound(c, site);
   }
 }

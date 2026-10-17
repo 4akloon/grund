@@ -1,13 +1,13 @@
 import 'package:grund/grund.dart';
 import 'package:grund_http/grund_http.dart';
-import 'package:jaspr/server.dart' hide Key;
 
-import '../error/page_declaration_error.dart';
 import '../page/page.dart';
 import '../page/page_match.dart';
 import '../page/page_path.dart';
 import '../page/site_page.dart';
 import 'hook_resolver.dart';
+import 'page_declaration_check.dart';
+import 'page_responder.dart';
 import 'page_site.dart';
 import 'site_services.dart';
 
@@ -21,6 +21,8 @@ final class PagesApi<S extends PageSite> extends HttpApi {
   final S site;
 
   final SiteServices _services;
+
+  PageResponder get _responder => PageResponder(_services);
   final List<Page> Function(Injector) _declare;
 
   /// The type of the site this API belongs to.
@@ -36,59 +38,23 @@ final class PagesApi<S extends PageSite> extends HttpApi {
   List<Route> get routes => [for (final page in pages) _route(page)];
 
   Route _route(Page page) {
-    _checkNotReserved(page);
-    _checkSitemap(page);
+    final fullPath = fullPathOf(page);
+    PageDeclarationCheck.check(
+      page,
+      site: site,
+      fullPath: fullPath,
+      config: _services.config,
+    );
     return Route.get(
       page.path,
       (c) => _serve(c, page),
       use: const HookResolver().forPage(
         site: site,
         page: page,
-        fullPath: fullPathOf(page),
+        fullPath: fullPath,
       ),
-      name: 'GET ${fullPathOf(page)}',
+      name: 'GET $fullPath',
     );
-  }
-
-  // Throws when a page would take over a static file URL.
-  void _checkNotReserved(Page page) {
-    final path = fullPathOf(page);
-    final staticPath = _services.config.staticPath;
-    if (path == staticPath || path.startsWith('$staticPath/')) {
-      throw ReservedPagePathError(
-        path: path,
-        reason: 'static files are served under "$staticPath"',
-      );
-    }
-    if (path == '${site.path}/sitemap.xml' ||
-        path.startsWith('${site.path}/sitemap/')) {
-      throw ReservedPagePathError(
-        path: path,
-        reason:
-            'the sitemap of the site is served at "${site.path}/sitemap.xml" '
-            'and under "${site.path}/sitemap/"',
-      );
-    }
-    for (final file in _services.config.rootFiles) {
-      if (path == '/$file') {
-        throw ReservedPagePathError(
-          path: path,
-          reason: 'the static file "$file" is served at the root',
-        );
-      }
-    }
-  }
-
-  // Throws when the sitemap settings of [page] contradict its path.
-  void _checkSitemap(Page page) {
-    final entries = page.meta.sitemap.entries;
-    final hasParams = PagePath.parse(page.path).hasParams;
-    final fullPath = fullPathOf(page);
-    if (!hasParams && entries != null) throw UnusedPageEntriesError(fullPath);
-    final decided = entries != null || page.meta.sitemap.included == false;
-    if (hasParams && site.sitemapBaseUrl != null && !decided) {
-      throw UndecidedPageSitemapError(fullPath);
-    }
   }
 
   /// The path the router registers for [page]: the root page of a site with
@@ -103,22 +69,7 @@ final class PagesApi<S extends PageSite> extends HttpApi {
     if (!_services.nonPage.isPageRequest(c.request.uri)) {
       return _services.nonPage.answer(c, _services.extensions.of(S));
     }
-    final match = _matchOf(c, page);
-    for (final extension in page.extensions) {
-      final response = await extension.respond(c, match);
-      if (response != null) return response;
-    }
-    final Component content;
-    try {
-      content = await page.build(c);
-    } on NotFoundException {
-      return _services.renderer.render(
-        c,
-        site.shell(site.notFound()),
-        status: StatusCode.notFound,
-      );
-    }
-    return _services.renderer.render(c, site.shell(content), match: match);
+    return _responder.page(c, site: site, page: page, match: _matchOf(c, page));
   }
 
   PageMatch _matchOf(HttpCtx c, Page page) => PageMatch(

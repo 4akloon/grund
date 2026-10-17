@@ -2,6 +2,7 @@ import 'package:grund/grund.dart';
 
 import '../error/page_runtime_error.dart';
 import '../jaspr_config.dart';
+import '../page/page_address.dart';
 import '../page/page_path.dart';
 import '../page/page_sitemap.dart';
 import '../sitemap/all_sitemap_entries.dart';
@@ -200,23 +201,11 @@ final class SitemapSource {
     PageSitemap sitemap,
     SitemapEntry? entry,
   ) => SitemapUrl(
-    location: base.resolve(_encodedPath(path, entry?.params ?? const {})),
+    location: base.resolve(
+      PageAddress.encodedPath(path, entry?.params ?? const {}),
+    ),
     lastModified: entry?.lastModified ?? sitemap.lastModified,
     changeFrequency: sitemap.changeFrequency,
     priority: sitemap.priority,
   );
-
-  // Every segment is percent-encoded, so a value never adds a segment.
-  static String _encodedPath(String path, Map<String, String> params) {
-    if (path == '/') return '/';
-    final segments = [
-      for (final segment in path.substring(1).split('/'))
-        Uri.encodeComponent(
-          segment.startsWith(':')
-              ? (params[segment.substring(1)] ?? segment)
-              : segment,
-        ),
-    ];
-    return '/${segments.join('/')}';
-  }
 }
