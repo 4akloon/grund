@@ -66,6 +66,22 @@ void main() {
     expect(match.params, isEmpty);
   });
 
+  test('PageMatch.meta is the meta of the matched page', () {
+    final site = _Site(const NoInjector());
+    final match = PageMatch(
+      page: SitePage(
+        site: site,
+        page: const Page(
+          '/',
+          build: _build,
+          meta: PageMeta(title: 'Home'),
+        ),
+        path: '/',
+      ),
+    );
+    expect(match.meta.title, 'Home');
+  });
+
   test('InvalidSitePathError names the path and the reason', () {
     const error = InvalidSitePathError(path: '/a/', reason: 'bad end');
     expect(error.message, allOf(contains('/a/'), contains('bad end')));

@@ -196,7 +196,7 @@ final class PublicSite extends PageSite {
   @override
   Component shell(Component content) => Builder(
     builder: (context) => Document(
-      title: context.pageMatch?.page.page.meta.title ?? 'grund',
+      title: context.pageMatch?.meta.title ?? 'grund',
       head: [link(href: '/static/styles.css', rel: 'stylesheet')],
       body: main_([content]),
     ),
