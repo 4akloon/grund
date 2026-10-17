@@ -26,9 +26,8 @@ abstract final class BindingEmitter {
       key: provider.key,
       lifetime: injectable.lifetime,
       dependencies: dependencies,
-      create: TypeEmitter.reference(
-        injectable.type,
-      ).newInstance(_positional(dependencies), _named(dependencies)),
+      create: TypeEmitter.reference(injectable.type)
+          .newInstance(_positional(dependencies), _named(dependencies)),
     );
   }
 

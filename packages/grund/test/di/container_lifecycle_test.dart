@@ -106,11 +106,14 @@ void main() {
       await expectLater(
         container.close(),
         throwsA(
-          isA<ShutdownError>()
-              .having((e) => e.failures.map((f) => f.step).toList(), 'steps', [
-                'dispose Tracked(\'b\') of AppModule',
-                'dispose Tracked(\'a\') of AppModule',
-              ]),
+          isA<ShutdownError>().having(
+            (e) => e.failures.map((f) => f.step).toList(),
+            'steps',
+            [
+              'dispose Tracked(\'b\') of AppModule',
+              'dispose Tracked(\'a\') of AppModule',
+            ],
+          ),
         ),
       );
       expect(log.where((e) => e.startsWith('dispose')), hasLength(2));

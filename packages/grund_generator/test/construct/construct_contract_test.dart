@@ -164,9 +164,9 @@ void main() {
       'lib/modules/basic.dart',
       'lib/constants.dart',
     ]);
-    final package = const GrundGenerator([
-      _Collecting(),
-    ]).collector(fixture.name, fixture.root).collect(libraries);
+    final package = const GrundGenerator([_Collecting()])
+        .collector(fixture.name, fixture.root)
+        .collect(libraries);
 
     expect(package.extensionModel<_Uris>()?.uris, [
       'package:cases_app/constants.dart',

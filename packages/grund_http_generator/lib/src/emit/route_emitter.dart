@@ -11,19 +11,20 @@ import 'param_emitter.dart';
 /// API class held in the field `_api`.
 abstract final class RouteEmitter {
   /// The route expression of [route].
-  static Expression emit(RouteModel route) => HttpReferences.of('Route')
-      .property(route.method.toLowerCase())
-      .call(
-        [DartString.expression(route.path), _handler(route)],
-        {
-          if (route.status case final status?) 'status': literalNum(status),
-          if (route.use.isNotEmpty)
-            'use': ConstantEmitter.list([
-              for (final hook in route.use)
-                HttpReferences.prefixed(hook.expression),
-            ]),
-        },
-      );
+  static Expression emit(RouteModel route) =>
+      HttpReferences.of('Route')
+          .property(route.method.toLowerCase())
+          .call(
+            [DartString.expression(route.path), _handler(route)],
+            {
+              if (route.status case final status?) 'status': literalNum(status),
+              if (route.use.isNotEmpty)
+                'use': ConstantEmitter.list([
+                  for (final hook in route.use)
+                    HttpReferences.prefixed(hook.expression),
+                ]),
+            },
+          );
 
   static Expression _handler(RouteModel route) {
     final parameters = route.parameters;

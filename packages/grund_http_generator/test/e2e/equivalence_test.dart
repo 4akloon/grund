@@ -72,12 +72,10 @@ void main() {
 
     expect(_routes(generated), _routes(written));
     for (final (method, target, json, headers) in requests) {
-      final a = await TestClient.of(
-        generated,
-      ).request(method, target, json: json, headers: headers);
-      final b = await TestClient.of(
-        written,
-      ).request(method, target, json: json, headers: headers);
+      final a = await TestClient.of(generated)
+          .request(method, target, json: json, headers: headers);
+      final b = await TestClient.of(written)
+          .request(method, target, json: json, headers: headers);
       expect(
         (a.status, a.text, _compared(a)),
         (b.status, b.text, _compared(b)),

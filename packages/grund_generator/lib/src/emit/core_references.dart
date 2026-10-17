@@ -10,8 +10,8 @@ abstract final class CoreReferences {
   static Reference grund(String symbol) => refer(symbol, ImportAllocator.grund);
 
   /// `Key<T>` with type argument [type] and an optional [name].
-  static Expression key(Reference type, [String? name]) =>
-      grund('Key').newInstance(
+  static Expression key(Reference type, [String? name]) => grund('Key')
+      .newInstance(
         [if (name != null) DartString.expression(name)],
         const {},
         [type],

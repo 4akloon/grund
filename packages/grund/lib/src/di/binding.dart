@@ -5,8 +5,9 @@ import 'key.dart';
 
 /// Creates the value of a [Binding]; [injector] sees what the owning module
 /// sees.
-typedef BindingFactory<T extends Object> =
-    FutureOr<T> Function(Injector injector);
+typedef BindingFactory<T extends Object> = FutureOr<T> Function(
+  Injector injector,
+);
 
 /// How long the instances of a binding live.
 enum BindingScope {

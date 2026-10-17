@@ -217,9 +217,8 @@ void main() {
       );
 
       expect(
-        ModuleGraph.build(
-          root,
-        ).visibility.lookup(const ModuleIdentity(AppModule), const Key<Db>()),
+        ModuleGraph.build(root).visibility
+            .lookup(const ModuleIdentity(AppModule), const Key<Db>()),
         isNull,
       );
     });
@@ -237,9 +236,8 @@ void main() {
       );
 
       expect(
-        ModuleGraph.build(
-          root,
-        ).visibility.lookup(const ModuleIdentity(AppModule), const Key<Db>()),
+        ModuleGraph.build(root).visibility
+            .lookup(const ModuleIdentity(AppModule), const Key<Db>()),
         isNotNull,
       );
     });
@@ -257,10 +255,8 @@ void main() {
       );
 
       expect(
-        ModuleGraph.build(root).visibility.lookup(
-          const ModuleIdentity(AuthModule),
-          const Key<Clock>(),
-        ),
+        ModuleGraph.build(root).visibility
+            .lookup(const ModuleIdentity(AuthModule), const Key<Clock>()),
         isNotNull,
       );
     });

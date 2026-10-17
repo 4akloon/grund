@@ -8,9 +8,8 @@ void main() {
   late PackageModel package; // Set in setUpAll.
 
   setUpAll(() async {
-    package = await FixturePackage.open(
-      'http_cases_app',
-    ).collect(['lib/unsupported_routes.dart']);
+    package = await FixturePackage.open('http_cases_app')
+        .collect(['lib/unsupported_routes.dart']);
   });
 
   List<UnsupportedUse> uses(String element) => [

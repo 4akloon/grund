@@ -10,9 +10,8 @@ void main() {
   late PackageModel package; // Set in setUpAll.
 
   setUpAll(() async {
-    package = await FixturePackage.open(
-      'cases_app',
-    ).collect(['lib/providers/constructors.dart', 'lib/modules/basic.dart']);
+    package = await FixturePackage.open('cases_app')
+        .collect(['lib/providers/constructors.dart', 'lib/modules/basic.dart']);
   });
 
   InjectableModel injectable(String name) =>

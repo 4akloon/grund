@@ -90,29 +90,23 @@ void main() {
     });
 
     // RF-4: a failing start leaves nothing running and nothing open.
-    test(
-      'a runner that fails to prepare stops the start and releases the container',
-      () async {
-        final log = <String>[];
-        final app = App(
-          root: AppModule(
-            bindings: [
-              runnerBinding(
-                FakeRunner('a', log, prepareFailure: StateError('bad')),
-              ),
-              Singleton<Tracked>(
-                (i) => Tracked('db', log),
-                dependsOn: const [],
-              ),
-            ],
-          ),
-        );
+    test('a runner that fails to prepare stops the start and releases the container', () async {
+      final log = <String>[];
+      final app = App(
+        root: AppModule(
+          bindings: [
+            runnerBinding(
+              FakeRunner('a', log, prepareFailure: StateError('bad')),
+            ),
+            Singleton<Tracked>((i) => Tracked('db', log), dependsOn: const []),
+          ],
+        ),
+      );
 
-        await expectLater(app.start(), throwsA(isA<RunnerError>()));
+      await expectLater(app.start(), throwsA(isA<RunnerError>()));
 
-        expect(log, ['prepare a', 'dispose db']);
-      },
-    );
+      expect(log, ['prepare a', 'dispose db']);
+    });
 
     // RF-4: a failing start rolls back the runners started before it.
     test(

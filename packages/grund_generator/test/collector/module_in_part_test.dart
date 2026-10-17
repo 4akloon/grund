@@ -6,9 +6,8 @@ import '../helpers/fixture_package.dart';
 
 void main() {
   test('a module in a part is reported and generates nothing', () async {
-    final package = await FixturePackage.open(
-      'cases_app',
-    ).collect(['lib/uris/part_host.dart']);
+    final package = await FixturePackage.open('cases_app')
+        .collect(['lib/uris/part_host.dart']);
 
     final result = const GrundGenerator.core().generate(package);
 

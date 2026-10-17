@@ -8,9 +8,8 @@ void main() {
   late PackageModel package; // Set in setUpAll.
 
   setUpAll(() async {
-    package = await FixturePackage.open(
-      'http_cases_app',
-    ).collect(['lib/modules/with_api.dart', 'lib/apis/tasks.dart']);
+    package = await FixturePackage.open('http_cases_app')
+        .collect(['lib/modules/with_api.dart', 'lib/apis/tasks.dart']);
   });
 
   ProviderModel provider(String name) => package.modules.single.providers

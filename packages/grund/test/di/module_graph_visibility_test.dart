@@ -24,10 +24,8 @@ void main() {
       );
 
       expect(
-        ModuleGraph.build(root).visibility.lookup(
-          const ModuleIdentity(AuthModule),
-          const Key<Clock>(),
-        ),
+        ModuleGraph.build(root).visibility
+            .lookup(const ModuleIdentity(AuthModule), const Key<Clock>()),
         isNull,
       );
     });

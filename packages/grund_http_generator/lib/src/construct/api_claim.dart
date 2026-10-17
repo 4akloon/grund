@@ -60,9 +60,8 @@ abstract final class ApiClaim {
         key: key,
         lifetime: lifetime,
         dependencies: dependencies,
-        create: TypeEmitter.reference(
-          routes,
-        ).newInstance([refer('i'), BindingEmitter.inject(provider.key)]),
+        create: TypeEmitter.reference(routes)
+            .newInstance([refer('i'), BindingEmitter.inject(provider.key)]),
       ),
     );
   }

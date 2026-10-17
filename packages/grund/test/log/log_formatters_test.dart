@@ -49,9 +49,9 @@ void main() {
 
   group('JsonLogFormatter', () {
     test('writes one object with the record fields', () {
-      final decoded =
-          jsonDecode(const JsonLogFormatter().format(record()))
-              as Map<String, Object?>;
+      final decoded = jsonDecode(
+        const JsonLogFormatter().format(record()),
+      ) as Map<String, Object?>;
 
       expect(decoded.keys, ['time', 'level', 'logger', 'message']);
       expect(decoded['level'], 'INFO');
@@ -61,16 +61,11 @@ void main() {
     });
 
     test('adds error and stack when present', () {
-      final decoded =
-          jsonDecode(
-                const JsonLogFormatter().format(
-                  record(
-                    error: StateError('boom'),
-                    stackTrace: StackTrace.empty,
-                  ),
-                ),
-              )
-              as Map<String, Object?>;
+      final decoded = jsonDecode(
+        const JsonLogFormatter().format(
+          record(error: StateError('boom'), stackTrace: StackTrace.empty),
+        ),
+      ) as Map<String, Object?>;
 
       expect(decoded['error'], contains('boom'));
       expect(decoded, contains('stack'));

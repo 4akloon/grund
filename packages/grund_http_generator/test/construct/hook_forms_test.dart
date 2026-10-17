@@ -13,9 +13,9 @@ void main() {
 
   setUpAll(() => fixture = FixturePackage.open('http_cases_app'));
 
-  Future<GenerationResult> generate(String name) async => const GrundGenerator(
-    FixturePackage.constructs,
-  ).generate(await fixture.collect(['lib/apis/$name.dart']));
+  Future<GenerationResult> generate(String name) async =>
+      const GrundGenerator(FixturePackage.constructs)
+          .generate(await fixture.collect(['lib/apis/$name.dart']));
 
   /// The generated part of `hook_forms_<form>.dart`, with its own file name
   /// replaced so that two forms can be compared.
@@ -34,9 +34,8 @@ void main() {
 
       expect(
         result.files['lib/apis/hook_forms_$form.g.dart'],
-        File(
-          '${fixture.root}/lib/apis/hook_forms_$form.g.dart',
-        ).readAsStringSync(),
+        File('${fixture.root}/lib/apis/hook_forms_$form.g.dart')
+            .readAsStringSync(),
       );
     });
   }

@@ -11,9 +11,8 @@ void main() {
   late GenerationResult result; // Set in setUpAll.
 
   Future<GenerationResult> generate(FixturePackage from) async =>
-      const GrundGenerator(
-        FixturePackage.constructs,
-      ).generate(await from.collect());
+      const GrundGenerator(FixturePackage.constructs)
+          .generate(await from.collect());
 
   setUpAll(() async {
     fixture = FixturePackage.open('users_app');

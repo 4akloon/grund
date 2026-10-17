@@ -19,15 +19,14 @@ Future<Directory> usersApp() async {
 Future<(int, int)?> buildRunnerVersion() async {
   final config = await Isolate.packageConfig;
   if (config == null) return null;
-  final json =
-      jsonDecode(await File.fromUri(config).readAsString())
-          as Map<String, Object?>;
+  final json = jsonDecode(
+    await File.fromUri(config).readAsString(),
+  ) as Map<String, Object?>;
   for (final package in json['packages']! as List<Object?>) {
     final entry = package! as Map<String, Object?>;
     if (entry['name'] != 'build_runner') continue;
-    final match = RegExp(
-      r'build_runner-(\d+)\.(\d+)',
-    ).firstMatch(entry['rootUri']! as String);
+    final match = RegExp(r'build_runner-(\d+)\.(\d+)')
+        .firstMatch(entry['rootUri']! as String);
     if (match == null) return null;
     return (int.parse(match[1]!), int.parse(match[2]!));
   }

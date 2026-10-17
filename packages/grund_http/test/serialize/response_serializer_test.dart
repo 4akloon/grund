@@ -33,9 +33,9 @@ HttpResponse serialize(
   Object? result, {
   ResponseHead? head,
   SerializerRegistry? registry,
-}) => ResponseSerializer(
-  registry ?? SerializerRegistry(),
-).serialize(result, head ?? ResponseHead());
+}) =>
+    ResponseSerializer(registry ?? SerializerRegistry())
+        .serialize(result, head ?? ResponseHead());
 
 Object? _opaqueJson(Opaque _) => 'opaque';
 

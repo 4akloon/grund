@@ -67,9 +67,8 @@ final class OutputWriter {
   List<File> _stale(Set<String> keep) {
     final List<FileSystemEntity> entities;
     try {
-      entities = Directory(
-        package.libPath,
-      ).listSync(recursive: true, followLinks: false);
+      entities = Directory(package.libPath)
+          .listSync(recursive: true, followLinks: false);
     } on FileSystemException catch (error) {
       throw _cannotWrite(File(package.libPath), error);
     }

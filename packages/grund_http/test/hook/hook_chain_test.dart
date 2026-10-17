@@ -188,9 +188,8 @@ void main() {
     test('an onError that answers logs nothing', () async {
       final capture = LogCapture.start();
 
-      await chain([
-        LogHook('one', log, answers: HttpResponse.text('ok')),
-      ]).run(c, (_) => throw StateError('x'));
+      await chain([LogHook('one', log, answers: HttpResponse.text('ok'))])
+          .run(c, (_) => throw StateError('x'));
       await capture.messages('grund.http');
 
       expect(capture.records, isEmpty);
@@ -204,9 +203,8 @@ void main() {
         Object? caught;
         StackTrace? caughtTrace;
         try {
-          await chain([
-            LogHook('one', log),
-          ]).run(c, (_) => Error.throwWithStackTrace(StateError('x'), trace));
+          await chain([LogHook('one', log)])
+              .run(c, (_) => Error.throwWithStackTrace(StateError('x'), trace));
         } on StateError catch (error, stackTrace) {
           caught = error;
           caughtTrace = stackTrace;

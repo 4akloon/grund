@@ -47,10 +47,9 @@ PackageModel _package() => GraphModels.package([
   ),
 ]);
 
-GenerationResult _generate(Expression? emission) => GrundGenerator([
-  const ModuleConstruct(),
-  _Claiming(emission),
-]).generate(_package());
+GenerationResult _generate(Expression? emission) =>
+    GrundGenerator([const ModuleConstruct(), _Claiming(emission)])
+        .generate(_package());
 
 void main() {
   test('a claimed binding is written as its construct gave it', () {

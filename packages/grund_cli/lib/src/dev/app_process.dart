@@ -48,9 +48,9 @@ final class AppProcess {
         serviceUri.complete(Uri.parse(banner[1] ?? ''));
       }
     }).asFuture<void>();
-    final stderrDone = _lines(
-      process.stderr,
-    ).listen(err.writeln).asFuture<void>();
+    final stderrDone = _lines(process.stderr)
+        .listen(err.writeln)
+        .asFuture<void>();
     final exitCode = process.exitCode.then((code) async {
       // A grandchild may keep the pipes open after the child is gone, so
       // draining them is bounded.

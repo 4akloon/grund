@@ -227,9 +227,9 @@ void main() {
     test('debug mode includes the error and the stack', () async {
       final debug = ProblemResponder(debug: true);
 
-      final body =
-          await jsonOf(debug.respond(StateError('boom'), StackTrace.current))
-              as Map<String, Object?>;
+      final body = await jsonOf(
+        debug.respond(StateError('boom'), StackTrace.current),
+      ) as Map<String, Object?>;
 
       expect(body['detail'], 'Bad state: boom');
       expect(body['stack'], contains('problem_responder_test.dart'));

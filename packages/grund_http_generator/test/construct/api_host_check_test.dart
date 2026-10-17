@@ -31,9 +31,9 @@ void main() {
 
   Future<List<Diagnostic>> diagnostics(String path) async {
     final package = await fixture.collect([path]);
-    return const GrundGenerator(
-      FixturePackage.constructs,
-    ).generate(package).diagnostics;
+    return const GrundGenerator(FixturePackage.constructs)
+        .generate(package)
+        .diagnostics;
   }
 
   test('a host with the part and the prefixed import is fine', () async {
@@ -105,9 +105,8 @@ void main() {
 
   test('an api declared in a part file is generated for its host', () async {
     final package = await fixture.collect(['lib/apis/in_part.dart']);
-    final result = const GrundGenerator(
-      FixturePackage.constructs,
-    ).generate(package);
+    final result = const GrundGenerator(FixturePackage.constructs)
+        .generate(package);
 
     expect(result.diagnostics, isEmpty);
     expect(result.files.keys, ['lib/apis/in_part.g.dart']);

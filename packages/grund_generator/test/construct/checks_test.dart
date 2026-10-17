@@ -19,9 +19,8 @@ void main() {
   late PackageModel unsupported; // Set in setUpAll.
 
   setUpAll(() async {
-    unsupported = await FixturePackage.open(
-      'cases_app',
-    ).collect(['lib/unsupported.dart', 'lib/modules/basic.dart']);
+    unsupported = await FixturePackage.open('cases_app')
+        .collect(['lib/unsupported.dart', 'lib/modules/basic.dart']);
   });
 
   List<String> codes(PackageModel package) => [

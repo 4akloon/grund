@@ -5,8 +5,10 @@ import 'package:grund_http/grund_http.dart';
 /// adapter reports itself (a throwing handler, a failing body stream), and
 /// [closeTimeout] is the adapter's limit for a graceful close (`null`: no
 /// limit).
-typedef AdapterFactory =
-    AdapterUnderTest Function(ErrorLogger onError, Duration? closeTimeout);
+typedef AdapterFactory = AdapterUnderTest Function(
+  ErrorLogger onError,
+  Duration? closeTimeout,
+);
 
 /// The module of an adapter for the conformance suite and how to read the
 /// port it bound; the suite always listens on port 0.

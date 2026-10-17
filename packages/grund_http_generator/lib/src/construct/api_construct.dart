@@ -38,9 +38,9 @@ final class ApiConstruct extends Construct {
   /// `XRoutes`, which depends on the class.
   @override
   ProviderClaim? claimProvider(ProviderModel provider, PackageModel package) {
-    final api = _model(
-      package,
-    ).apis.where((api) => api.type == provider.injectable.type).firstOrNull;
+    final api = _model(package).apis
+        .where((api) => api.type == provider.injectable.type)
+        .firstOrNull;
     return api == null ? null : ApiClaim.of(provider, api);
   }
 

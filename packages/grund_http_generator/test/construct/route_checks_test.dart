@@ -10,9 +10,8 @@ void main() {
   late PackageModel cases; // Set in setUpAll.
 
   setUpAll(() async {
-    cases = await FixturePackage.open(
-      'http_cases_app',
-    ).collect(['lib/apis/tasks.dart', 'lib/apis/invalid.dart']);
+    cases = await FixturePackage.open('http_cases_app')
+        .collect(['lib/apis/tasks.dart', 'lib/apis/invalid.dart']);
   });
 
   test('the invalid api routes report their stable codes', () {
@@ -42,12 +41,11 @@ void main() {
   });
 
   test('a list query parameter with a default is reported', () async {
-    final package = await FixturePackage.open(
-      'http_cases_app',
-    ).collect(['lib/apis/list_default.dart']);
-    final result = const GrundGenerator(
-      FixturePackage.constructs,
-    ).generate(package).diagnostics;
+    final package = await FixturePackage.open('http_cases_app')
+        .collect(['lib/apis/list_default.dart']);
+    final result = const GrundGenerator(FixturePackage.constructs)
+        .generate(package)
+        .diagnostics;
 
     expect(
       [for (final d in result) d.code],

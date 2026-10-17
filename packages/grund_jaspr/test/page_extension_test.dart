@@ -75,9 +75,8 @@ void main() {
           },
         ),
       ]);
-      final response = await TestClient.of(
-        app,
-      ).get('/projects/alpha', headers: _markdown);
+      final response = await TestClient.of(app)
+          .get('/projects/alpha', headers: _markdown);
       expect(response.text, '# /projects/:slug');
       expect(built, 0);
     });
@@ -243,9 +242,8 @@ void main() {
           markedPage('/a', hooks: const PageHooks(skip: [AdminGuard])),
         ]),
       ]);
-      final response = await TestClient.of(
-        app,
-      ).get('/admin/x.md', headers: adminHeaders);
+      final response = await TestClient.of(app)
+          .get('/admin/x.md', headers: adminHeaders);
       expect(response.status, 200);
       expect(extension.claims, 1);
     });

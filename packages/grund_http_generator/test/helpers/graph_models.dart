@@ -56,9 +56,8 @@ abstract final class GraphModels {
   /// The diagnostic codes of the module and api constructs over
   /// [package], sorted by location.
   static List<String> codes(PackageModel package) {
-    final result = const GrundGenerator(
-      FixturePackage.constructs,
-    ).generate(package);
+    final result = const GrundGenerator(FixturePackage.constructs)
+        .generate(package);
     return [for (final d in result.diagnostics) d.code.id];
   }
 

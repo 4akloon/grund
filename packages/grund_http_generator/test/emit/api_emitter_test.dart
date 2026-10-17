@@ -8,9 +8,8 @@ void main() {
   late String source; // The part of lib/apis/tasks.dart.
 
   setUpAll(() async {
-    final package = await FixturePackage.open(
-      'http_cases_app',
-    ).collect(['lib/modules/with_api.dart', 'lib/apis/tasks.dart']);
+    final package = await FixturePackage.open('http_cases_app')
+        .collect(['lib/modules/with_api.dart', 'lib/apis/tasks.dart']);
     result = const GrundGenerator(FixturePackage.constructs).generate(package);
     source = result.files['lib/apis/tasks.g.dart'] ?? '';
   });

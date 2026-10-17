@@ -47,10 +47,9 @@ void main() {
         if (value.type?.element?.name == 'Wrapped') value,
   ];
 
-  ConstantValue wrapped(int index) =>
-      (ConstantReader.read(wrappedValues()[index]) as ObjectConstant)
-          .positional
-          .single;
+  ConstantValue wrapped(int index) => (ConstantReader.read(
+    wrappedValues()[index],
+  ) as ObjectConstant).positional.single;
 
   // Review Focus 3: private constants and classes in annotations.
   test('a private constant is rebuilt from its constructor call', () {

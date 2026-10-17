@@ -14,9 +14,8 @@ void main() {
 
   setUpAll(() async {
     final fixture = FixturePackage.open('http_cases_app');
-    final result = const GrundGenerator(
-      FixturePackage.constructs,
-    ).generate(await fixture.collect(['lib/apis/async_results.dart']));
+    final result = const GrundGenerator(FixturePackage.constructs)
+        .generate(await fixture.collect(['lib/apis/async_results.dart']));
     diagnostics = result.diagnostics;
     generated = result.files['lib/apis/async_results.g.dart'] ?? '';
   });

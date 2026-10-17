@@ -45,9 +45,9 @@ final class FixturePackage {
         ? _libraryFiles()
         : [for (final path in paths) p.join(root, path)];
     final libraries = [for (final file in files) await _resolve(file)];
-    return const GrundGenerator(
-      constructs,
-    ).collector(name, root).collect(libraries);
+    return const GrundGenerator(constructs)
+        .collector(name, root)
+        .collect(libraries);
   }
 
   List<String> _libraryFiles() {

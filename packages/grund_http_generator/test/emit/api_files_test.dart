@@ -15,9 +15,8 @@ void main() {
   setUpAll(() => fixture = FixturePackage.open('http_cases_app'));
 
   Future<GenerationResult> generate(List<String> paths) async =>
-      const GrundGenerator(
-        FixturePackage.constructs,
-      ).generate(await fixture.collect(paths));
+      const GrundGenerator(FixturePackage.constructs)
+          .generate(await fixture.collect(paths));
 
   test('a library with an @Api and no @Module still gets its part', () async {
     final result = await generate(['lib/apis/tasks.dart']);

@@ -47,22 +47,19 @@ void main() {
     expect(me.text, 'ann');
   });
 
-  test(
-    'the session cookie and the handler\'s own cookie both reach the client (RF5)',
-    () async {
-      final client = await SessionApp.start();
+  test('the session cookie and the handler\'s own cookie both reach the client (RF5)', () async {
+    final client = await SessionApp.start();
 
-      final response = await client.request(
-        'POST',
-        '/login',
-        body: 'name=ann',
-        headers: _form,
-      );
+    final response = await client.request(
+      'POST',
+      '/login',
+      body: 'name=ann',
+      headers: _form,
+    );
 
-      expect(SessionApp.cookie(response, 'grund_sid'), isNotNull);
-      expect(SessionApp.cookie(response, 'flash'), 'signed-in');
-    },
-  );
+    expect(SessionApp.cookie(response, 'grund_sid'), isNotNull);
+    expect(SessionApp.cookie(response, 'flash'), 'signed-in');
+  });
 
   test('signing in replaces the token the request came with (RF1)', () async {
     final client = await SessionApp.start();
