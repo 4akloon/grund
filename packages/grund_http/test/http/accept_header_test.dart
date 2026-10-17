@@ -58,6 +58,32 @@ void main() {
       expect(accept.qualityOf('text/html'), 0.9);
     });
 
+    test('a repeated range takes the highest quality in any order', () {
+      final accept = AcceptHeader.parse('text/html;q=0.9, text/html;q=0.2');
+
+      expect(accept.qualityOf('text/html'), 0.9);
+    });
+
+    for (final (weight, expected) in [
+      ('0', 0.0),
+      ('1', 1.0),
+      ('0.001', 0.001),
+      ('1.000', 1.0),
+    ]) {
+      test('q=$weight is accepted as $expected', () {
+        final accept = AcceptHeader.parse('text/markdown;q=$weight');
+
+        expect(accept.qualityOf('text/markdown'), expected);
+      });
+    }
+
+    test('names matches case-insensitively', () {
+      expect(
+        AcceptHeader.parse('text/markdown').names('TEXT/Markdown'),
+        isTrue,
+      );
+    });
+
     test('media types match case-insensitively', () {
       final accept = AcceptHeader.parse('TEXT/Markdown');
 

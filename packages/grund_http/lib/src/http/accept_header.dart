@@ -1,7 +1,7 @@
 /// The media ranges of an `Accept` request header with their qualities
 /// (RFC 9110 §12.5.1). Reading never throws.
 final class AcceptHeader {
-  AcceptHeader._(this._ranges, {required this.isAbsent});
+  AcceptHeader._(this._ranges, {required this._isAbsent});
 
   /// Reads [value], every `Accept` field of the request joined with `,`.
   /// `null`, empty or blank means the header is absent.
@@ -22,7 +22,7 @@ final class AcceptHeader {
   }
 
   /// Whether the header was absent, empty or blank: everything is accepted.
-  final bool isAbsent;
+  final bool _isAbsent;
 
   final Map<String, double> _ranges;
 
@@ -35,7 +35,7 @@ final class AcceptHeader {
   /// the most specific range matching it (`type/subtype`, then `type/*`,
   /// then `*/*`); 0 when none matches; 1 when the header is absent.
   double qualityOf(String mediaType) {
-    if (isAbsent) return 1;
+    if (_isAbsent) return 1;
     final type = mediaType.toLowerCase();
     final wildcard = '${type.split('/').first}/*';
     return _ranges[type] ?? _ranges[wildcard] ?? _ranges['*/*'] ?? 0;

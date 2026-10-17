@@ -227,8 +227,12 @@ void main() {
   });
 
   group('StatusCode redirects', () {
-    test('permanent redirect codes and phrases', () {
+    test('301 is movedPermanently', () {
       expect(StatusCode.movedPermanently, 301);
+      expect(StatusCode.reasonPhrase(301), 'Moved Permanently');
+    });
+
+    test('308 is permanentRedirect', () {
       expect(StatusCode.permanentRedirect, 308);
       expect(StatusCode.reasonPhrase(308), 'Permanent Redirect');
     });
