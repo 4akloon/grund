@@ -16,16 +16,21 @@ final class StaticSegment extends PatternSegment {
   String toString() => value;
 }
 
-/// A `:name` segment that matches any single segment.
+/// A `:name` segment that matches any single segment, or, with a [suffix]
+/// such as `.md` (`:slug.md`), any segment that ends with it and has a
+/// non-empty rest.
 final class ParamSegment extends PatternSegment {
   /// Creates a parameter segment.
-  const ParamSegment(this.name);
+  const ParamSegment(this.name, {this.suffix = ''});
 
   /// Parameter name, without the colon.
   final String name;
 
+  /// Literal text the matched segment must end with (`.tar.gz`), or empty.
+  final String suffix;
+
   @override
-  String toString() => ':$name';
+  String toString() => ':$name$suffix';
 }
 
 /// A trailing `*` that matches one or more remaining segments; the match is

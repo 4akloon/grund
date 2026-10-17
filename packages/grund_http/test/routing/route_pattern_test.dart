@@ -31,6 +31,48 @@ void main() {
       expect(pattern.parameterNames, ['owner', '*']);
     });
 
+    test('parses a parameter with a literal suffix', () {
+      final pattern = RoutePattern.join('/files', ':name.tar.gz');
+
+      expect(
+        pattern.segments.last,
+        isA<ParamSegment>()
+            .having((s) => s.name, 'name', 'name')
+            .having((s) => s.suffix, 'suffix', '.tar.gz'),
+      );
+      expect(pattern.toString(), '/files/:name.tar.gz');
+      expect(pattern.parameterNames, ['name']);
+      expect(RoutePattern.join('', '/:slug.md').toString(), '/:slug.md');
+    });
+
+    test('a plain parameter has an empty suffix', () {
+      final segment = RoutePattern.join('', ':id').segments.single;
+
+      expect((segment as ParamSegment).suffix, isEmpty);
+    });
+
+    for (final bad in [
+      '/:slug.',
+      '/:slug.m d',
+      '/:.md',
+      '/a:slug.md',
+      '/:slug.md.',
+    ]) {
+      test('rejects the invalid suffix pattern $bad', () {
+        expect(
+          () => RoutePattern.join('', bad),
+          throwsA(isA<InvalidRoutePatternError>()),
+        );
+      });
+    }
+
+    test('a suffixed parameter name cannot repeat', () {
+      expect(
+        () => RoutePattern.join('', '/:x.md/:x'),
+        invalidPattern('/:x.md/:x', 'appears twice'),
+      );
+    });
+
     test('wildcard must be last', () {
       expect(
         () => RoutePattern.join('/files/*', '/:id'),

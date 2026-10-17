@@ -5,14 +5,17 @@ import 'routing_error.dart';
 /// trailing `*` wildcard.
 ///
 /// Empty segments are dropped, so `/users/`, `users` and `//users` are the
-/// same pattern `/users`. A parameter or wildcard must be a whole segment.
+/// same pattern `/users`. A parameter or wildcard must be a whole segment; a
+/// parameter may end with a literal suffix (`:slug.md`).
 final class RoutePattern {
   RoutePattern._(this.segments);
 
   /// The segments in order.
   final List<PatternSegment> segments;
 
-  static final _parameterName = RegExp(r'^[A-Za-z_][A-Za-z0-9_]*$');
+  static final _parameter = RegExp(
+    r'^([A-Za-z_][A-Za-z0-9_]*)((?:\.[A-Za-z0-9_~-]+)*)$',
+  );
 
   /// Parses [path] relative to the controller [prefix]; throws
   /// [InvalidRoutePatternError].
@@ -50,10 +53,13 @@ final class RoutePattern {
     }
     if (part.startsWith(':')) {
       final name = part.substring(1);
-      if (_parameterName.hasMatch(name)) return ParamSegment(name);
+      if (_parameter.firstMatch(name) case final match?) {
+        return ParamSegment(match[1]!, suffix: match[2]!);
+      }
       _fail(
         pattern,
-        'parameter name "$name" must match [A-Za-z_][A-Za-z0-9_]*',
+        'parameter name "$name" must match [A-Za-z_][A-Za-z0-9_]*, '
+        'optionally followed by a literal suffix such as ".md"',
       );
     }
     if (part.contains(':') || part.contains('*')) {

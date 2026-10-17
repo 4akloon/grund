@@ -11,19 +11,27 @@ abstract final class RoutePaths {
     return '/${segments.join('/')}';
   }
 
-  /// Names of the `:name` parameters and the `*` wildcard of [path].
+  /// Names of the `:name` and `:name.suffix` parameters and the `*` wildcard
+  /// of [path].
   static List<String> parameters(String path) => [
     for (final segment in path.split('/'))
-      if (segment.startsWith(':'))
-        segment.substring(1)
-      else if (segment == '*')
-        '*',
+      if (segment.startsWith(':')) _name(segment) else if (segment == '*') '*',
   ];
 
-  /// [path] with every parameter name erased: two paths with the same shape
-  /// match the same requests.
+  /// [path] with every parameter name erased (a literal suffix stays): two
+  /// paths with the same shape match the same requests.
   static String shape(String path) => [
     for (final segment in path.split('/'))
-      segment.startsWith(':') ? ':' : segment,
+      segment.startsWith(':') ? ':${_suffix(segment)}' : segment,
   ].join('/');
+
+  static String _name(String segment) {
+    final dot = segment.indexOf('.');
+    return dot < 0 ? segment.substring(1) : segment.substring(1, dot);
+  }
+
+  static String _suffix(String segment) {
+    final dot = segment.indexOf('.');
+    return dot < 0 ? '' : segment.substring(dot);
+  }
 }

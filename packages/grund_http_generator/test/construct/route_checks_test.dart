@@ -38,6 +38,11 @@ void main() {
     expect(RoutePaths.join('/tasks/', '/:id/'), '/tasks/:id');
     expect(RoutePaths.parameters('/:org/users/:id/*'), ['org', 'id', '*']);
     expect(RoutePaths.shape('/a/:x/b'), RoutePaths.shape('/a/:y/b'));
+    expect(RoutePaths.parameters('/a/:id.json'), ['id']);
+    expect(RoutePaths.parameters('/:n.tar.gz/*'), ['n', '*']);
+    expect(RoutePaths.shape('/a/:id.json'), '/a/:.json');
+    expect(RoutePaths.shape('/a/:x.md'), RoutePaths.shape('/a/:y.md'));
+    expect(RoutePaths.shape('/a/:x.md'), isNot(RoutePaths.shape('/a/:x')));
   });
 
   test('a list query parameter with a default is reported', () async {

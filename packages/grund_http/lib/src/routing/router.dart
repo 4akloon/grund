@@ -6,8 +6,8 @@ import 'routing_error.dart';
 /// A segment trie (radix tree over path segments) mapping method + path to
 /// a value.
 ///
-/// Matching priority at every segment: static > `:param` > `*`, with
-/// backtracking, so `/users/me` (static) and `/users/:id/posts` both work
+/// Matching priority at every segment: static > `:param.suffix` (the longer
+/// suffix first) > `:param` > `*`, with backtracking, so `/users/me` (static) and `/users/:id/posts` both work
 /// and `DELETE /users/me` reaches `DELETE /users/:id` when the static route
 /// has no `DELETE`. The result does not depend on insertion order. A router
 /// is filled once at startup and only read afterwards.
@@ -64,14 +64,29 @@ final class _Endpoint<V> {
 final class _Node<V> {
   final Map<String, _Node<V>> statics = {};
   final Map<String, _Endpoint<V>> endpoints = {};
+  final Map<String, _Node<V>> suffixed = {};
+  List<MapEntry<String, _Node<V>>> suffixOrder = const [];
   _Node<V>? param;
   _Node<V>? wildcard;
 
   _Node<V> child(PatternSegment segment) => switch (segment) {
     StaticSegment(:final value) => statics.putIfAbsent(value, _Node<V>.new),
+    ParamSegment(:final suffix) when suffix.isNotEmpty => _suffixChild(suffix),
     ParamSegment() => param ??= _Node<V>(),
     WildcardSegment() => wildcard ??= _Node<V>(),
   };
+
+  _Node<V> _suffixChild(String suffix) {
+    final existing = suffixed[suffix];
+    if (existing != null) return existing;
+    final created = suffixed[suffix] = _Node<V>();
+    suffixOrder = suffixed.entries.toList()
+      ..sort((a, b) {
+        final byLength = b.key.length.compareTo(a.key.length);
+        return byLength != 0 ? byLength : a.key.compareTo(b.key);
+      });
+    return created;
+  }
 
   Set<String> get allowedMethods => {
     ...endpoints.keys,
@@ -97,6 +112,8 @@ final class _Search<V> {
       final found = visit(exact, index + 1);
       if (found != null) return found;
     }
+    final suffixedFound = _visitSuffixed(node, index);
+    if (suffixedFound != null) return suffixedFound;
     final param = node.param;
     if (param != null) {
       captured.add(segment);
@@ -110,6 +127,20 @@ final class _Search<V> {
     final found = _accept(wildcard);
     captured.removeLast();
     return found;
+  }
+
+  RouteFound<V>? _visitSuffixed(_Node<V> node, int index) {
+    final segment = segments[index];
+    for (final MapEntry(key: suffix, value: child) in node.suffixOrder) {
+      if (segment.length <= suffix.length || !segment.endsWith(suffix)) {
+        continue;
+      }
+      captured.add(segment.substring(0, segment.length - suffix.length));
+      final found = visit(child, index + 1);
+      captured.removeLast();
+      if (found != null) return found;
+    }
+    return null;
   }
 
   RouteFound<V>? _accept(_Node<V> node) {
