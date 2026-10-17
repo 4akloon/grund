@@ -23,6 +23,8 @@
   values such as `v1.2` get a canonical address with a trailing slash
   (`/v1.2/`) under every `trailingSlash` policy, in `PageMatch.path`, the
   navigation, the sitemap and redirects.
+- New `JasprConfig.defaultPageSuffixes` and `SitePage.pageSuffixes`: the page
+  suffixes that decide which last segments are files.
 - Requires `grund_http` 0.3.0.
 - New `Fragments.respond(c, component, {status})`: a Jaspr component as an
   HTML fragment without a document, live reload script or client script,

@@ -452,8 +452,9 @@ String? alternatePath(String mediaType);
 
 ```dart
 static HttpResponse? forPage(Uri uri, TrailingSlash policy,
-    {required List<String> pageSuffixes});
-static HttpResponse? forFile(Uri uri, TrailingSlash policy);
+    {required List<String> pageSuffixes, required bool isGuarded});
+static HttpResponse? forFile(Uri uri, TrailingSlash policy,
+    {required bool isGuarded});
 ```
 
 - **Канонічна форма** будується з сирого `uri.path`: непорожні сегменти без

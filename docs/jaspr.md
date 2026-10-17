@@ -401,7 +401,8 @@ client controls.
 - It runs after the hooks of the site, so a hook that refuses (a guest on a
   protected page) answers first, and before the page builder. Page
   URLs get the canonical form of the policy (a slash is added only under
-  `always` and removed under `never`). Alternate, site file and sitemap URLs
+  `always` and removed under `never`, except for a dotted last segment,
+  below). Alternate, site file and sitemap URLs
   only ever lose a trailing slash, never gain one (`/robots.txt/` and
   `/about.md/` answer 308 to the URL without it). A file request (a last
   segment with a dot that is not a page suffix, no trailing slash, such as
