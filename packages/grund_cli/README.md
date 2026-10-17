@@ -188,7 +188,8 @@ runs it without `--target`.
 `AccountApi` that signs in and out through forms),
 `lib/src/home_site_module.dart` (the site and its pages), the pages in
 `lib/src/pages/` (`public_site.dart`, the site with its shell; a home page
-that greets the signed-in user; a sign-in page), `web/styles.css`, `bin/main.dart` and `test/app_test.dart` (the
+that greets the signed-in user; a sign-in page), `web/styles.css`,
+`bin/main.dart` and `test/app_test.dart` (the
 home page and a sign-in through `TestApp`). It needs no `gen`:
 
 ```sh

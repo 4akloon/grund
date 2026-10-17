@@ -11,8 +11,8 @@ import a hand-written one and the other way round.
 **Can grund serve HTML pages?**
 Yes, server-side rendered with Jaspr in the same process as the API:
 `grund_jaspr` serves the sites, pages, static files and sitemaps,
-`grund_auth` adds a cookie session that pages and handlers share. Hydration (`@client`) is not
-supported yet. See [jaspr.md](jaspr.md).
+`grund_auth` adds a cookie session that pages and handlers share. Hydration
+(`@client`) is not supported yet. See [jaspr.md](jaspr.md).
 
 **Where is the controller, the guard, the pipe, the interceptor, the filter?**
 An `HttpApi` (`@Api`) is the controller. One type, `HttpHook`, replaces the
@@ -104,8 +104,9 @@ These are known and deliberate trade-offs or open problems of 0.1.0.
 
 **What happens with a broken import in a source library?** An `import`,
 `export` or `part` of a source library that does not resolve (a typo in
-`package:grund/annotations.dart`, a missing dependency) is reported by `grund gen` and by the build_runner step as
-`unresolved_uri`, at the directive, and no generated file is written or
+`package:grund/annotations.dart`, a missing dependency) is reported by
+`grund gen` and by the build_runner step as `unresolved_uri`, at the
+directive, and no generated file is written or
 deleted until you fix it. The one exception is a not yet generated
 file of your own package with a double extension such as `x.g.dart`
 (relative, or `package:<your package>/...`): a library that imports or
@@ -123,8 +124,8 @@ routes. Import the type without a prefix in the library that declares the
 **The generator cannot see into a module from another package.** A `@Module`
 class from another package, `HttpModule` and the adapter modules included, and
 a module that a function returns are opaque to the generator. While a package
-imports one, a dependency that no module of the package binds is not reported as `missing_provider` by
-`grund gen`, because the opaque module might export it. A key that a module
+imports one, a dependency that no module of the package binds is not
+reported as `missing_provider` by `grund gen`, because the opaque module might export it. A key that a module
 of the package binds but does not export to the module that needs it is
 still reported, and cycles and captive dependencies among the package's own
 bindings are still found. The application start validates the whole graph

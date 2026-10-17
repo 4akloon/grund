@@ -24,10 +24,18 @@ Pages and sites replace the single root component.
   declaration and runtime errors (`SiteDeclarationError`,
   `PageDeclarationError`, `PageRuntimeError`).
 - A page builder throws `NotFoundException` for an unknown parameter value:
-  the answer is the site's 404 page. The fallback 404 page of a site goes through
-  its hooks and ignores `skip`.
+  the answer is the site's 404 page. The fallback 404 page of a site goes
+  through its hooks and ignores `skip`.
 - Sitemaps: a site with `sitemapBaseUrl` serves `<site>/sitemap.xml` and
   chunked `<site>/sitemap/<n>.xml`, without the site's hooks.
+- `PageMatch.meta` is the `PageMeta` of the matched page.
+- A site path is checked when the site starts: `''` or `/segment[/segment]`
+  of literals, no trailing `/`, not a `rootFiles` entry or under
+  `staticPath` (`InvalidSitePathError`).
+- `PageExtension.claim` runs after the hooks of the site, on file requests
+  below the site; the extensions of pages with their own `hooks.use` are not
+  asked, so a page-level guard is never bypassed (serve a variant of such a
+  page through `respond`).
 - Structural mistakes (a site without `/`, nested or duplicate paths, a
   forbidden hook skip, a reserved page path) fail at startup, and a hot
   reload that breaks one keeps the previous pages serving.

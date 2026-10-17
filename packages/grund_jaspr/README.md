@@ -84,7 +84,8 @@ Future<void> main() => App(root: const AppModule()).run();
 - Hooks run in this order: the global ones of `HttpModule`, the site's
   `use`, the page's `hooks.use`. `PageHooks(skip: [...])` leaves a site
   hook out for one page, only for the types the site lists in
-  `skippableHooks`. The fallback 404 page of a site goes through all its hooks and ignores `skip`.
+  `skippableHooks`. The fallback 404 page of a site goes through all its
+  hooks and ignores `skip`.
 - `JasprModule({config})` does not import `HttpModule`: the application
   imports it once, with its own hooks, middleware and configuration, and
   pages go through them like any route. API routes and pages share one
@@ -104,8 +105,8 @@ Future<void> main() => App(root: const AppModule()).run();
   `application/problem+json`. HTML error pages are not part of this
   release.
 - `PageCatalog` (a global binding) lists the pages: `pagesOf<S>()`,
-  `navOf<S>()` (`NavItem`s sorted by `order`, `label`, `path`), `sitemapOf<S>()`,
-  `match(Uri)` and `pagesWith<T extends PageExtension>()`.
+  `navOf<S>()` (`NavItem`s sorted by `order`, `label`, `path`),
+  `sitemapOf<S>()`, `match(Uri)` and `pagesWith<T extends PageExtension>()`.
 
 ## Static files
 

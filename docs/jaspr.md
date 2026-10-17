@@ -110,7 +110,7 @@ final class PublicSite extends PageSite {
   @override
   Component shell(Component content) => Builder(
     builder: (context) => Document(
-      title: context.pageMatch?.page.page.meta.title ?? 'Tasks',
+      title: context.pageMatch?.meta.title ?? 'Tasks',
       head: [link(href: '/static/styles.css', rel: 'stylesheet')],
       body: main_([content]),
     ),
@@ -123,7 +123,7 @@ final class PublicSite extends PageSite {
 
 | Member | Meaning |
 | --- | --- |
-| `path` | `''` (default) or `/segment[/segment]`, the prefix of all its pages. |
+| `path` | `''` (default) or `/segment[/segment]`, the prefix of all its pages; no `:param`, `*` or trailing `/` (`InvalidSitePathError`). |
 | `use` | `HookRef`s that run for every page of the site. |
 | `skippableHooks` | The hook types a page may skip. |
 | `shell(content)` | Wraps the content of every page, and the 404 page. |
@@ -210,8 +210,8 @@ final class AppModule extends Module {
 - `JasprModule({config})` does not import `HttpModule`; the application
   imports it once, and its hooks and middleware run for pages too.
 - API routes and pages share one router: a literal segment beats a
-  `:param` one, so an API route `/tasks` stays the API's next to a page `/:slug`, and
-  a page on exactly the path of an API route (say `GET /`) is a
+  `:param` one, so an API route `/tasks` stays the API's next to a page
+  `/:slug`, and a page on exactly the path of an API route (say `GET /`) is a
   `DuplicateRouteError` at startup.
 - Pages are `GET` (and `HEAD`) only. A path below a site that no page
   matches is the site's 404 page, not the `route_not_found` problem JSON;
@@ -244,7 +244,12 @@ application from the package root (`grund dev` does);
 sit at the root, such as `robots.txt` and `favicon.ico`, are listed in
 `JasprConfig(rootFiles: ['robots.txt', 'favicon.ico'])`; they are read from
 the same directory. A page may not take a URL of the static files or of a
-root file (`ReservedPagePathError`).
+root file (`ReservedPagePathError`). A site path may not be a root file
+either (`InvalidSitePathError`).
+
+The static files carry no hooks. A `staticPath` inside the territory of a
+guarded site (say `/admin/assets` with a site at `/admin`) is therefore
+served to everyone: keep the static path outside the guarded sites.
 
 Paths with dot segments, separators or links out of the directory are
 never files. Static files are served with their type and
@@ -293,7 +298,8 @@ a `sitemapBaseUrl` (`ReservedPagePathError`).
   row can take up to 60 seconds to appear in the sitemap.
   `PageCatalog.invalidateSitemap()` clears the cache. A failing entries
   source gives a 500 on the sitemap request and a SEVERE log on
-  `grund.http`, from the request boundary like any failing route. The page structure itself is never cached.
+  `grund.http`, from the request boundary like any failing route. The page
+  structure itself is never cached.
 
 `PageCatalog` is a global binding that answers questions about the running
 pages (it follows hot reloads; reading it before the application has
@@ -402,15 +408,18 @@ prints it, and the application keeps serving. Two kinds of rule exist:
 
 - Rules that need every site at once (a site without `/`, duplicate or
   nested site paths, a mismatched site type) are checked by the pages
-  runner before it replaces its snapshot, so the pages catalog keeps the
-  old set.
+  runner before it replaces its snapshot, and that runner reassembles
+  before the HTTP one, so both the catalog and the routes keep the old
+  set.
 - Rules of one site or page (a forbidden `skip`, a reserved or invalid
-  page path, an undecided sitemap) are checked when the HTTP server builds
-  its route table; a failure there leaves the old routes serving. The
-  pages runner may already have replaced the catalog's snapshot, depending
-  on the order of the application's runners, so after such a failed
-  reload `PageCatalog` can describe the new pages while the routes are
-  still the old ones; the next successful reload makes them agree.
+  page path, an undecided sitemap, a duplicate page path) are checked when
+  the HTTP server builds its route table; a failure there leaves the old
+  routes serving. `JasprModule` is a global module, so the `pages` runner
+  reassembles before the HTTP runner and has already replaced the
+  catalog's snapshot: after such a failed reload `PageCatalog` describes
+  the new pages while the routes are still the old ones. This is a
+  development-time transient; the next successful reload makes them agree.
+  (Only a global module that imports `HttpModule` turns the order round.)
 
 At startup the same errors stop the application before it listens.
 
@@ -446,8 +455,12 @@ build.
   address) and `claim(c, uri)` may answer a file request (a last segment with an
   extension outside `pageSuffixes`) before the JSON 404 `file_not_found`;
   an unmatched page-like path such as `/blog/nope` goes to `notFound()`
-  and never to `claim`. Both return `null` to let the default happen. It is the
-  extension point a Markdown layer would use; this release ships none.
+  and never to `claim`. Both return `null` to let the default happen.
+  `claim` runs after the hooks of the **site**, on file requests below the
+  site; the extensions of pages with their own `hooks.use` are not asked, so
+  a page-level guard is never bypassed. A layer that needs to serve a
+  variant of such a page does it through `respond` on the page route. It is
+  the extension point a Markdown layer would use; this release ships none.
 - **Sessions live in memory**: they end with the process (a restart under
   `grund dev` signs everyone out) and are not shared between processes.
 - **Jaspr is initialized once per process**, without isolates. Calling
