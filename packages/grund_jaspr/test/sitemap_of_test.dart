@@ -273,4 +273,55 @@ void main() {
 
     expect(loads, 0);
   });
+
+  test('an all-source is loaded once per pass', () async {
+    var loads = 0;
+    final catalog = await startCatalog([
+      mapModule([
+        mapPage(
+          '/p/:slug',
+          sitemap: PageSitemap(
+            entries: slugEntries(['a', 'b', 'c'], onLoad: (_) => loads++),
+          ),
+        ),
+      ]),
+    ], config: const JasprConfig(sitemapChunkSize: 2));
+
+    final urls = await catalog.sitemapOf<MapSite>().toList();
+
+    expect(urls, hasLength(4));
+    expect(loads, 1);
+  });
+
+  for (final value in ['..', '.', '']) {
+    test('the entry value "$value" is a PageEntryValueError', () async {
+      final catalog = await startCatalog([
+        mapModule([
+          mapPage(
+            '/p/:slug',
+            sitemap: PageSitemap(entries: slugEntries([value])),
+          ),
+        ]),
+      ]);
+
+      await expectLater(
+        catalog.sitemapOf<MapSite>().toList(),
+        throwsA(isA<PageEntryValueError>()),
+      );
+    });
+  }
+
+  test('a hooked parameterised page needs included true for entries', () async {
+    final catalog = await startCatalog([
+      mapModule([
+        markedPage(
+          '/p/:slug',
+          hooks: const PageHooks(use: [HookRef<AdminGuard>.type()]),
+          meta: PageMeta(sitemap: PageSitemap(entries: slugEntries(['a']))),
+        ),
+      ]),
+    ]);
+
+    expect(await _locations(catalog), ['https://x.test/']);
+  });
 }

@@ -86,6 +86,18 @@ void main() {
     );
   });
 
+  test('the sitemap path is reserved in a site without a sitemap', () {
+    expect(
+      startCatalog([
+        CatalogPagesModule<PublicSite>(PublicSite.new, [
+          markedPage('/'),
+          markedPage('/sitemap.xml'),
+        ]),
+      ]),
+      throwsA(declaredError<ReservedPagePathError>()),
+    );
+  });
+
   test('a page named /sitemap is not reserved', () async {
     await startCatalog([
       mapModule([mapPage('/sitemap')]),

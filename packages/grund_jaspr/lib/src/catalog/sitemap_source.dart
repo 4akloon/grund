@@ -1,7 +1,11 @@
+import 'package:grund/grund.dart';
+
 import '../error/page_runtime_error.dart';
 import '../jaspr_config.dart';
 import '../page/page_path.dart';
 import '../page/page_sitemap.dart';
+import '../sitemap/all_sitemap_entries.dart';
+import '../sitemap/sitemap_entries.dart';
 import '../sitemap/sitemap_entry.dart';
 import '../sitemap/sitemap_url.dart';
 import 'snapshot_pages.dart';
@@ -47,15 +51,39 @@ final class SitemapSource {
     final entries = sitemap.entries;
     if (entries == null) return;
     final injector = declared.injector;
+    final path = declared.page.path;
+    final chunk = _config.sitemapChunkSize;
+    final Stream<List<SitemapEntry>> chunks;
+    if (entries is AllSitemapEntries) {
+      chunks = _inMemoryChunks(await entries.loadAll(injector), chunk);
+    } else {
+      chunks = _pagedChunks(entries, injector, chunk);
+    }
+    await for (final entry in chunks.expand((list) => list)) {
+      _checkParams(path, paramNames, entry);
+      yield _urlOf(base, path, sitemap, entry);
+    }
+  }
+
+  static Stream<List<SitemapEntry>> _inMemoryChunks(
+    List<SitemapEntry> all,
+    int chunk,
+  ) async* {
+    for (var offset = 0; offset < all.length; offset += chunk) {
+      final end = offset + chunk < all.length ? offset + chunk : all.length;
+      yield all.sublist(offset, end);
+    }
+  }
+
+  static Stream<List<SitemapEntry>> _pagedChunks(
+    SitemapEntries entries,
+    Injector injector,
+    int chunk,
+  ) async* {
     final total = await entries.count(injector);
-    for (var offset = 0; offset < total; offset += _config.sitemapChunkSize) {
-      final limit = total - offset < _config.sitemapChunkSize
-          ? total - offset
-          : _config.sitemapChunkSize;
-      for (final entry in await entries.slice(injector, offset, limit)) {
-        _checkParams(declared.page.path, paramNames, entry);
-        yield _urlOf(base, declared.page.path, sitemap, entry);
-      }
+    for (var offset = 0; offset < total; offset += chunk) {
+      final limit = total - offset < chunk ? total - offset : chunk;
+      yield await entries.slice(injector, offset, limit);
     }
   }
 
@@ -65,18 +93,19 @@ final class SitemapSource {
     SitemapEntry entry,
   ) {
     final keys = entry.params.keys.toList()..sort();
-    final expected = [...paramNames]..sort();
-    if (keys.length == expected.length &&
-        Iterable<int>.generate(
-          keys.length,
-        ).every((i) => keys[i] == expected[i])) {
-      return;
+    if (keys.length != paramNames.length ||
+        !keys.toSet().containsAll(paramNames)) {
+      throw PageEntriesMismatchError(
+        path: path,
+        expected: [...paramNames]..sort(),
+        actual: keys,
+      );
     }
-    throw PageEntriesMismatchError(
-      path: path,
-      expected: expected,
-      actual: keys,
-    );
+    for (final MapEntry(:key, :value) in entry.params.entries) {
+      if (value.isEmpty || value == '.' || value == '..') {
+        throw PageEntryValueError(path: path, name: key, value: value);
+      }
+    }
   }
 
   static SitemapUrl _urlOf(
@@ -97,7 +126,9 @@ final class SitemapSource {
     final segments = [
       for (final segment in path.substring(1).split('/'))
         Uri.encodeComponent(
-          segment.startsWith(':') ? params[segment.substring(1)]! : segment,
+          segment.startsWith(':')
+              ? (params[segment.substring(1)] ?? segment)
+              : segment,
         ),
     ];
     return '/${segments.join('/')}';

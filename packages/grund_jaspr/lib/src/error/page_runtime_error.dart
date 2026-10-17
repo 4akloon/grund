@@ -45,3 +45,29 @@ final class PageEntriesMismatchError extends PageRuntimeError {
       '${actual.join(', ')}, but the path has ${expected.join(', ')}. Return '
       'entries whose params keys are exactly the names of the path.';
 }
+
+/// A sitemap entry has a parameter value that cannot be part of a URL path
+/// unchanged: empty, `.` or `..`.
+final class PageEntryValueError extends PageRuntimeError {
+  /// Creates the error for the parameter [name] of the page at [path].
+  const PageEntryValueError({
+    required this.path,
+    required this.name,
+    required this.value,
+  });
+
+  /// The full path of the page.
+  final String path;
+
+  /// The parameter name.
+  final String name;
+
+  /// The rejected value.
+  final String value;
+
+  @override
+  String get message =>
+      'The sitemap entry of $path has the value "$value" for :$name, which '
+      'a URL would read as an empty or a relative segment. Return a real '
+      'name for it.';
+}
