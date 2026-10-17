@@ -41,8 +41,8 @@
 - Файловий роутинг, кодоген, анотації `@Page` (можливий цукор над цим API
   пізніше, за правилом «згенерований код = звичайний код на публічному API»;
   `Page` тоді конфліктуватиме з анотацією так само, як `Module`).
-- Статика по сайтах (G7b), видимість пунктів навігації за ролями, типізовані
-  посилання між сторінками.
+- Видимість пунктів навігації за ролями, типізовані посилання між
+  сторінками.
 - Зворотна сумісність з `JasprModule(app:)`: до 1.0 API ламається.
 
 **Анти-цілі.** Другий реєстр поряд зі сторінками; мовчазне вгадування
@@ -130,7 +130,8 @@
 ```
 запит → HttpServer → router ─┬─ PagesApi<S> (у модулі сторінок): S.path + page.path, хуки S.use у Route.use
                              ├─ SiteApi<S>  (у модулі сайту):    <path>/*, sitemap
-                             └─ /*          кореневий сайт: статика → claim → JSON 404 → notFound()
+                             ├─ /*          кореневий сайт: claim → JSON 404 → notFound()
+                             └─ StaticApi (у JasprModule): <staticPath>/*, rootFiles (поза сайтами)
 
 PagesRunner (раннер 'pages'): на prepare/reassemble бере СВІЖИЙ injector, збирає
 знімок усіх SiteApi/PagesApi, перевіряє глобальні правила, оновлює PageRegistry,
@@ -146,8 +147,7 @@ PagesRunner (раннер 'pages'): на prepare/reassemble бере СВІЖИ�
   skippableHooks => const []` (типи хуків, які сторінка має право пропустити),
   `Component shell(Component content) => content`, `Component notFound()`
   (мінімальна сторінка «Not found»), `Uri? get sitemapBaseUrl => null`
-  (абсолютна адреса сайту; `null`: sitemap сайту вимкнений). Кореневий сайт
-  (порожній `path`) не може мати `use` (§4.4).
+  (абсолютна адреса сайту; `null`: sitemap сайту вимкнений).
 - `Pages` — `abstract final class` зі статичними фабриками (внутрішні типи
   не експортуються, лише ці дві):
   - `Pages.site<S extends PageSite>(S Function(Injector) create)` повертає
@@ -178,8 +178,7 @@ PagesRunner (раннер 'pages'): на prepare/reassemble бере СВІЖИ�
 - `Page(String path, {required PageBuilder build, PageMeta meta, PageHooks
   hooks, List<PageExtension> extensions})`. Шлях сторінки: літерали й
   `:param`; `*` у сторінках заборонений; кожен сайт мусить мати сторінку
-  `/` (індекс). Для сайту з порожнім `path` перший сегмент шляху мусить бути
-  літералом (сторінка `/:slug` у корені проковтнула б статику).
+  `/` (індекс).
   `typedef PageBuilder = FutureOr<Component> Function(HttpCtx c)`: параметри
   шляху читаються як у звичайному роуті (`c.path.string('slug')`), дані
   завантажуються тут, а компонент отримує їх аргументами. `NotFoundException`,
@@ -214,9 +213,10 @@ PagesRunner (раннер 'pages'): на prepare/reassemble бере СВІЖИ�
 **не імпортують** `JasprModule`, лише застосунок (так само виправляється
 `AdminModule` у spec адмінки §5.5). Один на застосунок; `global => true`,
 експортує `PageRenderer`, `PageCatalog` і внутрішні `StaticFiles`/
-`NonPageRequests`. Прив'язує також `PagesRunner` (§4.10). `StaticApi` зникає:
-статику й кореневий фолбек віддає кореневий сайт (§4.3). Живе
-перезавантаження, `JasprConfig`, `Jaspr.initializeApp` лишаються як є.
+`NonPageRequests`. Прив'язує також `PagesRunner` (§4.10) і `StaticApi`
+(§4.3), який не залежить від сайтів. Живе перезавантаження,
+`Jaspr.initializeApp` лишаються як є; `JasprConfig` отримує `staticPath` і
+`rootFiles` (§4.3).
 
 Рендер: компонент сторінки обгортається `site.shell(...)` і
 `GrundScope(httpContext: c, ...)`; `context.call<T>()` працює в call-scope
@@ -239,22 +239,29 @@ PagesRunner (раннер 'pages'): на prepare/reassemble бере СВІЖИ�
 **Не-сторінкові запити.** Правило `NonPageRequests` (один клас, спільний для
 фолбека й обробників сторінок): якщо останній сегмент шляху має розширення
 поза `JasprConfig.pageSuffixes`, запит не є запитом сторінки, і сторінка не
-викликає білдер, а відповідає ланцюжком: статичний файл (лише кореневий сайт;
-статики по сайтах немає до G7b) → `PageExtension.claim` сторінок сайту → JSON
-404 `file_not_found`. Так `/projects/x.png` і `/projects/foo.md`, що їх
-перехопив би `/projects/:slug`, не потрапляють у білдер. Значення параметра з
-крапкою в останньому сегменті (`/projects/node.js`) через це не підтримується:
-задокументовано.
+викликає білдер, а відповідає ланцюжком `PageExtension.claim` сторінок сайту,
+далі JSON 404 `file_not_found`. Так `/projects/x.png` і `/projects/foo.md`, що
+їх перехопив би `/projects/:slug`, не потрапляють у білдер. Значення параметра
+з крапкою в останньому сегменті (`/projects/node.js`) через це не
+підтримується: задокументовано.
 
-Кореневий сайт володіє єдиним `GET /*` застосунку: статичний файл у
-`JasprConfig.staticDirectory`, далі те саме правило, далі `notFound()`.
-Застосунок без кореневого сайту статики не віддає (невідомі `GET` лишаються
-стандартним `route_not_found`); адмінка без публічного сайту, якій потрібна
-статика, оголошує мінімальний кореневий сайт (до G7b). Статика публічна й
-ніколи не проходить через хуки сайту: тому кореневий сайт не має `use`.
-Sitemap віддається **без** хуків сайту (§4.5). Шляхи `<path>/sitemap.xml` і
-`<path>/sitemap/*` у сайті зарезервовані (`ReservedPagePathError`);
-статичний `web/sitemap.xml` перекрито літеральним роутом, це задокументовано.
+Кореневий сайт володіє єдиним `GET /*` застосунку: те саме правило, далі
+`notFound()`. Без кореневого сайту невідомі `GET` лишаються стандартним
+`route_not_found`.
+
+**Статика** (як `STATIC_URL` у Django) не належить жодному сайту. `StaticApi`
+у `JasprModule` віддає файли з `JasprConfig.staticDirectory` під
+`JasprConfig.staticPath` (за замовчуванням `/static`, роут `GET <staticPath>/*`)
+і окремими літеральними роутами файли зі списку `JasprConfig.rootFiles`
+(`favicon.ico`, `robots.txt`, ...; за замовчуванням порожній). Це публічні
+файли без хуків сайту. Літеральні роути перемагають `:param`, тож сторінка
+`/:slug` їх не проковтне. Існуючого файлу немає: JSON 404 `file_not_found`.
+Шлях сайту й повний шлях сторінки не можуть збігатися зі `staticPath` або
+лежати під ним, ні збігатися з елементом `rootFiles` (`InvalidSitePathError`,
+`ReservedPagePathError`). Статика для сайту (адмінка в G7b) — підкаталог:
+`/static/admin/...`. Sitemap віддається **без** хуків сайту (§4.5). Шляхи
+`<path>/sitemap.xml` і `<path>/sitemap/*` у сайті зарезервовані
+(`ReservedPagePathError`).
 
 ### 4.4 Охоронці й `skip`
 
@@ -266,10 +273,6 @@ Sitemap віддається **без** хуків сайту (§4.5). Шлях�
 `CircularModuleImportError`): зверху все збирає кореневий модуль застосунку.
 Редирект гостя робить `onError` хука (відповідь `303`), нового механізму
 немає; охоронець «потрібен користувач» у `grund_auth` з'явиться в G4.
-
-Кореневий сайт (порожній `path`) не може мати `use`
-(`GuardedRootSiteError`): це публічний сайт; закритий застосунок має префікс
-(`/app`).
 
 `PageHooks.skip` знімає з однієї сторінки названі хуки сайту. Правила (за
 дослідженням Laravel, Rails, ASP.NET, Django, OWASP):
@@ -342,13 +345,12 @@ true)`. Параметрична сторінка в сайті з `sitemapBaseU
 стабільний ідентифікатор) із трьома запечатаними підродинами, кожна у своєму
 файлі; назви за зразком наявних (`DuplicateRouteError`,
 `InvalidRoutePatternError`: проблема, потім предмет).
-- `SiteDeclarationError`: `InvalidSitePathError`, `DuplicateSitePathError`,
+- `SiteDeclarationError`: `InvalidSitePathError` (також шлях під `staticPath`), `DuplicateSitePathError`,
   `NestedSitePathError` (`/admin` і `/admin/reports`: внутрішній сайт обходив
   би охоронців зовнішнього), `DuplicateSiteError` (один тип сайту прив'язаний
   у двох модулях), `MismatchedSiteTypeError` (`create` повернув не `S`),
-  `MissingSiteIndexError` (немає сторінки `/`), `GuardedRootSiteError`,
-  `GuardedSiteSitemapError`;
-- `PageDeclarationError`: `InvalidPagePathError`, `ReservedPagePathError`,
+  `MissingSiteIndexError` (немає сторінки `/`), `GuardedSiteSitemapError`;
+- `PageDeclarationError`: `InvalidPagePathError`, `ReservedPagePathError` (sitemap, `staticPath`, `rootFiles`),
   `MisplacedPagePathError` (шлях сторінки потрапляє під префікс іншого сайту:
   літерал `/admin/help` у кореневому сайті обійшов би охоронців `/admin`),
   `UnusedPageEntriesError`, `UndecidedPageSitemapError`,
@@ -359,7 +361,7 @@ true)`. Параметрична сторінка в сайті з `sitemapBaseU
 `DuplicateRouteError`. Де перевіряється:
 - **локально**, у `routes`-геттері `SiteApi`/`PagesApi` або в їхніх
   фабриках: шляхи, зарезервовані шляхи, `skip`, `entries`, рішення про
-  sitemap, `GuardedRootSiteError`, `GuardedSiteSitemapError`,
+  sitemap, `GuardedSiteSitemapError`,
   `MismatchedSiteTypeError`. Виняток тут лишає стару таблицю (hot reload) і
   валить старт;
 - **глобально**, у `PagesRunner.prepare/reassemble` над свіжим знімком:
@@ -377,8 +379,7 @@ true)`. Параметрична сторінка в сайті з `sitemapBaseU
 адмінки), її сторінки — `Pages.under<AdminSite>`. Spec адмінки тут не
 змінюється; до узгодження в G7b: `AdminModule` не імпортує `JasprModule`;
 невідомий `GET /admin/api/x` потрапляє у HTML-фолбек сайту, а не в JSON 404;
-відсутність статики по сайтах конфліктує з хешованими ресурсами під префіксом
-(§7).
+статика адмінки лежить у підкаталозі `/static/admin/...` (§4.3).
 
 ### 4.8 Межа з Markdown-пакетом (окремий spec і план)
 
@@ -407,8 +408,8 @@ true)`. Параметрична сторінка в сайті з `sitemapBaseU
   `PageRegistry`/`PageSnapshot`, `SiteValidator` (глобальні правила),
   `HookResolver` (site.use + skip), `NonPageRequests`, `StaticFiles`,
   `PageRenderer`, `PageMatcher`, `SitemapHandlers`, `SitemapWriter`,
-  `SitemapChunkCache`. `StaticFiles` шукає файл на диску, кореневий `SiteApi`
-  віддає його як роут.
+  `SitemapChunkCache`, `StaticApi`. `StaticFiles` шукає файл на диску, `StaticApi`
+  віддає його роутом.
 - `Page`, `PageMeta`, `PageHooks`, `PageSitemap` — декларативні значення в
   межах 5 параметрів. Файли помилок — плоскі каталоги; якщо файл > 300 рядків,
   це зазначено в doc-коментарі бібліотеки.
@@ -431,11 +432,13 @@ injector). Зміна `path` наявного сайту й видалення �
 - Роутинг: `/admin/*` проти `/*`; літерал, параметр, фолбек; два сайти, кілька
   модулів у сайті; `HEAD`; `//`, `%2F`, `%61dmin`, кінцевий `/`, `.html` на
   охоронюваному сайті; `/projects/x.png` і `/projects/foo.md` не доходять до
-  білдера `/projects/:slug`; кореневий статичний файл не потрапляє в білдер.
+  білдера `/projects/:slug`; `/static/x.css` і `rootFiles` віддаються поза
+  хуками сайту, сторінка `/:slug` їх не проковтує; сайт під `/static` —
+  помилка.
 - Сайти: хуки на сторінках і фолбеку; 404 сайту не розкриває сторінок гостю;
   оболонка; редирект охоронця через `onError`; вкладені префікси;
   `MisplacedPagePathError` (`/admin/help` у кореневому сайті);
-  `MissingSiteIndexError`; `GuardedRootSiteError`; точний тип сайту
+  `MissingSiteIndexError`; точний тип сайту
   (`SuperAdminSite` не змішується з `AdminSite`); `DuplicateSiteError`.
 - `skip`: сторінка входу пропускає лише названий хук; `Unknown`, `Forbidden`,
   `Ambiguous`; фолбек ігнорує `skip`; лог пропуску.
@@ -456,13 +459,14 @@ injector). Зміна `path` наявного сайту й видалення �
   таблицю; помилка глобального правила на `reassemble` повідомляється.
 - `TestApp` (`only: {}`) все одно виконує `prepare` раннера і ловить глобальні
   помилки.
-- Статика, живе перезавантаження, правило розширень: наявні тести
-  переносяться. `example/` переходить на новий спосіб (e2e на обох адаптерах).
+- Живе перезавантаження, правило розширень, захист від виходу з каталогу
+  статики: наявні тести переносяться з урахуванням `staticPath`. `example/` переходить на новий спосіб (e2e на обох адаптерах).
 
 ## 6. Пакети, версії, документація
 
 `grund_jaspr` 0.2.0 (ламка зміна); `grund_http` і `grund` не змінюються.
-`grund_cli` (шаблон fullstack) переходить на сайти; `example/`,
+`grund_cli` (шаблон fullstack) переходить на сайти, а посилання на файли з
+`web/` отримують префікс `/static/`; `example/`,
 `docs/jaspr.md`, README, CHANGELOG, CLAUDE.md (межі `catch`: новий лише `on
 NotFoundException`) оновлюються. Портфоліо мігрує окремою роботою після
 релізу.
@@ -470,7 +474,7 @@ NotFoundException`) оновлюються. Портфоліо мігрує ок
 ## 7. Зміни роадмапу
 
 Нового етапу не додаємо: це розвиток G7a. Markdown-пакет — окремий spec і
-план після ядра. Статика по сайтах і клієнтський бандл — G7b.
+план після ядра. Клієнтський бандл — G7b.
 
 ## 8. Рішення, що чекають вашого перегляду
 
@@ -482,11 +486,11 @@ NotFoundException`) оновлюються. Портфоліо мігрує ок
   модуля); хуки сайту в `Route.use`;
 - `PagesRunner` для свіжого injector, знімка й глобальної валідації; помилки
   глобальних правил при hot reload лише повідомляються;
-- кожен сайт мусить мати сторінку `/`; шляхи сторінок без `*`; у кореневому
-  сайті перший сегмент літерал; кореневий сайт без `use`; статику віддає лише
-  кореневий сайт;
-- правило не-сторінкових запитів у всіх обробниках сторінок (статика, claim,
-  JSON 404); параметр з крапкою в останньому сегменті не підтримується;
+- кожен сайт мусить мати сторінку `/`; шляхи сторінок без `*`;
+- статика поза сайтами, як `STATIC_URL` у Django: `JasprConfig.staticPath`
+  (`/static`) і `rootFiles`; статика ніколи не проходить через хуки сайту;
+- правило не-сторінкових запитів у всіх обробниках сторінок (`claim`, JSON 404);
+  параметр з крапкою в останньому сегменті не підтримується;
 - `skip` лише за точним типом, лише з `skippableHooks`, фолбек його ігнорує;
 - `entries` перенесені в `PageSitemap` і перейменовані в `SitemapEntries`/
   `SitemapEntry` (без `title`); не додають пункти навігації;
