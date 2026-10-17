@@ -66,15 +66,17 @@ gets the `HttpCtx` too (`c.path.string('slug')`, `c.query`, `c.call<T>()`).
 `Page` takes:
 
 - `path`: literal segments and `:param` segments (`/`, `/about`,
-  `/projects/:slug`); never `*`. The path is relative to the site.
+  `/projects/:slug`); never `*`, and a parameter name is an identifier
+  (`:slug`, not `:slug.md`: alternates are declared with `PageAlternate`).
+  The path is relative to the site.
 - `build`: `FutureOr<Component> Function(HttpCtx c)`.
 - `meta`: `PageMeta(title:, description:, nav:, sitemap:)`. `nav` is a
   `PageNav(label:, group: 'main', order: 0)`; a page without it is not in
   the navigation. `sitemap` is a `PageSitemap`, see
   [Sitemap and navigation](#sitemap-and-navigation).
 - `hooks`: `PageHooks(skip:, use:)`, see [Sites](#sites).
-- `extensions`: a list of `PageExtension`, see
-  [Things to know](#things-to-know).
+- `alternates`: other representations of the page, such as Markdown, see
+  [Alternate representations](#alternate-representations).
 
 A builder that cannot find what the URL names throws `NotFoundException`
 (from `package:grund_http/grund_http.dart`, as in an API handler):
@@ -130,7 +132,10 @@ final class PublicSite extends PageSite {
 | `skippableHooks` | The hook types a page may skip. |
 | `shell(content)` | Wraps the content of every page, and the 404 page. |
 | `notFound()` | The content for a request below `path` that no page matches. |
-| `sitemapBaseUrl` | Switches the site's sitemap on, see [Sitemap and navigation](#sitemap-and-navigation). |
+| `baseUrl` | The public origin (`https://example.com`). Switches the site's sitemap on and makes absolute URLs possible, see [Addresses](#addresses-base-url-and-trailing-slash) and [Sitemap and navigation](#sitemap-and-navigation). |
+| `trailingSlash` | `TrailingSlash.never` (default), `always` or `ignore`, see [Addresses](#addresses-base-url-and-trailing-slash). |
+| `requiredAlternates` | Media types every page must have an alternate of (`['text/markdown']`), see [Alternate representations](#alternate-representations). |
+| `files` | Generated text files such as `/robots.txt` and `/llms.txt`, see [Site files](#site-files). |
 
 `context.pageMatch` is `null` in the 404 page; the title of the page that
 rendered reaches the shell only through it.
@@ -368,28 +373,193 @@ means a slug with a dot, such as `/projects/v1.2` or `/projects/node.js`,
 is **not** a page request (unless its extension is a page suffix); keep
 dots out of page parameters, or add the extension to `pageSuffixes`.
 
-## Sitemap and navigation
+## Addresses: base URL and trailing slash
 
-`PageSite.sitemapBaseUrl` switches the sitemap of a site on:
+`PageSite.baseUrl` is the public origin of the site. It must be `http` or
+`https`, have a host, and have no path (or just `/`), query, fragment or
+user info; anything else stops the application before it starts
+(`InvalidSiteBaseUrlError`). Without it the site has no sitemap and no
+absolute URLs, and the canonical `Link` header of alternates is not sent.
+The framework never takes the origin from the `Host` header, which the
+client controls.
+
+`PageSite.trailingSlash` says how page URLs end:
+
+| Value | `/about/` | `/about` |
+| --- | --- | --- |
+| `never` (default) | 308 to `/about` | 200 |
+| `always` | 200 | 308 to `/about/` |
+| `ignore` | 200 | 200 |
+
+- The redirect is `308` (the method and body survive) with
+  `cache-control: max-age=3600`, and the query string is kept as sent.
+  Only the last slash changes: `//evil.test/x/` redirects to
+  `/evil.test/x`, never to a URL on another host, and a `%2F` stays
+  encoded.
+- It runs after the hooks of the site, so a hook that refuses (a guest on a
+  protected page) answers first, and before the page builder. The
+  redirect is only for URLs that match a page: the fallback 404, file
+  requests (`/feed.xml`) and static files are not redirected. `always` adds
+  no slash to the root of a site or to a last segment with an extension.
+- With `ignore`, links and the sitemap use the declared path, without a
+  slash.
+
+`PageMatch` spells an address the way the site does, so you do not build
+URLs by hand:
+
+```dart
+final match = PageMatch(page: sitePage, params: {'slug': 'grund'});
+match.path;        // '/projects/grund' (percent-encoded, per trailingSlash)
+match.url;         // https://example.com/projects/grund, or null without baseUrl
+match.alternatePath('text/markdown'); // '/projects/grund.md', or null
+```
+
+`path` and `alternatePath` throw `ArgumentError` for a missing parameter
+and for a value that is empty, `.` or `..`. The same dot segments answer
+404 on the request side: `..` is normalized by URI parsing before routing
+(`/projects/..` is `/`), and a `.` slug on a page or an alternate is the
+site's 404.
+
+## Alternate representations
+
+A page can have other representations of the same content, the usual one
+being Markdown for agents. Declare them on the page:
+
+```dart
+Page(
+  '/projects/:slug',
+  build: (c) async => ProjectPage(await projects.find(c.path.string('slug'))),
+  alternates: [
+    PageAlternate.markdown((c, match) async {
+      final project = await projects.find(match.params['slug']!);
+      return '# ${project.name}\n\n${project.summary}\n';
+    }),
+  ],
+)
+```
+
+`PageAlternate(mediaType:, suffix:, build:)` is the general form;
+`PageAlternate.markdown` is `text/markdown` at `.md`. The builder returns
+the text and throws `NotFoundException` for a parameter it does not know,
+which answers the site's problem 404. The suffix matches `^(\.[a-z0-9]+)+$`.
+
+An alternate has **its own URL**: the page URL plus the suffix
+(`/projects/grund.md`; the root page of a site at `/blog` gets
+`/blog/index.md`). It runs the same hooks as the page, with the same
+`skip`, so a guest gets the same refusal on `/projects/x.md` as on
+`/projects/x`.
+
+The page URL also **negotiates on `Accept`**. A request gets an alternate
+when its `Accept` header names that media type itself (not through `*/*`)
+with a quality at least that of `text/html`; the best quality wins and a tie
+goes to the order of declaration, so `text/html, text/markdown` gets
+Markdown and `text/markdown;q=0.1, */*` gets HTML. A missing, blank or
+unreadable header gets HTML, and there is no `406`. (`AcceptHeader` in
+`grund_http` does the reading, see [HTTP APIs](http-and-hooks.md).)
+
+- Every negotiated response carries `Vary: Accept` (merged with a `vary`
+  your hook set, `*` wins) and, on the HTML, a `Link` with
+  `rel="alternate"` to the alternate URL.
+- An alternate is served as `<mediaType>; charset=utf-8` with
+  `cache-control: private, no-cache` unless `c.response` already set its
+  own. With a `baseUrl` it also sends `Link: <page URL>; rel="canonical"`:
+  the canonical is the **page** URL, so search engines index the page and not
+  the `.md` copy. There is no `noindex` by default; a builder that wants one
+  sets it itself: `c.response.headers.set('x-robots-tag', 'noindex')`.
+- A cache or CDN in front of the application must key the page URL on
+  `Accept` (it honors `Vary`), or the Markdown reaches a browser.
+- `HEAD` gets the headers of `GET`; dropping the body is the adapter's job.
+- `PageSite.requiredAlternates` makes an alternate mandatory: a page of the
+  site without an alternate of each listed media type does not start
+  (`MissingPageAlternateError`). Two alternates of a page on one suffix or
+  media type, an alternate of `text/html`, and a suffix whose extension is
+  in `pageSuffixes` are errors too (`InvalidPageAlternateError`); so is an alternate URL
+  that another route already has (`DuplicateRouteError`).
+
+Markdown for agents also wants an index, `llms.txt`, which is a
+[site file](#site-files) built from the catalog:
+
+```dart
+SiteFile(
+  '/llms.txt',
+  mediaType: 'text/plain',
+  build: (c) async {
+    final catalog = c.call<PageCatalog>();
+    final lines = ['# Example', ''];
+    await for (final url in catalog.sitemapOf<PublicSite>()) {
+      final match = catalog.match(url.location);
+      final markdown = match?.alternatePath('text/markdown');
+      if (markdown != null) {
+        lines.add('- ${baseUrl.resolve(markdown)}: ${match!.meta.title}');
+      }
+    }
+    return lines.join('\n');
+  },
+)
+```
+
+Here `baseUrl` is the site's own `baseUrl`. For pages without parameters
+`catalog.pagesOf<PublicSite>()` and `PageMatch(page:, params: const {})`
+give the same without the sitemap.
+
+## Site files
+
+`PageSite.files` serves generated text at fixed paths of the site, such as
+`/robots.txt`, without a file on disk (`JasprConfig.rootFiles` serves a
+file from the static directory):
 
 ```dart
 @override
-Uri? get sitemapBaseUrl => Uri.parse('https://example.com');
+List<SiteFile> get files => [
+  SiteFile(
+    '/robots.txt',
+    mediaType: 'text/plain',
+    build: (c) => 'User-agent: *\nAllow: /\nSitemap: https://example.com/sitemap.xml\n',
+  ),
+];
+```
+
+- The builder gets the `HttpCtx` and returns the text (sync or async). The
+  response is `<mediaType>; charset=utf-8` and `cache-control: private,
+  no-cache` unless `c.response` set its own.
+- A file runs the hooks of the site, like a page. For a public
+  `robots.txt`, keep it in a site without guarding hooks.
+- The path is relative to the site; the site `/docs` serves `/docs/llms.txt`.
+- A file is a territory of its own: a **literal site file path wins over a
+  parametric page**, so `/projects/x` beats `/projects/:slug`, as a literal
+  `/projects/new` beats the parameter in any router. It is not
+  redirected by the trailing slash policy.
+- A path the framework cannot serve is a startup error,
+  `InvalidSiteFileError`, with the path and the reason: no leading `/`,
+  the site root `/`, a trailing slash, an empty segment (`//`), `:` or
+  `*`, `?`, `#`, `%` or a `.`/`..` segment (no request can match them), a
+  media type that is not lower case `type/subtype`, a reserved path (the
+  static directory, the sitemap, a `rootFiles` file). Two files on one
+  path, or a file on the own URL of an alternate, are a
+  `DuplicateRouteError`.
+
+## Sitemap and navigation
+
+`PageSite.baseUrl` switches the sitemap of a site on:
+
+```dart
+@override
+Uri? get baseUrl => Uri.parse('https://example.com');
 ```
 
 The site then serves `<site>/sitemap.xml` and, when it holds more than
 `sitemapChunkSize` addresses, an index with `<site>/sitemap/<n>.xml`
 chunks. These two paths are reserved in every site, whether or not it has
-a `sitemapBaseUrl` (`ReservedPagePathError`).
+a `baseUrl` (`ReservedPagePathError`).
 
 - The sitemap is served **without the site's hooks**, so a site with `use`
-  and a `sitemapBaseUrl` does not start (`GuardedSiteSitemapError`): put
+  and a `baseUrl` does not start (`GuardedSiteSitemapError`): put
   public pages in a site without hooks.
 - A page without parameters is listed with its `PageSitemap(lastModified:,
   changeFrequency:, priority:)`.
 - A page with `:param` needs `entries`, or `PageSitemap(included: false)`
   (`UndecidedPageSitemapError`; this applies only to a site with a
-  `sitemapBaseUrl`). `SitemapEntries.all((injector) async =>
+  `baseUrl`). `SitemapEntries.all((injector) async =>
   [...])` loads the whole list at once, for small sets;
   `SitemapEntries.paged(count:, load:)` counts and loads by `offset` and
   `limit`, for big ones. A `SitemapEntry` carries the `params` of the path
@@ -424,7 +594,10 @@ final menu = catalog.navOf<PublicSite>(); // List<NavItem>, by order, label, pat
 - `sitemapOf<S>()`: a `Stream<SitemapUrl>` of the site's addresses.
 - `match(Uri)`: the `PageMatch` (page and parameters) that would serve a
   URL, or `null` for a file request, a static URL or an unknown path.
-- `pagesWith<T extends PageExtension>()`: the pages that carry an extension.
+
+`pagesOf<S>()` and `sitemapOf<S>()` list the addresses to check or to
+publish; `PageMatch.path`, `url` and `alternatePath` spell one, see
+[Addresses](#addresses-base-url-and-trailing-slash).
 
 ## Signing in
 
@@ -500,6 +673,37 @@ A form post is `client.request('POST', '/login', body: 'name=ann',
 headers: {'content-type': 'application/x-www-form-urlencoded'})`; send the
 session back with `headers: {'cookie': ...}`. The catalog is read from the
 application: `app.injector<PageCatalog>().navOf<PublicSite>()`.
+`client.head('/')` sends a `HEAD`; the test client keeps its body, a real
+server drops it. `client.get('/', headers: {'accept': 'text/markdown'})`
+exercises the negotiation.
+
+**Every page answers.** One test can hit every address a site publishes: the
+parameterless pages from `pagesOf`, the parametric ones from the sitemap
+entries:
+
+```dart
+test('every page of the site answers 200', () async {
+  final app = await TestApp.start(root: const AppModule());
+  addTearDown(app.close);
+  final client = TestClient.of(app);
+  final catalog = app.injector<PageCatalog>();
+
+  final paths = <String>[
+    for (final p in catalog.pagesOf<PublicSite>())
+      if (!p.path.contains(':'))
+        PageMatch(page: p, params: const {}).path,
+    await for (final u in catalog.sitemapOf<PublicSite>()) u.location.path,
+  ];
+  for (final path in paths) {
+    expect((await client.head(path)).status, 200, reason: path);
+  }
+});
+```
+
+`sitemapOf` needs a `baseUrl` on the site. To go further and check that the stylesheets, scripts
+and images a page links to exist, parse `page.text` with `package:html`
+(a `dev_dependency` of your own package; it is not part of the framework)
+and request each `href`/`src` the same way.
 
 ## Hot reload
 
@@ -555,18 +759,18 @@ build.
   `cache-control`: a page may depend on the session.
 - **Dotted last segments are file requests** (see
   [Static files](#static-files)).
-- **Page extensions** (`PageExtension`) are capabilities a page opts into
-  through `Page(extensions:)`. After the hooks, `respond(c, match)` may
-  answer instead of the page (an alternative representation of the same
-  address) and `claim(c, uri)` may answer a file request (a last segment with an
-  extension outside `pageSuffixes`) before the JSON 404 `file_not_found`;
-  an unmatched page-like path such as `/blog/nope` goes to `notFound()`
-  and never to `claim`. Both return `null` to let the default happen.
-  `claim` runs after the hooks of the **site**, on file requests below the
-  site; the extensions of pages with their own `hooks.use` are not asked, so
-  a page-level guard is never bypassed. A layer that needs to serve a
-  variant of such a page does it through `respond` on the page route. It is
-  the extension point a Markdown layer would use; this release ships none.
+- **Trailing slash URLs redirect.** With the default `TrailingSlash.never`,
+  `/login/` answers `308` to `/login`; set `trailingSlash` on the site to
+  change it (see [Addresses](#addresses-base-url-and-trailing-slash)).
+- **`<base href="/">`.** Jaspr's `Document` adds `<base href="/">` by
+  default, so a link `#section` leads to the home page, not to the
+  current one. Write the full `/current/path#section`, or pass
+  `Document(base: null)`; `null` is also what client hydration needs
+  (a `<base>` that is absent or `/`). The framework does not own the
+  `Document`: your shell does.
+- **Dotted last segments** (`/projects/v1.2`) are still file requests, but
+  a declared alternate suffix (`/projects/grund.md`) and a declared site file
+  are matched first.
 - **Sessions live in memory**: they end with the process (a restart under
   `grund dev` signs everyone out) and are not shared between processes.
 - **Jaspr is initialized once per process**, without isolates. Calling

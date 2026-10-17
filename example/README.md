@@ -93,6 +93,7 @@ password before `Sessions.start`. The session cookie is not `Secure` here
 | `JasprModule`, `SessionModule` (explicit in both graphs) | `lib/src/web/web_module.dart` |
 | The `SessionHook`, global | `lib/src/server/serving_module.dart` |
 | Static files, served under `/static` | `web/styles.css` |
+| Markdown alternate of `/` (`/index.md`, `Accept: text/markdown` on `/`) and a generated `/robots.txt` | `lib/src/web/web_module.dart`, `home_markdown.dart`, `public_site.dart` |
 
 ## Generated files
 
@@ -146,6 +147,10 @@ dart test
   cookies, sign-out and a refused cross-site form, on the same four
   servers.
 - `test/in_process_test.dart`: `TestApp` and `TestClient`, no socket.
+- `test/web_addresses_test.dart`: the Markdown alternate of `/` (its own
+  URL and `Accept` negotiation), the redirect of `/login/` and `/robots.txt`,
+  on the same four servers.
+- `test/home_markdown_test.dart`: the text of the home Markdown alone.
 - `test/tasks_service_test.dart`: the service alone, and a test module
   with a fake store.
 - `test/server_options_test.dart`, `test/main_process_test.dart`: the

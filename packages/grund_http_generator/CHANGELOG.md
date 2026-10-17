@@ -1,6 +1,8 @@
 ## 0.2.0
 
 - **Breaking:** requires Dart 3.13 (`sdk: ^3.13.0`).
+- A route path of `@Get`, `@Post` and the other route annotations accepts a
+  parameter with a literal suffix (`/:slug.md`), as the explicit API does.
 - `analyzer` is now `>=13.3.0 <15.0.0` (was `>=8.1.1`): the lowest version that parses Dart 3.13 sources.
 
 ## 0.1.0

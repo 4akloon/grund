@@ -51,6 +51,14 @@ Singleton<UsersApi>(
 - **404 and 405.** An unknown path is 404 (`route_not_found`); a known path
   with another method is 405 with an `allow` header. `HEAD` is served by
   the `GET` route. A malformed percent-encoding in the path is 400.
+- **A parameter with a literal suffix** is `:slug.md`: it matches
+  `/projects/grund.md` with `slug` = `grund` (the suffix is
+  `(\.[A-Za-z0-9_~-]+)+`, case-sensitive, the value is never empty, so
+  `/projects/.md` does not match). Priority: a literal segment, then a
+  suffix parameter (the longer suffix first: `:n.tar.gz` before `:n.gz`),
+  then a plain parameter, then `*`. A `DELETE` on a path that only has a
+  suffix route for `GET` is 405, not 404. `@Get('/:slug.md')` in
+  annotations works the same.
 - **`Route.get`, `post`, `put`, `patch`, `delete`** take `status:` (the
   response status; it wins over the default) and `use:` (hooks of this
   route only).
@@ -108,6 +116,24 @@ wins over both. A type you do not own gets a JSON form from a codec:
 `HttpModule(codecs: [ResponseCodec<Money>((m) => {'cents': m.cents})])`
 (write the type argument). A value that cannot be encoded is a
 `SerializationError`, answered as a 500.
+
+### `Accept`, `Vary` and redirect statuses
+
+`AcceptHeader.parse(c.headers.stringOrNull('accept'))` reads an `Accept` header
+without ever throwing: `qualityOf('text/markdown')` is the quality of the
+most specific matching range (`type/subtype`, then `type/*`, then `*/*`; a
+malformed `q` gives 0; 1 when the header is absent or blank), and
+`names('text/markdown')` is whether the header names the type itself with a
+quality above 0. `grund_jaspr` negotiates page alternates with it.
+
+`HttpResponse.withVary('accept')` returns a copy whose `vary` names the
+header (one line, existing tokens first; the same response when it is
+already named or `vary` is `*`). `mergeHeaders`, which merges
+`c.response.headers` into a returned response, now merges `vary` the same
+way and keeps both sides of `link` and `set-cookie`; other headers keep the
+response's own value. `StatusCode.permanentRedirect` (308) keeps the method
+and body and is the one to use; `StatusCode.movedPermanently` (301) is there
+for documented legacy cases.
 
 ## Hooks
 

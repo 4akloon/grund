@@ -1,6 +1,17 @@
 ## 0.3.0
 
 - **Breaking:** requires Dart 3.13 (`sdk: ^3.13.0`).
+- **Behaviour change:** `HttpResponse.mergeHeaders` merges `vary` into one
+  line (the response's tokens, then the new ones; `*` absorbs the rest) and
+  keeps both sides of `link`, as it already did for `set-cookie`.
+- New `AcceptHeader` (`parse`, `qualityOf`, `names`): reads an `Accept`
+  header with qualities, never throws.
+- New `HttpResponse.withVary(header)`.
+- New `StatusCode.movedPermanently` (301) and `StatusCode.permanentRedirect`
+  (308).
+- A route parameter can have a literal suffix: `/projects/:slug.md`.
+  Priority: literal, suffix (the longer first), parameter, `*`.
+- New `TestClient.head`.
 - `HttpConfig.fromEnvironment` and `HttpModule.fromEnvironment` read the
   address from `HOST` and the port from `PORT`.
 

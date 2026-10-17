@@ -70,7 +70,7 @@ Future<void> main() => App(root: const AppModule()).run();
 - A `Page` is a path (`/`, `/about`, `/projects/:slug`; literals and
   `:param`, never `*`), a `build` function and optional `PageMeta` (title,
   description, navigation entry, sitemap settings), `PageHooks` and
-  `PageExtension`s. A builder throws `NotFoundException` for a parameter
+  `PageAlternate`s. A builder throws `NotFoundException` for a parameter
   value it does not know, and the answer is the site's 404 page.
 - A `PageSite` groups pages under a path prefix (`''` by default) with
   shared `use` hooks, a `shell` that wraps every page and a `notFound`
@@ -106,7 +106,17 @@ Future<void> main() => App(root: const AppModule()).run();
   release.
 - `PageCatalog` (a global binding) lists the pages: `pagesOf<S>()`,
   `navOf<S>()` (`NavItem`s sorted by `order`, `label`, `path`),
-  `sitemapOf<S>()`, `match(Uri)` and `pagesWith<T extends PageExtension>()`.
+  `sitemapOf<S>()` and `match(Uri)`. A `PageMatch` spells an address:
+  `path`, `url` (on `baseUrl`) and `alternatePath('text/markdown')`.
+- `PageSite.baseUrl` is the public origin (validated at startup);
+  `trailingSlash` is `never` by default, so `/about/` answers `308` to
+  `/about` (`always` and `ignore` are the other policies).
+- A `Page` can declare `alternates`: `PageAlternate.markdown((c, match) =>
+  '# ...')` is served at the page URL plus `.md` and, by `Accept`
+  negotiation, at the page URL itself (`Vary: Accept`, a canonical `Link` to
+  the page). `PageSite.requiredAlternates` makes one mandatory.
+- `PageSite.files` serves generated text files such as `robots.txt` and
+  `llms.txt` (`SiteFile(path, mediaType:, build:)`) through the site's hooks.
 
 ## Static files
 
@@ -138,10 +148,10 @@ step does it).
 
 ## Sitemap
 
-A site with `sitemapBaseUrl` serves `<site>/sitemap.xml`, split into
+A site with `baseUrl` serves `<site>/sitemap.xml`, split into
 `<site>/sitemap/<n>.xml` files of `JasprConfig.sitemapChunkSize` (50000)
 addresses when it is larger. The sitemap is served without the site's
-hooks, so a site with `use` and `sitemapBaseUrl` does not start
+hooks, so a site with `use` and `baseUrl` does not start
 (`GuardedSiteSitemapError`). A page with parameters needs
 `PageSitemap(entries: ...)` (`SitemapEntries.all` for small sets,
 `.paged(count:, load:)` for big ones) or `PageSitemap(included: false)`; a

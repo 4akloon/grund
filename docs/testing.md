@@ -80,7 +80,7 @@ test('an editor creates a task', () async {
 
 The root module must import `HttpModule` and an adapter module (the
 adapter never listens in a `TestApp`). `TestClient` has `get`, `post`, `put`,
-`patch`, `delete` and `request`; `json:` sends a JSON body, `headers:` adds
+`patch`, `delete`, `head` and `request`; `json:` sends a JSON body, `headers:` adds
 headers. A `TestResponse` has `status`, `headers`, `bytes`, `text` and
 `json`. Unlike a real server it keeps the body of a `HEAD` response.
 

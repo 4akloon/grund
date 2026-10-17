@@ -1,6 +1,25 @@
 ## 0.3.0
 
 - **Breaking:** requires Dart 3.13 (`sdk: ^3.13.0`).
+- **Breaking:** `PageExtension`, `Page(extensions:)` and
+  `PageCatalog.pagesWith` are removed; alternate representations are
+  `Page.alternates` (`PageAlternate`).
+- **Breaking:** `PageSite.sitemapBaseUrl` is renamed `baseUrl` and is
+  validated at startup (`InvalidSiteBaseUrlError`).
+- **Breaking:** `PageSite.trailingSlash` defaults to `TrailingSlash.never`:
+  `/x/` now answers `308` to `/x` (query kept, `cache-control:
+  max-age=3600`) instead of `200`. Set `TrailingSlash.ignore` for the old
+  behaviour.
+- **Breaking:** parameter names of a `PagePath` must be identifiers; a name
+  such as `:slug.md` is rejected.
+- New `PageAlternate` (and `PageAlternate.markdown`), served at the page URL
+  plus its suffix and by `Accept` negotiation on the page URL (`Vary:
+  Accept`, `Link` with `rel="alternate"`, and a canonical `Link` to the page
+  when the site has a `baseUrl`); `PageSite.requiredAlternates`.
+- New `SiteFile` and `PageSite.files`: generated text files such as
+  `robots.txt` and `llms.txt`, served through the site's hooks.
+- New `PageMatch.path`, `url` and `alternatePath`, `PageAddress.pathOf`.
+- Requires `grund_http` 0.3.0.
 - New `Fragments.respond(c, component, {status})`: a Jaspr component as an
   HTML fragment without a document, live reload script or client script,
   for htmx-style swaps.

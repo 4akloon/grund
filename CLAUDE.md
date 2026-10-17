@@ -34,7 +34,10 @@ pluggable HTTP adapters. It is a Dart pub workspace of pure-Dart packages.
   `init`), `grund_build` (build_runner builder), `grund_jaspr`
   (server-side rendered Jaspr sites and pages declared as module bindings,
   static files under `/static` with `ETag`/`304` and precompressed
-  siblings, HTML fragments for htmx, sitemaps), `grund_auth`
+  siblings, HTML fragments for htmx, sitemaps, canonical page addresses
+  with a trailing slash policy, alternate representations such as Markdown
+  chosen by `Accept` or by their own URL, generated site files such as
+  `robots.txt`), `grund_auth`
   (cookie sessions). Unpublished:
   `grund_conformance` (adapter test suite), the fixture packages
   `cases_app`, `http_cases_app`, `users_app`, and `example`.
@@ -317,9 +320,12 @@ producing a response):
   path (`FormatException` of `Uri.pathSegments`);
 - the page boundary (`grund_jaspr`): `PagesApi` catches `on
   NotFoundException` around the page builder (nothing else) and answers the
-  site's `notFound()` page, inside the site's shell, with status 404; any
-  other failure of a builder or component propagates to the request
-  boundary (`PageRenderError` for a component that throws);
+  site's `notFound()` page, inside the site's shell, with status 404; the
+  builder of an alternate (chosen by `Accept` on the page URL or by its own
+  URL) and a `SiteFile` builder have the same entry: a `NotFoundException`
+  becomes the problem 404, any other failure propagates to the request
+  boundary; any other failure of a page builder or component propagates to
+  the request boundary too (`PageRenderError` for a component that throws);
 - the `dev` command boundary (`grund_cli`): `DevCommand` catches `on
   Exception` (not `on Object`: an `Error` is a bug and stays loud) around
   the user's application process, a run and the key actions, and turns the
