@@ -88,6 +88,7 @@ void main() {
           Uri.parse('http://h$path'),
           policy,
           pageSuffixes: const ['html', 'xml'],
+          isGuarded: false,
         )?.headers['location'];
 
     test('a leading empty segment is dropped', () {
@@ -111,6 +112,7 @@ void main() {
         CanonicalRedirect.forFile(
           Uri.parse('http://h/a.md/'),
           TrailingSlash.always,
+          isGuarded: false,
         )?.headers['location'],
         '/a.md',
       );

@@ -8,8 +8,8 @@
   validated at startup (`InvalidSiteBaseUrlError`).
 - **Breaking:** `PageSite.trailingSlash` defaults to `TrailingSlash.never`:
   `/x/` now answers `308` to `/x` (query kept, `cache-control:
-  max-age=3600`) instead of `200`. Set `TrailingSlash.ignore` for the old
-  behaviour.
+  max-age=3600`, or `private, max-age=3600` for a route with hooks) instead
+  of `200`. Set `TrailingSlash.ignore` for the old behaviour.
 - **Breaking:** parameter names of a `PagePath` must be identifiers; a name
   such as `:slug.md` is rejected.
 - New `PageAlternate` (and `PageAlternate.markdown`), served at the page URL

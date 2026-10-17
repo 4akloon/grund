@@ -55,7 +55,7 @@ final class PagesApi<S extends PageSite> extends HttpApi {
     return [
       Route.get(
         page.path,
-        (c) => _serve(c, page),
+        (c) => _serve(c, page, isGuarded: hooks.isNotEmpty),
         use: hooks,
         name: 'GET $fullPath',
       ),
@@ -77,6 +77,7 @@ final class PagesApi<S extends PageSite> extends HttpApi {
         site: site,
         alternate: alternate,
         match: _matchOf(c, page),
+        isGuarded: hooks.isNotEmpty,
       ),
       use: hooks,
       name: 'GET ${site.path}$pattern',
@@ -91,8 +92,17 @@ final class PagesApi<S extends PageSite> extends HttpApi {
     return site.path.isEmpty ? '/' : site.path;
   }
 
-  Future<HttpResponse> _serve(HttpCtx c, Page page) =>
-      _responder.page(c, site: site, page: page, match: _matchOf(c, page));
+  Future<HttpResponse> _serve(
+    HttpCtx c,
+    Page page, {
+    required bool isGuarded,
+  }) => _responder.page(
+    c,
+    site: site,
+    page: page,
+    match: _matchOf(c, page),
+    isGuarded: isGuarded,
+  );
 
   PageMatch _matchOf(HttpCtx c, Page page) => PageMatch(
     page: SitePage(

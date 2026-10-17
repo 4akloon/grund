@@ -30,6 +30,7 @@ final class PageResponder {
     required PageSite site,
     required Page page,
     required PageMatch match,
+    required bool isGuarded,
   }) async {
     final uri = c.request.uri;
     if (!_services.nonPage.isPageRequest(uri)) _services.nonPage.notFound(uri);
@@ -37,6 +38,7 @@ final class PageResponder {
       uri,
       site.trailingSlash,
       pageSuffixes: _services.config.pageSuffixes,
+      isGuarded: isGuarded,
     );
     if (redirect != null) return redirect;
     if (page.alternates.isEmpty) return _htmlOrNotFound(c, site, page, match);
@@ -58,10 +60,12 @@ final class PageResponder {
     required PageSite site,
     required PageAlternate alternate,
     required PageMatch match,
+    required bool isGuarded,
   }) async {
     final redirect = CanonicalRedirect.forFile(
       c.request.uri,
       site.trailingSlash,
+      isGuarded: isGuarded,
     );
     if (redirect != null) return redirect;
     _requireAddressable(match);

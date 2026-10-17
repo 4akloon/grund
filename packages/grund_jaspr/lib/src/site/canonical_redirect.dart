@@ -6,6 +6,10 @@ import 'trailing_slash.dart';
 
 /// The permanent redirect of a request URL to its canonical spelling under
 /// the [TrailingSlash] policy of a site.
+///
+/// The redirect is cacheable for an hour; when the route has hooks
+/// (`isGuarded`) it is `private`, so a shared cache cannot serve it to a
+/// client the hooks did not check.
 abstract final class CanonicalRedirect {
   /// The 308 for a page request whose path is not canonical under [policy];
   /// `null` when it is, or when [policy] is [TrailingSlash.ignore].
@@ -18,9 +22,11 @@ abstract final class CanonicalRedirect {
     Uri uri,
     TrailingSlash policy, {
     required List<String> pageSuffixes,
+    required bool isGuarded,
   }) => _redirect(
     uri,
     policy,
+    isGuarded: isGuarded,
     slashAfter: (last) =>
         NonPageRequests.isFileSegment(last, pageSuffixes) ||
         (policy == TrailingSlash.always && p.extension(last).isEmpty),
@@ -28,12 +34,16 @@ abstract final class CanonicalRedirect {
 
   /// Like [forPage] for a file (an alternate, a site file, a sitemap): its
   /// canonical form never ends with a slash.
-  static HttpResponse? forFile(Uri uri, TrailingSlash policy) =>
-      _redirect(uri, policy, slashAfter: (_) => false);
+  static HttpResponse? forFile(
+    Uri uri,
+    TrailingSlash policy, {
+    required bool isGuarded,
+  }) => _redirect(uri, policy, isGuarded: isGuarded, slashAfter: (_) => false);
 
   static HttpResponse? _redirect(
     Uri uri,
     TrailingSlash policy, {
+    required bool isGuarded,
     required bool Function(String lastSegment) slashAfter,
   }) {
     if (policy == TrailingSlash.ignore) return null;
@@ -56,7 +66,7 @@ abstract final class CanonicalRedirect {
       StatusCode.permanentRedirect,
       headers: HeaderMap.of({
         'location': location.toString(),
-        'cache-control': 'max-age=3600',
+        'cache-control': isGuarded ? 'private, max-age=3600' : 'max-age=3600',
       }),
     );
   }

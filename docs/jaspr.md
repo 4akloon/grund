@@ -392,7 +392,9 @@ client controls.
 | `ignore` | 200 | 200 |
 
 - The redirect is `308` (the method and body survive) with
-  `cache-control: max-age=3600`, and the query string is kept as sent.
+  `cache-control: max-age=3600` (`private, max-age=3600` when the route has
+  hooks, so a shared cache cannot answer a client the hooks did not check),
+  and the query string is kept as sent.
   Only the last slash changes: `//evil.test/x/` redirects to
   `/evil.test/x`, never to a URL on another host, and a `%2F` stays
   encoded.

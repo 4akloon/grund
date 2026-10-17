@@ -41,12 +41,14 @@ final class SiteApi<S extends PageSite> extends HttpApi {
     if (site.baseUrl != null) ...[
       Route.get(
         '/sitemap.xml',
-        (c) async => _redirect(c) ?? await _services.sitemap.document(site),
+        (c) async =>
+            _redirect(c, isGuarded: false) ??
+            await _services.sitemap.document(site),
       ),
       Route.get(
         '/sitemap/:chunk',
         (c) async =>
-            _redirect(c) ??
+            _redirect(c, isGuarded: false) ??
             await _services.sitemap.chunk(site, c.path.string('chunk')),
       ),
     ],
@@ -61,11 +63,15 @@ final class SiteApi<S extends PageSite> extends HttpApi {
   ];
 
   Future<HttpResponse> _serveFile(HttpCtx c, SiteFile file) async =>
-      _redirect(c) ??
+      _redirect(c, isGuarded: site.use.isNotEmpty) ??
       PageResponder.text(c, await file.build(c), file.mediaType);
 
-  HttpResponse? _redirect(HttpCtx c) =>
-      CanonicalRedirect.forFile(c.request.uri, site.trailingSlash);
+  HttpResponse? _redirect(HttpCtx c, {required bool isGuarded}) =>
+      CanonicalRedirect.forFile(
+        c.request.uri,
+        site.trailingSlash,
+        isGuarded: isGuarded,
+      );
 
   Future<HttpResponse> _notFound(HttpCtx c) async {
     if (!_services.nonPage.isPageRequest(c.request.uri)) {
