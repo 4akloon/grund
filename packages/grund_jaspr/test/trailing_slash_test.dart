@@ -41,7 +41,9 @@ void main() {
     });
 
     test('a HEAD request is redirected too', () async {
-      expect((await client.head('/about/')).status, 308);
+      final response = await client.head('/about/');
+      expect(response.status, 308);
+      expect(response.headers['location'], '/about');
     });
 
     test('keeps %2F inside a segment', () async {
@@ -54,10 +56,29 @@ void main() {
       expect((await client.get('/nope/')).status, 404);
     });
 
-    test('a file request answers 404 without a redirect', () async {
+    test('the fallback answers 404 for a slash after a file name', () async {
       final response = await client.get('/logo.png/');
       expect(response.status, 404);
       expect(response.headers['location'], isNull);
+    });
+
+    test('a file request on a page route is file_not_found', () async {
+      final response = await client.get('/projects/logo.png');
+      expect(response.status, 404);
+      expect(response.headers['location'], isNull);
+      expect(response.text, contains('file_not_found'));
+    });
+
+    test('a file request is answered before the redirect', () async {
+      final response = await client.get('/projects//logo.png');
+      expect(response.status, 404);
+      expect(response.headers['location'], isNull);
+    });
+
+    test('a slash after a file name redirects, then it is a 404', () async {
+      final response = await client.get('/projects/logo.png/');
+      expect(response.status, 308);
+      expect(response.headers['location'], '/projects/logo.png');
     });
   });
 

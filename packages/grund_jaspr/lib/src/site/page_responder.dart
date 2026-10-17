@@ -14,8 +14,8 @@ final class PageResponder {
 
   final SiteServices _services;
 
-  /// The response for [match] of [page]: a redirect to the canonical spelling
-  /// of the URL, a 404 for a file request, the rendered page, or the site's
+  /// The response for [match] of [page]: a 404 for a file request, a redirect to
+  /// the canonical spelling of the URL, the rendered page, or the site's
   /// not-found page when the builder throws [NotFoundException].
   Future<HttpResponse> page(
     HttpCtx c, {
@@ -24,9 +24,9 @@ final class PageResponder {
     required PageMatch match,
   }) async {
     final uri = c.request.uri;
+    if (!_services.nonPage.isPageRequest(uri)) _services.nonPage.notFound(uri);
     final redirect = CanonicalRedirect.forPage(uri, site.trailingSlash);
     if (redirect != null) return redirect;
-    if (!_services.nonPage.isPageRequest(uri)) _services.nonPage.notFound(uri);
     final Component content;
     try {
       content = await page.build(c);
