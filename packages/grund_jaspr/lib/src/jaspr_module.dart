@@ -5,6 +5,7 @@ import 'package:grund/grund.dart';
 import 'jaspr_config.dart';
 import 'jaspr_setup.dart';
 import 'live_reload_script.dart';
+import 'catalog/page_catalog.dart';
 import 'page/non_page_requests.dart';
 import 'page/page_renderer.dart';
 import 'site/page_registry.dart';
@@ -58,6 +59,10 @@ final class JasprModule extends Module {
       (i) => PagesRunner(i<PageRegistry>(), i<SiteValidator>()),
       dependsOn: const [Key<PageRegistry>(), Key<SiteValidator>()],
     ),
+    Singleton<PageCatalog>(
+      (i) => PageCatalog(i<PageRegistry>(), i<JasprConfig>()),
+      dependsOn: const [Key<PageRegistry>(), Key<JasprConfig>()],
+    ),
     Singleton<StaticFiles>(
       (i) => StaticFiles(i<JasprConfig>().staticDirectory),
       dependsOn: const [Key<JasprConfig>()],
@@ -86,6 +91,7 @@ final class JasprModule extends Module {
     Key<JasprConfig>(),
     Key<PageRenderer>(),
     Key<PageRegistry>(),
+    Key<PageCatalog>(),
     Key<NonPageRequests>(),
   ];
 
