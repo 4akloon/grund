@@ -2,6 +2,7 @@ import 'package:grund/grund.dart';
 import 'package:jaspr/server.dart';
 
 import 'grund_scope.dart';
+import 'page/page_match.dart';
 
 /// The grund side of a page's [BuildContext]: the call scope of the request
 /// it is rendered for, with the semantics of `HttpCtx`.
@@ -24,4 +25,7 @@ extension GrundContext on BuildContext {
   /// The [T] (named [name]) of the call scope, or `null`.
   T? maybe<T extends Object>([String? name]) =>
       GrundScope.of(this).maybe<T>(name);
+
+  /// The page this request matched, or `null` when it has none.
+  PageMatch? get pageMatch => GrundScope.matchOf(this);
 }

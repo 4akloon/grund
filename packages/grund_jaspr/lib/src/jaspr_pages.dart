@@ -3,7 +3,7 @@ import 'package:jaspr/server.dart';
 import 'package:path/path.dart' as p;
 
 import 'jaspr_config.dart';
-import 'page_renderer.dart';
+import 'page/page_renderer.dart';
 import 'static_files.dart';
 
 /// The routes of the pages: `GET /` and `GET /*` (Jaspr's `HEAD` comes
@@ -20,10 +20,12 @@ final class JasprPages extends HttpApi {
     super.injector, {
     required Component Function() app,
     JasprConfig config = const JasprConfig(),
-  }) : _renderer = PageRenderer(app, liveReloadUrl: config.liveReloadUrl),
+  }) : _app = app,
+       _renderer = PageRenderer(liveReloadUrl: config.liveReloadUrl),
        _files = StaticFiles(config.staticDirectory),
        _pageSuffixes = config.pageSuffixes;
 
+  final Component Function() _app;
   final PageRenderer _renderer;
   final StaticFiles _files;
   final List<String> _pageSuffixes;
@@ -40,7 +42,7 @@ final class JasprPages extends HttpApi {
         code: 'file_not_found',
       );
     }
-    return _renderer.render(c);
+    return _renderer.render(c, _app());
   }
 
   bool _isPage(List<String> segments) {

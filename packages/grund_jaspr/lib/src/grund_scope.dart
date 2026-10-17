@@ -2,6 +2,7 @@ import 'package:grund_http/grund_http.dart';
 import 'package:jaspr/server.dart';
 
 import 'error/jaspr_error.dart';
+import 'page/page_match.dart';
 
 /// Holds the [HttpCtx] of the request a page is rendered for; `JasprModule`
 /// puts it above the application's root component.
@@ -13,11 +14,16 @@ final class GrundScope extends InheritedComponent {
   const GrundScope({
     required this.httpContext,
     required super.child,
+    this.pageMatch,
     super.key,
   });
 
   /// The context of the request being rendered.
   final HttpCtx httpContext;
+
+  /// The page this request matched; `null` for a response that is no page of
+  /// a site (the not-found page, the old application component).
+  final PageMatch? pageMatch;
 
   /// The request context above [context]; throws [MissingGrundScopeError]
   /// outside a page that `JasprModule` renders.
@@ -27,7 +33,15 @@ final class GrundScope extends InheritedComponent {
           ?.httpContext ??
       (throw const MissingGrundScopeError());
 
+  /// The match above [context]; `null` when the page has none. Throws
+  /// [MissingGrundScopeError] outside a page that `JasprModule` renders.
+  static PageMatch? matchOf(BuildContext context) =>
+      (context.dependOnInheritedComponentOfExactType<GrundScope>() ??
+              (throw const MissingGrundScopeError()))
+          .pageMatch;
+
   @override
   bool updateShouldNotify(GrundScope oldComponent) =>
-      !identical(httpContext, oldComponent.httpContext);
+      !identical(httpContext, oldComponent.httpContext) ||
+      !identical(pageMatch, oldComponent.pageMatch);
 }
