@@ -27,7 +27,10 @@ abstract final class Pages {
     S Function(Injector) create,
   ) => [
     Singleton<S>(create, dependsOn: const []),
-    Singleton<SiteApi<S>>((i) => SiteApi<S>(i, i<S>()), dependsOn: [Key<S>()]),
+    Singleton<SiteApi<S>>(
+      (i) => SiteApi<S>(i, i<S>(), i<PageRenderer>()),
+      dependsOn: [Key<S>(), Key<PageRenderer>()],
+    ),
   ];
 
   /// Declares the pages of the site [S]; [pages] is called again after a hot

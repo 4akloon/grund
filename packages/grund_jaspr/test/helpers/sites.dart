@@ -2,7 +2,6 @@ import 'package:grund/grund.dart';
 import 'package:grund_http/grund_http.dart';
 import 'package:grund_http/testing.dart';
 import 'package:grund_jaspr/grund_jaspr.dart';
-import 'package:jaspr/dom.dart';
 import 'package:jaspr/server.dart' hide Key;
 
 import 'pages_app.dart';
@@ -28,7 +27,8 @@ final class AdminSite extends PageSite {
   List<HookRef<HttpHook>> get use => const [HookRef<AdminGuard>.type()];
 
   @override
-  Component shell(Component content) => div(classes: 'admin', [content]);
+  Component shell(Component content) =>
+      Component.element(tag: 'main', classes: 'admin', children: [content]);
 
   @override
   Component notFound() => const Component.text('admin not found');
@@ -137,7 +137,11 @@ final class HomePagesModule extends Module {
   List<Binding<Object>> get bindings => [
     Pages.under<PublicSite>(
       (_) => [
-        Page('/', build: (_) => const Component.text('Home')),
+        Page(
+          '/',
+          build: (_) =>
+              const Component.fragment([Component.text('Home'), ShowMatch()]),
+        ),
         Page('/about', build: (_) => const Component.text('About')),
       ],
     ),
@@ -157,7 +161,13 @@ final class UsersPagesModule extends Module {
     Singleton<UsersService>((_) => UsersService(), dependsOn: const []),
     Pages.under<AdminSite>(
       (_) => [
-        Page('/', build: (_) => const Component.text('Dashboard')),
+        Page(
+          '/',
+          build: (_) => const Component.fragment([
+            Component.text('Dashboard'),
+            ShowMatch(),
+          ]),
+        ),
         Page('/users', build: (_) => const Component.text('Users')),
         Page(
           '/users/:id',
@@ -219,3 +229,40 @@ Future<TestClient> startPublic(
   PublicPagesModule(pages, extraImports: extraImports),
   ...modules,
 ], use: use);
+
+/// Shows the path of the page match.
+final class ShowMatch extends StatelessComponent {
+  /// Creates the component.
+  const ShowMatch({super.key});
+
+  @override
+  Component build(BuildContext context) =>
+      Component.text('path ${context.pageMatch?.page.path}');
+}
+
+/// Admin pages that count builder calls, behind the guard.
+final class GuardedProbeModule extends Module {
+  /// Creates the module; [onBuild] runs when the page is built.
+  const GuardedProbeModule(this.onBuild);
+
+  /// Called by the builder.
+  final void Function() onBuild;
+
+  @override
+  List<Module> get imports => const [AdminSiteModule()];
+
+  @override
+  List<Binding<Object>> get bindings => [
+    Pages.under<AdminSite>(
+      (_) => [
+        Page(
+          '/guarded',
+          build: (_) {
+            onBuild();
+            return const Component.text('guarded');
+          },
+        ),
+      ],
+    ),
+  ];
+}

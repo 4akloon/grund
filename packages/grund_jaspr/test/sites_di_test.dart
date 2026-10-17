@@ -111,6 +111,12 @@ void main() {
     expect(started, throwsA(isA<MissingProviderError>()));
   });
 
+  test('Pages.site without JasprModule is a MissingProviderError', () {
+    final started = PagesApp.start([const PublicSiteModule()]);
+
+    expect(started, throwsA(isA<MissingProviderError>()));
+  });
+
   test('two Pages.under for one site in a module is a duplicate', () {
     final started = PagesApp.start([const JasprModule(), const TwiceModule()]);
 

@@ -70,10 +70,26 @@ void main() {
       expect(response.text, contains('Dashboard'));
     });
 
-    test('an admin page without the header is 401', () async {
+    test(
+      'an admin page without the header is 401, builder not called',
+      () async {
+        var built = 0;
+        final client = await startSites([GuardedProbeModule(() => built++)]);
+
+        expect((await client.get('/admin/guarded')).status, 401);
+        expect(built, 0);
+      },
+    );
+
+    test('the match carries the normalized full path of root pages', () async {
       final client = await startSites();
 
-      expect((await client.get('/admin/users')).status, 401);
+      final admin = await client.get('/admin', headers: adminHeaders);
+      final root = await client.get('/');
+
+      expect(admin.text, contains('path /admin'));
+      expect(admin.text, isNot(contains('path /admin/')));
+      expect(root.text, contains('path /<'));
     });
 
     test('the admin shell wraps admin pages', () async {
@@ -81,7 +97,7 @@ void main() {
 
       final response = await client.get('/admin/users', headers: adminHeaders);
 
-      expect(response.text, contains('<div class="admin">'));
+      expect(response.text, contains('<main class="admin">'));
     });
   });
 
@@ -104,7 +120,7 @@ void main() {
         final response = await client.get('/admin/nope', headers: adminHeaders);
 
         expect(response.status, 404);
-        expect(response.text, contains('<div class="admin">'));
+        expect(response.text, contains('<main class="admin">'));
         expect(response.text, contains('admin not found'));
       },
     );
@@ -163,7 +179,8 @@ void main() {
         headers: adminHeaders,
       );
 
-      expect(response.text, isNot(contains('Users')));
+      expect(response.status, 404);
+      expect(response.text, contains('public not found'));
     });
 
     test('two sites do not mix: /users is public, not admin', () async {

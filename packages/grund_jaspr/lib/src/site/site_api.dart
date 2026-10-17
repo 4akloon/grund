@@ -7,10 +7,12 @@ import 'page_site.dart';
 /// matches is the site's `notFound()`.
 final class SiteApi<S extends PageSite> extends HttpApi {
   /// Creates the API of [site] in the module of [injector].
-  SiteApi(super.injector, this.site);
+  SiteApi(super.injector, this.site, this._renderer);
 
   /// The site.
   final S site;
+
+  final PageRenderer _renderer;
 
   /// The type of the site this API belongs to.
   Type get siteType => S;
@@ -19,12 +21,9 @@ final class SiteApi<S extends PageSite> extends HttpApi {
   String get path => site.path;
 
   @override
-  List<HookRef<HttpHook>> get use => const [];
-
-  @override
   List<Route> get routes => [Route.get('/*', _notFound, use: site.use)];
 
-  Future<HttpResponse> _notFound(HttpCtx c) => injector<PageRenderer>().render(
+  Future<HttpResponse> _notFound(HttpCtx c) => _renderer.render(
     c,
     site.shell(site.notFound()),
     status: StatusCode.notFound,

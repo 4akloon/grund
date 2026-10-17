@@ -37,9 +37,17 @@ final class PagesApi<S extends PageSite> extends HttpApi {
         page.path,
         (c) => _serve(c, page),
         use: [...site.use, ...page.hooks.use],
-        name: 'GET ${site.path}${page.path}',
+        name: 'GET ${_fullPath(page)}',
       ),
   ];
+
+  // The path the router registers: the root page of a site with a prefix is
+  // the prefix itself, without a trailing slash.
+  String _fullPath(Page page) {
+    final relative = PagePath.parse(page.path).normalized;
+    if (relative != '/') return '${site.path}$relative';
+    return site.path.isEmpty ? '/' : site.path;
+  }
 
   Future<HttpResponse> _serve(HttpCtx c, Page page) async {
     final Component content;
@@ -56,11 +64,7 @@ final class PagesApi<S extends PageSite> extends HttpApi {
       c,
       site.shell(content),
       match: PageMatch(
-        page: SitePage(
-          site: site,
-          page: page,
-          path: '${site.path}${page.path}',
-        ),
+        page: SitePage(site: site, page: page, path: _fullPath(page)),
         params: {
           for (final name in PagePath.parse(page.path).paramNames)
             name: c.path.string(name),
