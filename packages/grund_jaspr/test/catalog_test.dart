@@ -233,23 +233,26 @@ void main() {
       expect(_paths(catalog.pagesOf<PublicSite>()), ['/', '/new']);
     });
 
-    test('declares the pages once per snapshot', () async {
-      var declared = 0;
-      final app = await startCatalogApp([
-        CatalogPagesModule<PublicSite>(PublicSite.new, [
-          navPage('/', nav: const PageNav(label: 'Home')),
-        ], onDeclare: () => declared++),
-      ]);
-      final catalog = app.injector<PageCatalog>();
-      declared = 0;
+    test(
+      'reads the pages the snapshot stored, never declaring again',
+      () async {
+        var declared = 0;
+        final app = await startCatalogApp([
+          CatalogPagesModule<PublicSite>(PublicSite.new, [
+            navPage('/', nav: const PageNav(label: 'Home')),
+          ], onDeclare: () => declared++),
+        ]);
+        final catalog = app.injector<PageCatalog>();
+        declared = 0;
 
-      catalog.pagesOf<PublicSite>();
-      catalog.navOf<PublicSite>();
-      catalog.pagesWith<MarkdownLike>();
-      catalog.match(Uri.parse('http://x/'));
+        catalog.pagesOf<PublicSite>();
+        catalog.navOf<PublicSite>();
+        catalog.pagesWith<MarkdownLike>();
+        catalog.match(Uri.parse('http://x/'));
 
-      expect(declared, 1);
-    });
+        expect(declared, 0);
+      },
+    );
 
     test('is exported by JasprModule', () async {
       final app = await startCatalogApp(sampleSiteModules());

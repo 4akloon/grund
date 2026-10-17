@@ -16,10 +16,10 @@ base class SiteValidator {
     final sites = snapshot.sites;
     _checkTypes(sites);
     _checkPaths(sites);
-    // User code declares the pages: read it once per api.
+    // The snapshot read the user's declarations once.
     final declared = [
-      for (final api in snapshot.pages)
-        (api: api, paths: [for (final p in api.pages) api.fullPathOf(p)]),
+      for (final (:api, :pages) in snapshot.declared)
+        (api: api, paths: [for (final p in pages) api.fullPathOf(p)]),
     ];
     _checkIndexes(sites, declared);
     _checkTerritories(sites, declared);

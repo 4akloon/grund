@@ -10,8 +10,8 @@ typedef DeclaredPage = ({SitePage page, Injector injector});
 abstract final class SnapshotPages {
   /// Every page of every site, sorted by path.
   static List<DeclaredPage> all(PageSnapshot snapshot) => [
-    for (final api in snapshot.pages)
-      for (final page in api.pages)
+    for (final (:api, :pages) in snapshot.declared)
+      for (final page in pages)
         (
           page: SitePage(
             site: api.site,

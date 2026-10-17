@@ -1,6 +1,7 @@
 import 'package:grund_http/grund_http.dart';
 
 import '../error/site_declaration_error.dart';
+import '../page/page_path.dart';
 import 'page_site.dart';
 import 'site_services.dart';
 
@@ -8,12 +9,20 @@ import 'site_services.dart';
 /// matches is the site's `notFound()`.
 final class SiteApi<S extends PageSite> extends HttpApi {
   /// Creates the API of [site] in the module of [injector]; throws
-  /// [InvalidSitePathError] when the site lies on the `staticPath` of the
-  /// configuration and [GuardedSiteSitemapError] when it has hooks and a
-  /// sitemap.
+  /// [InvalidSitePathError] when the site path is not `''` or
+  /// `/segment[/segment]` of literals, lies on the `staticPath` of the
+  /// configuration or is a `rootFiles` entry, and [GuardedSiteSitemapError]
+  /// when it has hooks and a sitemap.
   SiteApi(super.injector, this.site, this._services) {
     final config = _services.config;
     final path = site.path;
+    PagePath.checkSitePath(path);
+    if (config.rootFiles.any((file) => path == '/$file')) {
+      throw InvalidSitePathError(
+        path: path,
+        reason: 'it is the root file "${path.substring(1)}"',
+      );
+    }
     if (path == config.staticPath || path.startsWith('${config.staticPath}/')) {
       throw InvalidSitePathError(
         path: path,

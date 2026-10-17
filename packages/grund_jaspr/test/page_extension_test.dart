@@ -12,9 +12,11 @@ import 'helpers/sites.dart';
 /// Answers `Accept: text/markdown` in [respond] and `*.md` files in
 /// [claim], and counts the calls.
 final class Recording extends PageExtension {
-  Recording({this.failClaim = false});
+  Recording({this.failClaim = false, this.answers = true});
 
   final bool failClaim;
+  // Whether a `.md` file is answered; otherwise claim only counts.
+  final bool answers;
   var responds = 0;
   var claims = 0;
 
@@ -29,9 +31,23 @@ final class Recording extends PageExtension {
   Future<HttpResponse?> claim(HttpCtx c, Uri uri) async {
     claims++;
     if (failClaim) throw StateError('claim failed');
-    if (!uri.path.endsWith('.md')) return null;
+    if (!answers || !uri.path.endsWith('.md')) return null;
     return HttpResponse.text('md ${uri.path}');
   }
+}
+
+/// Throws [error] from `respond` and `claim`.
+final class Throwing extends PageExtension {
+  Throwing(this.error);
+
+  final Object error;
+
+  @override
+  Future<HttpResponse?> respond(HttpCtx c, PageMatch match) async =>
+      throw error;
+
+  @override
+  Future<HttpResponse?> claim(HttpCtx c, Uri uri) async => throw error;
 }
 
 const _markdown = {'accept': 'text/markdown'};
@@ -84,6 +100,14 @@ void main() {
       ]);
       await TestClient.of(app).get('/a', headers: _markdown);
       expect(other.responds, 0);
+    });
+
+    test('a throwing respond is a 500', () async {
+      final app = await _publicApp([
+        markedPage('/', extensions: [Throwing(StateError('boom'))]),
+      ]);
+      final response = await TestClient.of(app).get('/', headers: _markdown);
+      expect(response.status, 500);
     });
 
     test('never runs for a guest on a guarded site', () async {
@@ -173,6 +197,76 @@ void main() {
       expect(adminExtension.claims, 0);
     });
 
+    test(
+      'runs after the site hooks: a guest gets 401, nothing claimed',
+      () async {
+        final extension = Recording();
+        final app = await startCatalogApp([
+          CatalogPagesModule<AdminSite>(AdminSite.new, [
+            markedPage('/', extensions: [extension]),
+          ]),
+        ]);
+        final client = TestClient.of(app);
+        final guest = await client.get('/admin/x.md');
+        expect(guest.status, 401);
+        expect(extension.claims, 0);
+        final admin = await client.get('/admin/x.md', headers: adminHeaders);
+        expect(admin.text, 'md /admin/x.md');
+      },
+    );
+
+    test('is not asked for a page with its own hooks.use', () async {
+      final guarded = Recording();
+      final open = Recording(answers: false);
+      final app = await _publicApp([
+        markedPage(
+          '/billing',
+          hooks: const PageHooks(use: [HookRef<AdminGuard>.type()]),
+          extensions: [guarded],
+        ),
+        markedPage('/docs', extensions: [open]),
+      ]);
+      final client = TestClient.of(app);
+      final response = await client.get('/billing.md');
+      expect(response.status, 404);
+      expect((response.json! as Map)['code'], 'file_not_found');
+      expect(guarded.claims, 0);
+      await client.get('/billing.md');
+      expect(open.claims, 2);
+    });
+
+    test('a page with only skip stays in the claim set', () async {
+      final extension = Recording();
+      final app = await startCatalogApp([
+        CatalogPagesModule<_SkipSite>(_SkipSite.new, [
+          markedPage('/', extensions: [extension]),
+          markedPage('/a', hooks: const PageHooks(skip: [AdminGuard])),
+        ]),
+      ]);
+      final response = await TestClient.of(
+        app,
+      ).get('/admin/x.md', headers: adminHeaders);
+      expect(response.status, 200);
+      expect(extension.claims, 1);
+    });
+
+    test('works for HEAD', () async {
+      final app = await _publicApp([
+        markedPage('/', extensions: [Recording()]),
+      ]);
+      final response = await TestClient.of(app).request('HEAD', '/x.md');
+      expect(response.status, 200);
+    });
+
+    test('a NotFoundException of an extension is the JSON 404', () async {
+      final app = await _publicApp([
+        markedPage('/', extensions: [Throwing(const NotFoundException())]),
+      ]);
+      final response = await TestClient.of(app).get('/x.md');
+      expect(response.status, 404);
+      expect(response.json, isA<Map<String, Object?>>());
+    });
+
     test('a failing claim is a 500', () async {
       final app = await _publicApp([
         markedPage('/', extensions: [Recording(failClaim: true)]),
@@ -199,4 +293,11 @@ void main() {
       expect(fresh.claims, 1);
     });
   });
+}
+
+final class _SkipSite extends AdminSite {
+  _SkipSite(super.injector);
+
+  @override
+  List<Type> get skippableHooks => const [AdminGuard];
 }

@@ -1,6 +1,7 @@
 import 'package:grund/grund.dart';
 import 'package:grund_jaspr/grund_jaspr.dart';
 import 'package:grund_jaspr/src/site/page_registry.dart';
+import 'package:grund_jaspr/src/site/page_snapshot.dart';
 import 'package:grund_jaspr/src/site/site_validator.dart';
 import 'package:jaspr/server.dart' hide Key;
 import 'package:test/test.dart';
@@ -178,14 +179,17 @@ void main() {
       expect(app<PageRegistry>().current!.pages, hasLength(1));
     });
 
-    test('check reads the pages of each declaration once', () async {
+    test('a snapshot and its check read each declaration once', () async {
       var reads = 0;
       final app = await StartedPagesApp.start([
         const JasprModule(),
         _CountingModule(() => reads++),
       ]);
       reads = 0;
-      const SiteValidator().check(app<PageRegistry>().current!);
+      final current = app<PageRegistry>().current!;
+      const SiteValidator().check(
+        PageSnapshot(sites: current.sites, pages: current.pages),
+      );
       expect(reads, 1);
     });
 

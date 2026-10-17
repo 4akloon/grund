@@ -98,3 +98,15 @@ final class Admin2Site extends PageSite {
   @override
   String get path => '/admin2';
 }
+
+/// A guarded site whose path is given by the test, valid or not.
+final class PathSite extends AdminSite {
+  /// Creates the site at [sitePath].
+  PathSite(super.injector, this.sitePath);
+
+  /// The path the site declares.
+  final String sitePath;
+
+  @override
+  String get path => sitePath;
+}

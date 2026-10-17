@@ -32,6 +32,10 @@ final class JasprConfig {
 
   /// The URL prefix under which the static files are served; starts with
   /// `/` and does not end with one.
+  ///
+  /// The static files carry no hooks: a path inside the territory of a
+  /// guarded site (such as `/admin/assets` for a site at `/admin`) serves
+  /// them to everyone, so keep it outside the guarded sites.
   final String staticPath;
 
   /// Names of files of [staticDirectory] that are also served at the root
