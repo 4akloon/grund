@@ -154,7 +154,7 @@
    викликає `HttpConfig.fromEnvironment` (§4.6).
 7. **№9 — документація.** Дані, що завантажуються й перевіряються на
    старті, — це `Singleton` або `@Provides`, а не статичне поле. Помилка
-   тоді стає `ProviderCreationError` до прослуховування, а тест підміняє дані
+   тоді виникає до прослуховування (як `GrundError`, без обгортки), а тест підміняє дані
    override-ом.
 
 **Відхилені альтернативи.**
@@ -318,9 +318,10 @@ const HttpModule.fromEnvironment({
 - `///` класу `HttpConfig` замість рецепта з override посилається на
   `fromEnvironment`.
 
-Зіпсований `PORT` на старті: фабрика `HttpConfig` кидає, `InjectionRuntime`
-обгортає це в `ProviderCreationError` з причиною `InvalidVariableError`.
-`App.start` відкочується, порт не відкривається.
+Зіпсований `PORT` на старті: фабрика `HttpConfig` кидає `InvalidVariableError`.
+`InjectionRuntime` пропускає `GrundError` без обгортки (наявна поведінка
+`_wrap`), тож `App.start` кидає саме `InvalidVariableError`, відкочується,
+порт не відкривається.
 
 ### 4.5 Шаблони `grund init`
 
@@ -343,9 +344,9 @@ const HttpModule.fromEnvironment({
 - **Тест шаблону** (`_helloTest`) не змінюється. Він не стартує раннер, а
   `PORT`/`HOST` машини розробника читаються, але не відкривають порт.
   Зіпсований `PORT` у середовищі розробника дасть зрозумілу
-  `ProviderCreationError`; рецепт override — у документації.
+  `InvalidVariableError`; рецепт override — у документації.
 - **`main` шаблонів помилку конфігурації не ловить** (моє рішення, §10.11):
-  `App.run` перекидає `ProviderCreationError`, і користувач бачить виняток з
+  `App.run` перекидає `InvalidVariableError`, і користувач бачить виняток з
   повідомленням про змінну (без значення) та код виходу 255, а не один рядок
   з кодом 64, як у прикладі. Приклад ловить помилку, бо це його власна
   `main`-логіка парсингу аргументів; шаблон лишається мінімальним, а
@@ -422,7 +423,6 @@ const HttpModule.fromEnvironment({
 | `MissingVariableError(name)` | `EnvironmentError` | незадана змінна без `fallback` |
 | `InvalidVariableError(name, expected)` | `EnvironmentError` | задана змінна не тієї форми; `HOST` порожній або з пробілами |
 | `MissingProviderError` (наявна) | `GraphError` | `HttpModule.fromEnvironment` без `EnvironmentModule` |
-| `ProviderCreationError` (наявна) | `ResolutionError` | обгортає `EnvironmentError` фабрики на старті |
 
 ## 6. Тестування
 
@@ -440,8 +440,8 @@ const HttpModule.fromEnvironment({
     - `TestApp` з `EnvironmentModule` віддає `Environment` у модуль, що його
       не імпортує (глобальний);
     - override підміняє;
-    - фабрика, що кидає `InvalidVariableError`, дає `ProviderCreationError` із
-      цією причиною, і застосунок не стартує.
+    - фабрика, що кидає `InvalidVariableError`, доходить до виклику старту як
+      є (`GrundError` не обгортається), і застосунок не стартує.
 - **`grund_http`** (`test/server/http_config_environment_test.dart`):
   - без змінних — `defaults`;
   - `HOST`/`PORT` задані;
@@ -452,7 +452,7 @@ const HttpModule.fromEnvironment({
     `Environment({'PORT': '0', 'HOST': '127.0.0.1'})` → `i<HttpConfig>()` має
     ці значення;
   - без `EnvironmentModule` — `MissingProviderError`;
-  - зіпсований `PORT` — `ProviderCreationError`.
+  - зіпсований `PORT` — `InvalidVariableError` (не обгорнута).
 - **`grund_cli`:**
   - `init_command_test.dart`: нові рядки версій, `EnvironmentModule()` і
     `HttpModule.fromEnvironment()` у модулі шаблону;
@@ -522,11 +522,18 @@ const HttpModule.fromEnvironment({
 9. Версії шаблонів піднімаються на всю хвилю випуску (§4.5), бо інакше шаблон
    не розвʼяжеться.
 10. Звичайний конструктор `Environment`, а не первинний (§4.1).
-11. Шаблонна `main` не ловить `ProviderCreationError` конфігурації (§4.5);
+11. Шаблонна `main` не ловить помилку конфігурації (§4.5);
     `@Provides(Environment)` у пакеті без чужого імпорту вимагає імпорту
     `EnvironmentModule()` у самому модулі, генератор не змінюється (§4.7).
     Ціна помилки: гірший вивід при зіпсованому `PORT` у шаблоні; зміна
     генератора знадобиться, якщо обмеження виявиться нестерпним.
+12. Виправлення під час виконання (Задача 1): перша редакція казала, що
+    `ProviderCreationError` обгортає помилку фабрики, але `_wrap` у
+    `InjectionRuntime` пропускає `GrundError` як є (`ScopedOutsideCallError`,
+    `CircularDependencyError` теж). Код — істина: зіпсований `PORT` доходить
+    до `App.start` як `InvalidVariableError`. Ціна: у повідомленні немає ключа
+    й ланцюга залежностей, але є імʼя змінної й очікувана форма. Змінювати
+    `_wrap` або робити `EnvironmentError` не-`GrundError` не став.
 
 ## 11. Для автора
 

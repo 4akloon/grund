@@ -79,8 +79,8 @@
 Те, що spec майже не перевіряє, а помилка вдарить користувача першою (кожен пункт має тест у задачі-власниці):
 
 1. **Строгий розбір цілого** (Задача 1): `' 80'`, `'+80'`, `'0x50'`, `'1e3'`, `''` і 20-значне число дають `InvalidVariableError`, а не відкат до `fallback`. `'007'` дає 7.
-2. **Секрети** (Задача 1): `message` і `toString()` обох помилок не містять значення. Тест із `SECRET=hunter2` шукає `hunter2` у `message`, `toString()` і в `ProviderCreationError.message` обгортки.
-3. **Порядок збою** (Задача 2): зіпсований `PORT` з `HttpModule.fromEnvironment` дає `ProviderCreationError` (причина `InvalidVariableError`) з `App.start`. Адаптер не викликав `bind`: лічильник у фейковому адаптері `test/helpers/fake_adapter.dart` дорівнює 0.
+2. **Секрети** (Задача 1): `message` і `toString()` обох помилок не містять значення. Тест із `SECRET=hunter2` шукає `hunter2` у `message`, `toString()` і в `ProviderCreationError.message` вручну зібраної обгортки (контейнер `GrundError` не обгортає, Задача 1).
+3. **Порядок збою** (Задача 2): зіпсований `PORT` з `HttpModule.fromEnvironment` кидає `InvalidVariableError` (не обгорнуту: контейнер пропускає `GrundError`) з `App.start`. Адаптер не викликав `bind`: лічильник у фейковому адаптері `test/helpers/fake_adapter.dart` дорівнює 0.
 4. **Явне ввімкнення** (Задача 2): `HttpModule()` без `fromEnvironment` ігнорує `PORT` у підміненому `Environment`. `HttpModule.fromEnvironment()` без `EnvironmentModule` дає `MissingProviderError` для `Environment` до будь-якої фабрики.
 5. **Шаблони розвʼязуються й стартують** (Задача 3): згенерований `default` компілюється з `HttpModule.fromEnvironment()` в анотації, а `dart test integration` для `fullstack` зелений.
 
