@@ -12,6 +12,8 @@ export 'src/app/runners.dart' show Runners;
 export 'src/app/stop_signals.dart' show StopSignals;
 export 'src/call/call_context.dart' show CallContext;
 export 'src/call/cancel_signal.dart' show CancelSignal;
+export 'src/config/environment.dart' show Environment;
+export 'src/config/environment_module.dart' show EnvironmentModule;
 export 'src/di/binding.dart'
     show Binding, BindingFactory, BindingScope, Scoped, Singleton, Transient;
 export 'src/di/call_scope.dart' show CallScope;
@@ -21,6 +23,7 @@ export 'src/di/injector.dart' show Injector;
 export 'src/di/key.dart' show Key;
 export 'src/di/module.dart' show Module;
 export 'src/errors/app_errors.dart';
+export 'src/errors/environment_errors.dart';
 export 'src/errors/graph_errors.dart';
 export 'src/errors/grund_error.dart' show GrundError;
 export 'src/errors/resolution_errors.dart';
