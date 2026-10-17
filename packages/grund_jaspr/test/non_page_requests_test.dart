@@ -76,6 +76,26 @@ void main() {
       expect(builds, 2);
     });
 
+    test('a dotted last segment is a file request, not a page slug', () async {
+      var builds = 0;
+      final client = await startPublic([
+        homePage(const Component.text('Home')),
+        Page(
+          '/projects/:slug',
+          build: (_) {
+            builds++;
+            return const Component.text('project');
+          },
+        ),
+      ]);
+
+      final response = await client.get('/projects/v1.2');
+
+      expect(response.status, 404);
+      expect(response.json, containsPair('code', 'file_not_found'));
+      expect(builds, 0);
+    });
+
     test('the fallback of a site answers a file path with JSON', () async {
       final client = await PagesApp.start([
         const JasprModule(),

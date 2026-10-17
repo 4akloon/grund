@@ -13,6 +13,10 @@ final class NonPageRequests {
 
   /// Whether [uri] can be a page: its last segment has no extension, or one
   /// of the `pageSuffixes` (compared in lower case, without the dot).
+  ///
+  /// A last segment with a dot, such as `v1.2` or `john.doe`, is a file
+  /// request and answers 404 `file_not_found` unless its extension is a page
+  /// suffix; the `staticPath` and the `rootFiles` are the only static URLs.
   bool isPageRequest(Uri uri) {
     final segments = uri.pathSegments;
     if (segments.isEmpty) return true;

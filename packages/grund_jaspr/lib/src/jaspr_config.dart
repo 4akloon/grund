@@ -45,18 +45,26 @@ final class JasprConfig {
   final Duration sitemapCacheLifetime;
 
   /// Throws [JasprSetupError] for a [pageSuffixes] entry that starts with
-  /// `.`, a malformed [staticPath], a [rootFiles] entry that is not a plain file name (empty, `.`, `..`, or with a `/`) or a
-  /// [sitemapChunkSize] below 1; `JasprModule` calls it when the
-  /// application starts.
+  /// `.`, a malformed [staticPath] (also one with `*` or `:`), a
+  /// [rootFiles] entry that is not a plain file name (empty, `.`, `..`, or
+  /// with `/`, `*` or `:`) or a [sitemapChunkSize] below 1; `JasprModule`
+  /// calls it when the application starts.
   void validate() {
-    if (!staticPath.startsWith('/') || staticPath.endsWith('/')) {
+    if (!staticPath.startsWith('/') ||
+        staticPath.endsWith('/') ||
+        _isRoutePattern(staticPath)) {
       throw JasprSetupError(
-        'staticPath must start with "/" and not end with it; got '
+        'staticPath must start with "/", not end with it and have no "*" or '
+        '":"; got '
         '"$staticPath".',
       );
     }
     for (final file in rootFiles) {
-      if (file.isEmpty || file == '.' || file == '..' || file.contains('/')) {
+      if (file.isEmpty ||
+          file == '.' ||
+          file == '..' ||
+          file.contains('/') ||
+          _isRoutePattern(file)) {
         throw JasprSetupError(
           'rootFiles entries are plain file names; "$file" is not one.',
         );
@@ -76,6 +84,9 @@ final class JasprConfig {
       }
     }
   }
+
+  static bool _isRoutePattern(String path) =>
+      path.contains('*') || path.contains(':');
 
   /// A copy with [url] as the [liveReloadUrl].
   JasprConfig withLiveReloadUrl(Uri? url) => JasprConfig(

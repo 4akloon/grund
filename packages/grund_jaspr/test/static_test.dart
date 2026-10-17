@@ -6,6 +6,7 @@ import 'package:jaspr/server.dart' hide Key;
 import 'package:test/test.dart';
 
 import 'helpers/pages_app.dart';
+import 'helpers/real_server.dart';
 import 'helpers/sites.dart';
 import 'helpers/static_site.dart';
 import 'helpers/temp_dir.dart';
@@ -39,15 +40,17 @@ void main() {
     expect(response.text, 'icon');
   });
 
-  test('a file that is not a rootFiles entry is not served at the root', () {
-    final dir = staticDirectory();
-    return startWithStatic(dir).then((client) async {
+  test(
+    'a file that is not a rootFiles entry is not served at the root',
+    () async {
+      final client = await startWithStatic(staticDirectory());
+
       final response = await client.get('/styles.css');
 
       expect(response.status, 404);
       expect(response.json, containsPair('code', 'file_not_found'));
-    });
-  });
+    },
+  );
 
   test('a missing file is a 404 problem with file_not_found', () async {
     final client = await startWithStatic(staticDirectory());
@@ -118,7 +121,63 @@ void main() {
 
       expect(response.status, 404);
       expect(response.text, isNot(contains('TOPSECRET')));
+      if (response.headers['content-type'] == 'application/problem+json') {
+        expect(response.json, containsPair('code', 'file_not_found'));
+      }
     });
+  }
+
+  // Raw request lines over a loopback socket to the real server. The encoded
+  // slashes and backslashes reach StaticApi as written. Literal `..` and
+  // `%2e%2e` segments do not: dart:io normalizes them in `HttpRequest.uri`
+  // (the cases below prove the 404, not the route); `StaticFiles.find`
+  // refusing a `..` segment is covered in static_files_test.dart.
+  for (final target in [
+    '/static/a%2F..%2F..%2Fsecret.txt',
+    '/static/a%5C..%5Csecret.txt',
+    '/static/..%2Fsecret.txt',
+  ]) {
+    test('$target reaches StaticApi and is a file_not_found', () async {
+      final dir = TempDir.create()
+        ..write('web/styles.css', 'body{}')
+        ..write('secret.txt', 'TOPSECRET');
+      final server = await RealServer.start([
+        JasprModule(config: JasprConfig(staticDirectory: dir.resolve('web'))),
+        PublicPagesModule([homePage(const Component.text('Home'))]),
+      ]);
+
+      final response = await server.get(target);
+
+      expect(response.status, 404);
+      expect(response.body, contains('"code":"file_not_found"'));
+      // The path arrived under /static/, not normalized into /secret.txt.
+      expect(response.body, contains('There is no file /static/'));
+      expect(response.body, isNot(contains('TOPSECRET')));
+    });
+  }
+
+  for (final target in [
+    '/static/../secret.txt',
+    '/static/sub/../../secret.txt',
+    '/static/%2e%2e/secret.txt',
+  ]) {
+    test(
+      '$target is a 404 with no outside content on the real server',
+      () async {
+        final dir = TempDir.create()
+          ..write('web/styles.css', 'body{}')
+          ..write('secret.txt', 'TOPSECRET');
+        final server = await RealServer.start([
+          JasprModule(config: JasprConfig(staticDirectory: dir.resolve('web'))),
+          PublicPagesModule([homePage(const Component.text('Home'))]),
+        ]);
+
+        final response = await server.get(target);
+
+        expect(response.status, 404);
+        expect(response.body, isNot(contains('TOPSECRET')));
+      },
+    );
   }
 
   test('a symlink out of the static directory is not served', () async {

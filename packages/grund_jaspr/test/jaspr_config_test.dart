@@ -28,6 +28,10 @@ void main() {
       ('an empty rootFiles entry', const JasprConfig(rootFiles: [''])),
       ('a "." rootFiles entry', const JasprConfig(rootFiles: ['.'])),
       ('a ".." rootFiles entry', const JasprConfig(rootFiles: ['..'])),
+      ('a rootFiles entry with a star', const JasprConfig(rootFiles: ['*'])),
+      ('a rootFiles entry with a colon', const JasprConfig(rootFiles: [':a'])),
+      ('a staticPath with a star', const JasprConfig(staticPath: '/st*')),
+      ('a staticPath with a colon', const JasprConfig(staticPath: '/:x')),
       ('a sitemapChunkSize below 1', const JasprConfig(sitemapChunkSize: 0)),
     ]) {
       test('validate refuses $name', () {
