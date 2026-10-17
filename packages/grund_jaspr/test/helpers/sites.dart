@@ -16,7 +16,7 @@ final class PublicSite extends PageSite {
 }
 
 /// The guarded site under `/admin`.
-final class AdminSite extends PageSite {
+base class AdminSite extends PageSite {
   /// Creates the site.
   AdminSite(super.injector);
 

@@ -8,6 +8,8 @@ import 'live_reload_script.dart';
 import 'page/non_page_requests.dart';
 import 'page/page_renderer.dart';
 import 'site/page_registry.dart';
+import 'site/pages_runner.dart';
+import 'site/site_validator.dart';
 import 'site/static_api.dart';
 import 'site/static_files.dart';
 
@@ -51,6 +53,11 @@ final class JasprModule extends Module {
       dependsOn: const [Key<JasprConfig>()],
     ),
     Singleton<PageRegistry>((_) => PageRegistry(), dependsOn: const []),
+    Singleton<SiteValidator>((_) => const SiteValidator(), dependsOn: const []),
+    Singleton<PagesRunner>(
+      (i) => PagesRunner(i<PageRegistry>(), i<SiteValidator>()),
+      dependsOn: const [Key<PageRegistry>(), Key<SiteValidator>()],
+    ),
     Singleton<StaticFiles>(
       (i) => StaticFiles(i<JasprConfig>().staticDirectory),
       dependsOn: const [Key<JasprConfig>()],

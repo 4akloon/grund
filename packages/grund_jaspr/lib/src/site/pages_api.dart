@@ -54,15 +54,15 @@ final class PagesApi<S extends PageSite> extends HttpApi {
       use: const HookResolver().forPage(
         site: site,
         page: page,
-        fullPath: _fullPath(page),
+        fullPath: fullPathOf(page),
       ),
-      name: 'GET ${_fullPath(page)}',
+      name: 'GET ${fullPathOf(page)}',
     );
   }
 
   // Throws when a page would take over a static file URL.
   void _checkNotReserved(Page page) {
-    final path = _fullPath(page);
+    final path = fullPathOf(page);
     final staticPath = _config.staticPath;
     if (path == staticPath || path.startsWith('$staticPath/')) {
       throw ReservedPagePathError(
@@ -80,9 +80,9 @@ final class PagesApi<S extends PageSite> extends HttpApi {
     }
   }
 
-  // The path the router registers: the root page of a site with a prefix is
-  // the prefix itself, without a trailing slash.
-  String _fullPath(Page page) {
+  /// The path the router registers for [page]: the root page of a site with
+  /// a prefix is the prefix itself, without a trailing slash.
+  String fullPathOf(Page page) {
     final relative = PagePath.parse(page.path).normalized;
     if (relative != '/') return '${site.path}$relative';
     return site.path.isEmpty ? '/' : site.path;
@@ -105,7 +105,7 @@ final class PagesApi<S extends PageSite> extends HttpApi {
       c,
       site.shell(content),
       match: PageMatch(
-        page: SitePage(site: site, page: page, path: _fullPath(page)),
+        page: SitePage(site: site, page: page, path: fullPathOf(page)),
         params: {
           for (final name in PagePath.parse(page.path).paramNames)
             name: c.path.string(name),

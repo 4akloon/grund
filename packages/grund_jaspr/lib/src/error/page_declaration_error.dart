@@ -97,3 +97,30 @@ final class ReservedPagePathError extends PageDeclarationError {
   @override
   String get message => 'The page path "$path" is reserved: $reason';
 }
+
+/// A page is declared at the path of another site or under it, where that
+/// site's hooks would not apply.
+final class MisplacedPagePathError extends PageDeclarationError {
+  /// Creates the error for the page at [path] of [siteType], which lies in
+  /// the territory of the site [owner].
+  const MisplacedPagePathError({
+    required this.path,
+    required this.siteType,
+    required this.owner,
+  });
+
+  /// The full path of the page.
+  final String path;
+
+  /// The site the page is declared under.
+  final Type siteType;
+
+  /// The site whose path the page lies on or under.
+  final Type owner;
+
+  @override
+  String get message =>
+      'The page "$path" of $siteType lies on the path of the site $owner, '
+      'so it would bypass the hooks of $owner. Declare it with '
+      'Pages.under<$owner> or move it to another path.';
+}
