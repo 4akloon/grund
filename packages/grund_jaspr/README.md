@@ -19,8 +19,28 @@ final class HomePage extends StatelessComponent {
   Component build(BuildContext context) {
     // VisitCounter is a singleton that CounterModule exports.
     final count = context.call<VisitCounter>().visit();
-    return Document(body: p([Component.text('Visit number $count.')]));
+    return p([Component.text('Visit number $count.')]);
   }
+}
+
+final class PublicSite extends PageSite {
+  PublicSite(super.injector);
+
+  @override
+  Component shell(Component content) =>
+      Document(title: 'Counter', body: content);
+}
+
+final class SiteModule extends Module {
+  const SiteModule();
+
+  @override
+  List<Binding<Object>> get bindings => [
+    ...Pages.site<PublicSite>(PublicSite.new),
+    Pages.under<PublicSite>(
+      (_) => [Page('/', build: (_) => const HomePage())],
+    ),
+  ];
 }
 
 final class AppModule extends Module {
@@ -30,7 +50,9 @@ final class AppModule extends Module {
   List<Module> get imports => const [
     HttpModule(),
     IoAdapterModule(),
-    JasprModule(app: HomePage.new, imports: [CounterModule()]),
+    JasprModule(),
+    CounterModule(),
+    SiteModule(),
   ];
 }
 
@@ -38,55 +60,86 @@ Future<void> main() => App(root: const AppModule()).run();
 ```
 
 `package:jaspr/server.dart` and `package:grund/grund.dart` both declare
-`Key`: in a file that imports both, hide Jaspr's (`hide Key`). The example
-tab has the whole program.
+`Key`: in a file that imports both, hide Jaspr's (`hide Key`).
 
-## Pages
+## Pages and sites
 
-- `JasprModule(app:)` serves `GET /` and `GET /*` (and `HEAD` with them)
-  below every API route: a literal or `:param` segment of an API wins over
-  `*`, so `/tasks/1` stays the API's and `/about` is a page.
-- `app` is called for **every request** and builds the root component;
-  route between pages in it (with `context.url`, or `jaspr_router`). Under
-  `grund dev` an edited component shows in the next response.
-- `JasprModule` does not import `HttpModule`: the application imports it
-  once, with its own hooks, middleware and configuration, and pages go
-  through them like any route (a global hook runs before a page is built).
+- A `Page` is a path (`/`, `/about`, `/projects/:slug`; literals and
+  `:param`, never `*`), a `build` function and optional `PageMeta` (title,
+  description, navigation entry, sitemap settings), `PageHooks` and
+  `PageExtension`s. A builder throws `NotFoundException` for a parameter
+  value it does not know, and the answer is the site's 404 page.
+- A `PageSite` groups pages under a path prefix (`''` by default) with
+  shared `use` hooks, a `shell` that wraps every page and a `notFound`
+  page. Every site needs a `/` page; sites are independent, nested site
+  paths and duplicate paths are errors at startup.
+- Pages are bindings, declared in any module: `...Pages.site<S>(S.new)`
+  (it returns two bindings) and `Pages.under<S>((injector) => [...])`. A
+  module that declares pages under a site of another module imports the
+  module that exports `Key<S>()`. The list function runs again on every hot
+  reload.
+- Hooks run in this order: the global ones of `HttpModule`, the site's
+  `use`, the page's `hooks.use`. `PageHooks(skip: [...])` leaves a site
+  hook out for one page, only for the types the site lists in
+  `skippableHooks`. The 404 pages of a site go through all its hooks.
+- `JasprModule({config})` does not import `HttpModule`: the application
+  imports it once, with its own hooks, middleware and configuration, and
+  pages go through them like any route. API routes and pages share one
+  router, so a literal segment beats a `:param` one.
 - A component reads the request's call scope through `BuildContext`:
   `context.call<T>()` (throws when there is none), `context.maybe<T>()`,
-  `context.injector`; the semantics are those of `HttpCtx`. The bindings
-  visible there are the exports of `JasprModule(imports:)` and of global
-  modules, plus what hooks `set` for the request (`grund_auth`'s
-  `CurrentUser`). `GrundScope.of(context)` is the `HttpCtx` itself: read
-  cookies with `GrundScope.of(context).cookies`, not with Jaspr's
-  `context.cookies`, which throws on a malformed `cookie` header.
+  `context.injector`; the semantics are those of `HttpCtx`.
+  `GrundScope.of(context)` is the `HttpCtx` itself: read cookies with
+  `GrundScope.of(context).cookies`, not with Jaspr's `context.cookies`,
+  which throws on a malformed `cookie` header. `context.pageMatch` is the
+  matched page and its parameters (`null` in a 404 page).
 - The response keeps everything Jaspr set: the status, every `set-cookie`
   (`context.setCookie`), other headers. An HTML page without a charset gets
   `text/html; charset=utf-8`; a page without `cache-control` gets
-  `private, no-cache` (a page may depend on the session). `content-length`
-  is left to the adapter.
-- A component that throws (Jaspr prints the error and answers 500) is a
-  `PageRenderError`, answered like any failure as a 500
+  `private, no-cache` (a page may depend on the session).
+- A component that throws is a `PageRenderError`, answered as a 500
   `application/problem+json`. HTML error pages are not part of this
   release.
+- `PageCatalog` (a global binding) lists the pages: `pagesOf<S>()`,
+  `navOf<S>()` (`NavItem`s sorted by `order`, `label`, `path`), `sitemapOf<S>()`,
+  `match(Uri)` and `pagesWith<T extends PageExtension>()`.
 
 ## Static files
 
-`JasprConfig(staticDirectory: 'web')` (the default) serves the files of
-`web/` before pages: `GET /styles.css` is `web/styles.css` with its type
-and `cache-control: no-cache`.
+Static files live outside the sites. `JasprConfig(staticDirectory: 'web')`
+(the default) is served under `JasprConfig(staticPath: '/static')`:
+`GET /static/styles.css` is `web/styles.css`, with its type and
+`cache-control: no-cache`. Files that must sit at the root are listed in
+`JasprConfig(rootFiles: ['robots.txt', 'favicon.ico'])` and come from the
+same directory.
 
 - The directory is resolved against the working directory: run the
   application from its package root. A directory that does not exist
   serves nothing; it is not an error.
 - A path maps to a file only when every segment is a plain name: not empty,
   not starting with `.` (no `..`, no `.env`), without `/`, `\`, `:` or
-  control characters (a percent-encoded `%2F` arrives decoded in a
-  segment), and the file, with symbolic links resolved, lies inside the
-  directory. Anything else is not a file, and the path is a page or a 404.
-- A path whose extension is not a page suffix
-  (`JasprConfig(pageSuffixes:)`, by default `html`, `htm` and `xml`) and
-  that is not a file is a 404 `file_not_found`, not a page.
+  control characters, and the file, with symbolic links resolved, lies
+  inside the directory.
+- A request whose last path segment has an extension that is not a page
+  suffix (`JasprConfig(pageSuffixes:)`, by default `html`, `htm` and
+  `xml`) is a file request: a missing file is a 404 `file_not_found` and
+  the page builder is never called. A slug such as `/projects/v1.2` or
+  `/projects/node.js` is therefore not a page request, unless its
+  extension is in `pageSuffixes`.
+
+## Sitemap
+
+A site with `sitemapBaseUrl` serves `<site>/sitemap.xml`, split into
+`<site>/sitemap/<n>.xml` files of `JasprConfig.sitemapChunkSize` (50000)
+addresses when it is larger. The sitemap is served without the site's
+hooks, so a site with `use` and `sitemapBaseUrl` does not start
+(`GuardedSiteSitemapError`). A page with parameters needs
+`PageSitemap(entries: ...)` (`SitemapEntries.all` for small sets,
+`.paged(count:, load:)` for big ones) or `PageSitemap(included: false)`; a
+page with its own `hooks.use` is left out unless `included: true`. Entries
+are cached for `sitemapCacheLifetime` (60 s by default), so a new row can
+take up to that long to appear; `PageCatalog.invalidateSitemap()` clears
+the cache. `<site>/sitemap.xml` and `<site>/sitemap/*` are reserved paths.
 
 ## Live reload
 
@@ -111,5 +164,5 @@ the URL by hand.
   it cannot be silenced, and there are no client components in this
   release.
 - Do not run the application under `jaspr serve`; use `grund dev`.
-- Not in this release: hydration (`@client`), `jaspr_builder`, HTML error
+- Not in this release: Markdown pages, hydration (`@client`), `jaspr_builder`, HTML error
   pages.

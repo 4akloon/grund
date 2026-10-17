@@ -1,3 +1,38 @@
+## 0.2.0
+
+Pages and sites replace the single root component.
+
+- **Breaking:** `JasprModule(app:, imports:)` and `JasprPages` are removed;
+  `JasprModule({config})` only supplies the rendering services. Pages are
+  bindings declared in any module with `Pages.site<S>` (two bindings:
+  spread it) and `Pages.under<S>`.
+- **Breaking:** static files are served under `JasprConfig.staticPath`
+  (`/static` by default) instead of the root; `JasprConfig.rootFiles` names
+  the files (`robots.txt`, `favicon.ico`) that stay at the root.
+- **Breaking:** a request whose last path segment has an extension outside
+  `pageSuffixes` is a file request (a JSON 404 `file_not_found`, the page
+  builder is not called), so a slug such as `v1.2` is not a page.
+- New `JasprConfig` fields: `staticPath`, `rootFiles`, `sitemapChunkSize`
+  (50000) and `sitemapCacheLifetime` (60 s).
+- New public types: `PageSite` (path, `use`, `skippableHooks`, `shell`,
+  `notFound`, `sitemapBaseUrl`), `Page`, `PageMeta`, `PageNav`,
+  `PageHooks` (`skip` by exact hook type, `use`), `PageSitemap`,
+  `PageExtension`, `PageCatalog` (`pagesOf`, `navOf`, `sitemapOf`,
+  `invalidateSitemap`, `match`, `pagesWith`), `SitePage`, `PageMatch`,
+  `NavItem`, `SitemapEntries` (`all`, `paged`), `SitemapEntry`,
+  `SitemapUrl`, `SitemapChangeFrequency`, `BuildContext.pageMatch`, and the
+  declaration and runtime errors (`SiteDeclarationError`,
+  `PageDeclarationError`, `PageRuntimeError`).
+- A page builder throws `NotFoundException` for an unknown parameter value:
+  the answer is the site's 404 page. The 404 pages of a site go through its
+  hooks.
+- Sitemaps: a site with `sitemapBaseUrl` serves `<site>/sitemap.xml` and
+  chunked `<site>/sitemap/<n>.xml`, without the site's hooks.
+- Structural mistakes (a site without `/`, nested or duplicate paths, a
+  forbidden hook skip, a reserved page path) fail at startup, and a hot
+  reload that breaks one keeps the previous pages serving.
+- New dependencies: `logging` and `path`.
+
 ## 0.1.0
 
 Initial release.

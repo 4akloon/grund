@@ -22,8 +22,9 @@ pluggable HTTP adapters. It is a Dart pub workspace of pure-Dart packages.
   stage ships.
 - User documentation: `README.md` and `docs/*.md` (English); the example
   application: `example/` (`tasks_api`, a workspace member, not published;
-  the same application in annotations and in the explicit API, with Jaspr
-  pages and a session, tested end to end on both adapters); releases:
+  the same application in annotations and in the explicit API, with a
+  Jaspr site of pages (`example/lib/src/web/`) and a session, tested end to
+  end on both adapters); releases:
   `docs/RELEASING.md`.
 - Packages (published, versioned independently): `grund` (core: modules, DI, runners,
   logging, no HTTP), `grund_http` (HTTP values, hooks, routing, server
@@ -31,7 +32,8 @@ pluggable HTTP adapters. It is a Dart pub workspace of pure-Dart packages.
   (adapters), `grund_generator` (core generator, no HTTP),
   `grund_http_generator` (`@Api` generator), `grund_cli` (`gen`, `dev`,
   `init`), `grund_build` (build_runner builder), `grund_jaspr`
-  (server-side rendered Jaspr pages and static files), `grund_auth`
+  (server-side rendered Jaspr sites and pages declared as module bindings,
+  static files under `/static`, sitemaps), `grund_auth`
   (cookie sessions). Unpublished:
   `grund_conformance` (adapter test suite), the fixture packages
   `cases_app`, `http_cases_app`, `users_app`, and `example`.
@@ -127,7 +129,8 @@ only. It has not run yet.
   `grund_http_generator`/`grund_cli`/`grund_build`, `vm_service` only in
   `grund_cli`, `build` only in `grund_build`, and `jaspr` only in
   `grund_jaspr` and the example (`grund_auth` does not depend on it, and
-  `grund_jaspr` not on `grund_auth`). `dart:developer` (SDK) is allowed in the core for
+  `grund_jaspr` not on `grund_auth`; `grund_jaspr` also uses `logging`, on
+  the logger `grund.jaspr`, and `path`). `dart:developer` (SDK) is allowed in the core for
   the hot reload service extensions, which register only outside product
   mode.
 - **The core generator knows no HTTP.** `grund_generator` reads modules,
@@ -300,6 +303,11 @@ producing a response):
   into a 400 (any other failure is a bug and propagates);
   `RequestDispatcher` answers 400 for a malformed percent-encoding of the
   path (`FormatException` of `Uri.pathSegments`);
+- the page boundary (`grund_jaspr`): `PagesApi` catches `on
+  NotFoundException` around the page builder (nothing else) and answers the
+  site's `notFound()` page, inside the site's shell, with status 404; any
+  other failure of a builder or component propagates to the request
+  boundary (`PageRenderError` for a component that throws);
 - the `dev` command boundary (`grund_cli`): `DevCommand` catches `on
   Exception` (not `on Object`: an `Error` is a bug and stays loud) around
   the user's application process, a run and the key actions, and turns the

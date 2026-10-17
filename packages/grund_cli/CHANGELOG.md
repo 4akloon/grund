@@ -1,3 +1,10 @@
+## 0.1.3
+
+- `init --template fullstack` declares its pages as a site
+  (`Pages.site` and `Pages.under`, in a module of their own) instead of
+  `JasprModule(app:)`, serves the stylesheet from `/static/` and names
+  `grund_jaspr: ^0.2.0`.
+
 ## 0.1.2
 
 - `init --template fullstack` scaffolds server-rendered Jaspr pages with

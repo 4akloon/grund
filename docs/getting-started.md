@@ -181,7 +181,7 @@ and [http-and-hooks.md](http-and-hooks.md) explain it.
 `grund init --template <api|fullstack> my_site` chooses the scaffold (`api`,
 the one above, is the default). `fullstack` writes an application with HTML
 pages rendered on the server by Jaspr, a sign-in form and a cookie session,
-on the explicit API (no `gen` needed). Run it with
+on the explicit API (no `gen` needed), with its pages declared as a site. Run it with
 `dart run grund_cli dev` (or `grund dev`): it reloads the code and, because
 `grund_jaspr` injects a small script while `dev` runs, tells open pages in
 the browser to reload (never in a product build). See
