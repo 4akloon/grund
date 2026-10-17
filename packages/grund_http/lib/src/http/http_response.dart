@@ -143,8 +143,8 @@ final class HttpResponse {
     final tokens = <String>[];
     for (final value in [...own, ...added]) {
       for (final token in value.split(',').map((t) => t.trim())) {
-        if (token.isNotEmpty && seen.add(token.toLowerCase()))
-          tokens.add(token);
+        if (token.isEmpty || !seen.add(token.toLowerCase())) continue;
+        tokens.add(token);
       }
     }
     return seen.contains('*') ? '*' : tokens.join(', ');
