@@ -17,7 +17,7 @@ import 'session_tokens.dart';
 /// });
 /// ```
 final class Sessions {
-  /// Keeps sessions in [store] with the cookie of [config].
+  /// Keeps sessions in `store` with the cookie of `config`.
   Sessions(this._store, this._config);
 
   final SessionStore _store;

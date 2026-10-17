@@ -21,7 +21,7 @@ import 'same_origin_hook.dart';
 /// `SessionConfig(sameOrigin: false)` and register [SameOriginHook] only
 /// on the cookie routes instead.
 final class SessionHook extends HttpHook {
-  /// Reads sessions through `sessions`; [config] says whether to check the
+  /// Reads sessions through `sessions`; `config` says whether to check the
   /// origin.
   SessionHook(this._sessions, this._config);
 
