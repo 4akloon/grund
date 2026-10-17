@@ -4,18 +4,19 @@ import 'package:test/test.dart';
 
 import 'helpers/pages.dart';
 import 'helpers/pages_app.dart';
+import 'helpers/sites.dart';
 
 void main() {
   test('two applications in one process both render', () async {
-    final first = await PagesApp.start([const JasprModule(app: UrlPage.new)]);
-    final second = await PagesApp.start([const JasprModule(app: UrlPage.new)]);
+    final first = await startPublic([homePage(const UrlPage())]);
+    final second = await startPublic([homePage(const UrlPage())]);
 
     expect((await first.get('/')).status, 200);
     expect((await second.get('/')).status, 200);
   });
 
   test('a component outside a page has no grund context', () async {
-    await PagesApp.start([const JasprModule(app: UrlPage.new)]);
+    await PagesApp.start([const JasprModule()]);
 
     final rendered = await renderComponent(const ScopelessPage());
 
@@ -27,7 +28,7 @@ void main() {
     addTearDown(Jaspr.initializeApp);
 
     await expectLater(
-      PagesApp.start([const JasprModule(app: UrlPage.new)]),
+      PagesApp.start([const JasprModule()]),
       throwsA(isA<JasprSetupError>()),
     );
   });
@@ -35,10 +36,7 @@ void main() {
   test('a page suffix with a leading dot refuses to start', () async {
     await expectLater(
       PagesApp.start([
-        const JasprModule(
-          app: UrlPage.new,
-          config: JasprConfig(pageSuffixes: ['html', '.xml']),
-        ),
+        const JasprModule(config: JasprConfig(pageSuffixes: ['html', '.xml'])),
       ]),
       throwsA(
         isA<JasprSetupError>().having(

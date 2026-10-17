@@ -22,3 +22,4 @@ export 'src/site/page_site.dart';
 export 'src/sitemap/sitemap_change_frequency.dart';
 export 'src/sitemap/sitemap_entries.dart';
 export 'src/sitemap/sitemap_entry.dart';
+export 'src/site/pages.dart';

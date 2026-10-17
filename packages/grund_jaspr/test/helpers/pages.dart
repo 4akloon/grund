@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:grund/grund.dart';
 import 'package:grund_http/grund_http.dart';
 import 'package:grund_jaspr/grund_jaspr.dart';
@@ -122,4 +124,21 @@ final class FlashPage extends StatelessComponent {
   Component build(BuildContext context) => Component.text(
     'flash ${GrundScope.of(context).cookies.stringOrNull('flash')}',
   );
+}
+
+/// Collects what Jaspr writes to stderr, where it prints a failed build.
+final class CapturedStderr implements Stdout {
+  /// Collects into [_text].
+  CapturedStderr(this._text);
+
+  final StringBuffer _text;
+
+  @override
+  void write(Object? object) => _text.write(object);
+
+  @override
+  void writeln([Object? object = '']) => _text.writeln(object);
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => null;
 }

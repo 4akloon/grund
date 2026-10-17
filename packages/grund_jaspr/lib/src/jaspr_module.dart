@@ -1,15 +1,18 @@
 import 'dart:io';
 
 import 'package:grund/grund.dart';
-import 'package:jaspr/server.dart';
 
 import 'jaspr_config.dart';
-import 'jaspr_pages.dart';
 import 'jaspr_setup.dart';
 import 'live_reload_script.dart';
+import 'page/page_renderer.dart';
+import 'site/page_registry.dart';
 
-/// Server-side rendered pages of the Jaspr component [app], served by the
-/// application's `HttpModule` next to its APIs.
+/// The rendering services of Jaspr pages: the configuration, the renderer
+/// and the registry of declared sites.
+///
+/// Sites and pages are declared in the modules that own them with
+/// `Pages.site` and `Pages.under`:
 ///
 /// ```dart
 /// final class AppModule extends Module {
@@ -19,37 +22,39 @@ import 'live_reload_script.dart';
 ///   List<Module> get imports => const [
 ///     HttpModule(),
 ///     IoAdapterModule(),
-///     JasprModule(app: HomePage.new, imports: [TasksModule()]),
+///     JasprModule(),
+///     HomeModule(),
 ///   ];
 /// }
 /// ```
 ///
 /// It does not import `HttpModule`: the application imports it once, with
-/// its own hooks and configuration. Pages see the exports of [imports] and
-/// of global modules through `context.call<T>()`.
+/// its own hooks and configuration.
 final class JasprModule extends Module {
-  /// Serves [app] with [config]; components see the exports of [imports].
-  const JasprModule({
-    required this.app,
-    this.imports = const [],
-    this.config = const JasprConfig(),
-  });
-
-  /// Builds the root component of a page; called for every request.
-  final Component Function() app;
-
-  @override
-  final List<Module> imports;
+  /// Serves pages with [config].
+  const JasprModule({this.config = const JasprConfig()});
 
   /// The static directory, the page suffixes and the live reload URL.
   final JasprConfig config;
 
   @override
+  bool get global => true;
+
+  @override
   List<Binding<Object>> get bindings => [
-    Singleton<JasprPages>(
-      (i) => JasprPages(i, app: app, config: _withEnvironment()),
-      dependsOn: const [],
+    Singleton<JasprConfig>((_) => _withEnvironment(), dependsOn: const []),
+    Singleton<PageRenderer>(
+      (i) => PageRenderer(liveReloadUrl: i<JasprConfig>().liveReloadUrl),
+      dependsOn: const [Key<JasprConfig>()],
     ),
+    Singleton<PageRegistry>((_) => PageRegistry(), dependsOn: const []),
+  ];
+
+  @override
+  List<Object> get exports => const [
+    Key<JasprConfig>(),
+    Key<PageRenderer>(),
+    Key<PageRegistry>(),
   ];
 
   @override

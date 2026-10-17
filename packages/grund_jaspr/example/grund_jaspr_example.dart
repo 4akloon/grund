@@ -43,6 +43,27 @@ final class HomePage extends StatelessComponent {
   );
 }
 
+/// The one site of the example: no prefix, no hooks.
+final class WebSite extends PageSite {
+  /// Creates the site.
+  WebSite(super.injector);
+}
+
+/// Declares [WebSite] and its only page, which counts visits.
+final class WebModule extends Module {
+  /// Creates the module.
+  const WebModule();
+
+  @override
+  List<Module> get imports => const [CounterModule()];
+
+  @override
+  List<Binding<Object>> get bindings => [
+    ...Pages.site<WebSite>(WebSite.new),
+    Pages.under<WebSite>((_) => [Page('/', build: (_) => const HomePage())]),
+  ];
+}
+
 /// The root module: the HTTP server over dart:io and the pages.
 final class AppModule extends Module {
   /// Creates the module.
@@ -52,7 +73,8 @@ final class AppModule extends Module {
   List<Module> get imports => const [
     HttpModule(),
     IoAdapterModule(),
-    JasprModule(app: HomePage.new, imports: [CounterModule()]),
+    JasprModule(),
+    WebModule(),
   ];
 }
 
