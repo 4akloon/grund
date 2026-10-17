@@ -61,7 +61,7 @@ Dart 3.13.x.
   напряму». Версія jaspr зафіксована на `>=0.23.5 <0.24.0`; зміна мінору
   jaspr вимагає повторної перевірки формату маркерів.
 
-**Spike** (`scratchpad/hydration-spike/REPORT.md`, опубліковані пакети,
+**Spike** (не збережений у репозиторії, факти перенесено сюди; опубліковані пакети,
 Dart 3.13.5, справжній браузер): власні опції + `dart compile js` гідратують
 лічильник з параметрами `int` і `String`; `grund_jaspr` 0.2.0 поважає
 попередньо ініціалізовані опції; бандл віддається з `/static/…` разом з
@@ -92,17 +92,21 @@ rtti), мінімум `-O1`; компіляція займає 1,4–2 с у в�
 
 ### 4.1 Спільний список компонентів
 
-Нова бібліотека `package:grund_jaspr/client_components.dart`. Вона імпортує
-лише `package:jaspr/jaspr.dart` (платформо-нейтральна: компілюється і для VM,
-і для вебу), не імпортує `grund`, `grund_http` і `dart:io`. Користувач пише
-один файл, спільний для сервера й клієнта:
+Нова бібліотека `package:grund_jaspr/client_components.dart` — чисті дані,
+спільні для сервера й клієнта. Вона імпортує лише `package:jaspr/jaspr.dart`
+(тип `Component`), не імпортує `grund`, `grund_http` і `dart:io`, а також
+`package:jaspr/server.dart` і `package:jaspr/client.dart`: `ServerOptions` і
+`ClientTarget` живуть у першому, `ClientOptions` і `ClientLoader` у другому
+(перевірено в джерелах Jaspr 0.23.5), тож перетворення на типи Jaspr робить
+кожна сторона сама (§4.2, §4.3). Користувач пише один файл, спільний для
+сервера й клієнта:
 
 ```dart
 // lib/clients.dart
 import 'package:grund_jaspr/client_components.dart';
 import 'src/web/counter.dart';
 
-final clients = ClientComponents([
+const clients = ClientComponents([
   ClientComponent<Counter>(
     'counter',
     encode: Counter.toParams,
@@ -112,28 +116,42 @@ final clients = ClientComponents([
 ]);
 ```
 
-- `ClientComponent<T extends Component>(name, {required decode, encode})`:
-  `name` відповідає `[a-z0-9_-]+`; `decode: T Function(Map<String, Object?>)`
-  будує компонент на клієнті; `encode: Map<String, Object?> Function(T)?`
-  віддає параметри на сервері (без `encode` у маркера немає `data=`).
-- `ClientComponents(List<ClientComponent<Component>>)` перевіряє список при
-  створенні: дубль імені, два записи для одного типу, тип `T`, виведений як
-  `Component` (запис без явного типу), непридатне ім'я → `JasprSetupError`.
-- **Пастка типів (вимога).** Перетворення запису на типи Jaspr
-  (`ClientTarget<T>` на сервері, `ClientLoader` на клієнті) відбувається там,
-  де `T` відомий (узагальнений метод запису, наприклад відвідувач
-  `visit<T>`), а не через поле `Function(T)` невідомого `T`: читання такого
-  поля через `ClientComponent<Component>` падає на перевірці коваріантності.
-  Поля `encode`/`decode` приватні.
+- `ClientComponent<T extends Component>(name, {required decode, encode})`,
+  конструктор `const`: `name` відповідає `[a-z0-9_-]+`;
+  `decode: T Function(Map<String, Object?>)` будує компонент на клієнті
+  (статичний метод чи конструктор-tear-off); `encode: Map<String, Object?>
+  Function(T)?` віддає параметри на сервері (без `encode` у маркера немає
+  `data=`).
+- `ClientComponents(List<ClientComponent<Component>>)`, теж `const`, **не
+  кидає при створенні** (моє рішення, §10): `problems` повертає список
+  текстів (порожній, коли все гаразд): дубль імені, два записи для одного
+  типу, `T`, виведений як `Component` (запис без явного типу), непридатне
+  ім'я. Помилку кидає той, хто користується списком: сервер як
+  `JasprSetupError` (§4.2), клієнт як `StateError` (§4.3). Так бібліотека
+  лишається без `grund` (`JasprSetupError` успадковує `GrundError`, а
+  `package:grund/grund.dart` тягне `dart:io`), а список лишається константою.
+- **Пастка типів (вимога).** `encode` і `decode` — приватні поля, а доступ
+  до них дає лише метод, узагальнений за `T` (наприклад `R withType<R>(R
+  Function<T extends Component>(ClientEntry<T> entry) body)`): читання поля
+  типу `Function(T)` через `ClientComponent<Component>` падає на перевірці
+  коваріантності. Сервер у `body` будує `ClientTarget<T>`, клієнт —
+  `ClientLoader`; форму `ClientEntry<T>` вибирає план.
 - Компонент (`Counter`) має компілюватися для вебу: його імпорти не можуть
   тягнути `dart:io` чи серверний API. Це відповідальність користувача;
   збій видно при `grund bundle` як помилку компілятора.
+- `package:grund_jaspr/grund_jaspr.dart` реекспортує `ClientComponents` і
+  `ClientComponent` (моє рішення): серверний код не потребує двох імпортів;
+  спільний `lib/clients.dart` імпортує нейтральну бібліотеку, бо головна
+  тягне `dart:io`.
 
 ### 4.2 Сервер
 
-`JasprConfig` отримує поле `clients: ClientComponents?` (за замовчуванням
-`null`). `JasprModule.onInit` через `JasprSetup` ініціалізує Jaspr з
-`ServerOptions(clientId, clients)`:
+`JasprConfig` отримує `const`-поле `clients: ClientComponents?` (за
+замовчуванням `null`); `withLiveReloadUrl` і решта копій конфігурації його
+переносять. `JasprConfig.validate` кидає `JasprSetupError` з усіма
+`problems`. `JasprModule.onInit` через `JasprSetup` ініціалізує Jaspr з
+`ServerOptions(clientId, clients)`, де кожен запис стає
+`MapEntry(T, ClientTarget<T>(name, params: encode))`:
 - `clientId` виводиться з конфігурації без початкового `/`:
   `${staticPath без початкового '/'}/client/main.client.dart.js`, за
   замовчуванням `static/client/main.client.dart.js`. Користувач його не
@@ -141,15 +159,36 @@ final clients = ClientComponents([
   ним (`JasprConfig.validate`), тож результат ніколи не абсолютний і не
   порожній.
 - Коли `clients` порожній чи `null`, `clientId` теж `null`: скрипта немає,
-  поведінка 0.2.0.
-- Ініціалізація повторюється на кожному `onInit` (hot reload: список міг
-  змінитися); стан Jaspr процесо-глобальний, тож якщо `main` уже ініціалізував
-  Jaspr своїми опціями (чи інший застосунок процесу з іншими `clients`),
-  `JasprSetup` кидає `JasprSetupError` з поясненням. `main` більше не
-  викликає `Jaspr.initializeApp`.
+  поведінка 0.2.0, `JasprSetup` робить те саме, що й раніше.
+- **Володіння процесо-глобальним станом Jaspr** (`Jaspr.initializeApp`,
+  `Jaspr.options`; моє рішення, §10). Власні опції модуля — об'єкт
+  `ServerOptions`, який він сам установив; ідентичність цього об'єкта і є
+  «наше».
+  - Є `clients`, Jaspr не ініціалізований, або ініціалізований без клієнтів
+    (`clients` порожня й `clientId == null`: `Jaspr.initializeApp()` у `main`
+    чи в `setUpAll` тесту), або опції установлені попереднім `onInit`
+    (hot reload, наступний `TestApp`): установити нові.
+  - Є `clients`, а Jaspr ініціалізований чужими опціями з `clients` чи
+    `clientId` (користувач сам викликав `Jaspr.initializeApp(options:
+    ServerOptions(...))`): `JasprSetupError` з поясненням, що `main` більше
+    не має цього робити.
+  - `useIsolates: true` відхиляється, як і досі.
+  - `JasprModule.onShutdown`: якщо `Jaspr.options` досі наш об'єкт,
+    повернути типові опції, щоб наступний застосунок без `clients` (послідовні
+    `TestApp` одного тестового файлу) не успадкував скрипт і маркери. Під
+    час hot reload `onInit` нового модуля йде раніше за `onShutdown`
+    старого, тож старий бачить чужий об'єкт і нічого не чіпає.
+  - Не виявляється: два одночасно живі застосунки одного процесу з різними
+    `clients` (стан Jaspr один на процес, виграє пізніший); це описує
+    `docs/jaspr.md`.
 - Скрипт додається на кожну сторінку, коли `clients` задано (так працює
   Jaspr); вимкнення для окремої сторінки поза цим зрізом. Вимога до
   користувача: `<base>` відсутній або `/`.
+- Коли `clients` задано, а файла `<staticDirectory>/client/main.client.dart.js`
+  немає (забули `grund bundle`), `onInit` пише `WARNING` у `grund.jaspr` з
+  іменем файла й підказкою про `grund bundle`. Це ніколи не помилка (моє
+  рішення): бандл у `TestApp`-тестах відсутній, а розгортання з CDN не
+  тримає його поруч із сервером.
 - Параметри, що не кодуються в JSON, дають `JsonUnsupportedObjectError` під час
   рендеру, який `ProblemResponder` перетворює на 500 і лог на `grund.http`.
 
@@ -157,10 +196,12 @@ final clients = ClientComponents([
 
 Нова бібліотека `package:grund_jaspr/client.dart` (імпортує
 `package:jaspr/client.dart` і спільну бібліотеку):
-`GrundClient.run(ClientComponents)` складає `ClientOptions` з тих самих
-записів, викликає `Jaspr.initializeApp(options)` і `runApp(ClientApp())`.
-Точка входу користувача тримає три рядки (за конвенцією Jaspr
-`lib/main.client.dart`, щоб проєкт лишався придатним для інструментів Jaspr):
+`GrundClient.run(ClientComponents)` складає `ClientOptions` — кожен запис
+стає `name: ClientLoader((params) => decode(params))` (відкладеного
+завантаження немає, §1) — викликає `Jaspr.initializeApp(options)` і
+`runApp(ClientApp())`. Точка входу користувача тримає три рядки (за
+конвенцією Jaspr `lib/main.client.dart`, щоб проєкт лишався придатним для
+інструментів Jaspr):
 
 ```dart
 import 'package:grund_jaspr/client.dart';
@@ -169,7 +210,10 @@ import 'clients.dart';
 void main() => GrundClient.run(clients);
 ```
 
-Помилка списку (дубль тощо) на клієнті кидає ту саму `JasprSetupError`.
+Непорожні `problems` на клієнті дають `StateError` з їхнім текстом (у
+браузері `GrundError` немає). `package:jaspr/client.dart` не вантажиться на
+VM, тож ця бібліотека тонка, юніт-тестів на VM не має, і перевіряється
+компіляцією `dart compile js` та перевіркою в браузері (§6).
 
 ### 4.4 Збірка: `grund bundle`
 
@@ -182,11 +226,19 @@ void main() => GrundClient.run(clients);
 - Вихідний каталог `web/client/` відповідає значенню за замовчуванням
   `JasprConfig.staticDirectory` (`web`) і виводу `clientId` (§4.2).
   Користувач зі своїм `staticDirectory` передає `--output <каталог>`
-  (моє рішення: CLI не читає конфігурацію рантайму).
+  (моє рішення: CLI не читає конфігурацію рантайму); `dev` приймає той самий
+  параметр.
+- `--release` не залишає `.map` у вихідному каталозі (моє рішення:
+  `StaticApi` віддає все під `/static` усім, мапи розкрили б шляхи вихідного
+  коду); як саме — прапорець компілятора чи видалення файлів, вибирає план.
+  Без `--release` мапи лишаються.
 - Каталог виводу належить команді повністю: перед збіркою видаляються
   застарілі `*.part.js`/`.map`/`.deps`; він ігнорується git (скаффолд
   `init` додає рядок у `.gitignore`).
 - Немає `lib/main.client.dart`: повідомлення й код виходу 0 (нічого збирати).
+  Навпаки, наявність `main.client.dart` при незаданому `JasprConfig.clients`
+  не виявляється: CLI не знає конфігурації рантайму (моє рішення; описує
+  `docs/jaspr.md`).
 - `Platform.resolvedExecutable` не є Dart VM (AOT-скомпільований `grund`) або
   `dart compile js` завершився помилкою: `CliFailure` з виводом компілятора.
 - `dart` береться з того ж виконуваного файлу, під яким працює CLI; окремих
@@ -194,16 +246,24 @@ void main() => GrundClient.run(clients);
 
 ### 4.5 `grund dev`
 
-Якщо є `lib/main.client.dart`, `dev`:
+Якщо є `lib/main.client.dart`, `dev` (усе тут — моє рішення, §10):
 - збирає бандл (`-O1`) до першого «serving» (перше завантаження сторінки
-  одразу має працювати);
-- після зміни `.dart` запускає збірку бандла паралельно з hot reload, а
-  подію live reload шле **після завершення обох**;
-- помилка компіляції друкується, старий бандл лишається; сесія не падає.
+  одразу має працювати); якщо перша збірка падає, помилка друкується, а
+  сервер усе одно стартує (сторінки без гідратації);
+- після зміни `.dart` запускає збірку бандла паралельно з hot reload, на
+  кожну зміну `.dart` у стеженних каталогах (граф імпортів не аналізується,
+  збірка ~1,5 с іде поруч), і лише тоді, коли hot reload теж виконується
+  (генерація не повідомила про проблеми);
+- подію live reload шле **після завершення обох**, навіть коли збірка
+  бандла впала: помилка надрукована, а сторінці все одно потрібні серверні
+  зміни; старий бандл лишається, сесія не падає;
+- зміна під час збірки не скасовує її: ставиться одна відкладена
+  перезбірка (зміни зливаються);
+- відсутній бандл видно як `WARNING` сервера (§4.2).
 
 `dev_session.dart` (259/300 рядків) і `dev_command.dart` (231/300) уже на межі
 ліміту, тому спершу виноситься колаборатор `ClientBundler` (окремий коміт
-рефакторингу), потім додається поведінка.
+рефакторингу), потім додається поведінка. Тип результату збірки вибирає план.
 
 ### 4.6 Шаблон, приклад, документація
 
@@ -219,29 +279,40 @@ void main() => GrundClient.run(clients);
 
 ## 5. Помилки
 
-Нові випадки використовують наявну сімʼю `JasprSetupError` (старт: список
-компонентів, `clientId`, конфлікт ініціалізації Jaspr) і наявний шлях 500 для
-рантайм-збою кодування параметрів. Нова типізована помилка потрібна лише
-якщо спільний список вимагає розрізняти причини; решту вирішує план.
+Нових типів помилок немає. Старт: `JasprSetupError` (список компонентів,
+чужі опції Jaspr, `useIsolates`); браузер: `StateError` (§4.3); рантайм-збій
+кодування параметрів іде наявним шляхом 500 (`ProblemResponder`); відсутній
+бандл — `WARNING`, не помилка (§4.2).
 
 ## 6. Тестування
 
-- Юніт: перевірки `ClientComponents` (дубль імені, дубль типу, `T` =
-  `Component`, непридатне ім'я); пастка коваріантності (запис через
-  `ClientComponent<Component>` не падає); `JasprConfig.validate` для
-  `clientId`/`staticPath`.
+- Юніт: `ClientComponents.problems` (дубль імені, дубль типу, `T` =
+  `Component`, непридатне ім'я); реєстр з tear-off'ів компілюється як
+  `const`; пастка коваріантності (`withType` через
+  `ClientComponent<Component>` не падає); `JasprConfig.validate` кидає
+  `JasprSetupError` з `problems`.
+- Володіння станом Jaspr (§4.2): чужі опції з клієнтами дають
+  `JasprSetupError`; `Jaspr.initializeApp()` без клієнтів замінюється; другий
+  `onInit` після першого замінює; `onShutdown` повертає типові опції, і
+  наступний застосунок без `clients` не має скрипта; порядок hot reload (новий
+  `onInit`, потім старий `onShutdown`) лишає нові опції.
 - HTTP через `TestApp`: HTML сторінки містить маркери, `data=` і
   `<script src="static/client/main.client.dart.js" defer>`; параметри з
   лапками, `<`, `&`, не-ASCII проходять; без `clients` скрипта немає;
-  параметр, що не кодується в JSON, дає 500; конфлікт ініціалізації Jaspr кидає
-  `JasprSetupError`.
+  параметр, що не кодується в JSON, дає 500; відсутній бандл дає `WARNING` у
+  `grund.jaspr` (перехоплений через `Logger.root.onRecord`), а не помилку.
 - Інтеграція (`integration/`, не в `dart test`): `dart compile js` клієнта
   прикладу, `GET /static/client/main.client.dart.js` дає 200, `grund bundle`
-  у `TempDir`-пакеті, `grund dev` перезбирає бандл після правки. Дочірній
-  процес `dart compile js` — виняток для `grund_cli`/інтеграційних тестів, його
-  називає CLAUDE.md (§8).
-- Перевірка в браузері лишається ручною (процедура в `docs/jaspr.md`), як у
-  spike.
+  у `TempDir`-пакеті (також `--release` без `.map`, відсутній entry, не-VM
+  виконуваний файл), `grund dev` перезбирає бандл після правки й не падає
+  від помилки компіляції. Дочірній процес `dart compile js` — виняток для
+  `grund_cli`/інтеграційних тестів, його називає CLAUDE.md (§8).
+- **Гідратація приймається вручну** (моє рішення, §10): у вбудованому
+  браузері контролер натискає кнопку лічильника прикладу й бачить зміну числа
+  (як у spike); це умова приймання зрізів 2 і 4 плану, фіксується в плані. Автоматичний
+  запуск JS (`dart test -p chrome`, node) не додається: це залежність від
+  Chrome у CI й тестове правило, якого немає. Процедура ручної перевірки
+  описана в `docs/jaspr.md`.
 
 ## 7. Рішення поза цим етапом
 
@@ -258,7 +329,7 @@ void main() => GrundClient.run(clients);
   пакета немає (вони ламають модель `grund_build` «вихід на вхід»).
 - Wasm: `bundle --wasm` збирає `.wasm`, `.mjs` і запасний JS-бандл, а
   `main.client.dart.js` стає loader-ом на ~15 рядків (перевіряє WasmGC,
-  підтягує wasm або запасний JS). Деталі в `hydration-spike/REPORT.md`.
+  підтягує wasm або запасний JS). Spike довів, що це працює (§2); loader не зберігся в репозиторії.
 - Відкладене завантаження компонентів повертається разом із генератором.
 
 ## 8. Відхилення від CLAUDE.md і релізи
@@ -273,11 +344,38 @@ void main() => GrundClient.run(clients);
 
 ## 9. Не перевірено (перші перевірки плану)
 
-1. `ClientComponents` зі статичних tear-off'ів компілюється в JS і
+1. Константний реєстр зі статичних tear-off'ів компілюється в JS і
    гідратується (пастка коваріантності не повторюється на клієнті).
-2. `int` у `Map<String, Object?>` зберігає тип після JSON-кола в dart2js
-   (`p['start'] as int`).
-3. Справжня помилка dart2js, якщо компонент тягне `dart:io`; текст
+   Перевірка `int` + `String` через `data=` уже пройдена в spike (з
+   параметрами `start`/`label`), повторювати її окремо не треба.
+2. Справжня помилка dart2js, якщо компонент тягне `dart:io`; текст
    діагностики для `grund bundle`.
-4. Поведінка при `useIsolates: true` вже відхиляється `JasprSetup`;
-   повторна ініціалізація опцій при hot reload не ламає рендер у польоті.
+3. Чи `ClientLoader` приймає відсутній `loader` (немає відкладеного
+   завантаження); якщо ні, передається негайно завершений `Future`.
+4. Чи `dart compile js` має прапорець без мап, чи їх треба видаляти (§4.4).
+5. Не перевірено й не планується тут: непорожній `<base>`, CSP, справжній
+   браузер без WasmGC.
+
+## 10. Рішення, прийняті без користувача
+
+Усе тут позначено «моє рішення» в тексті; користувач може змінити будь-яке,
+вони не змінюють суті (явний реєстр, `grund bundle`, відносний `clientId`).
+1. `ClientComponents` не кидає при створенні, а має `problems`; `const`
+   (§4.1). Причина: нейтральна бібліотека не може кинути `JasprSetupError`
+   (`GrundError` тягне `dart:io`), а `const` потрібен, бо
+   `imports => const [..., JasprModule(...)]` у прикладі й шаблоні.
+2. Правила володіння станом Jaspr (§4.2). **Відхилення від того, що ми
+   обговорювали:** два одночасно живі застосунки з різними списками більше
+   не виявляються (відрізнити їх від hot reload неможливо), лише чужі опції
+   користувача; `onShutdown` повертає типові опції.
+3. `WARNING` про відсутній бандл замість помилки (§4.2).
+4. `--output` у `bundle` і `dev` для нетипового `staticDirectory`; відсутній
+   `JasprConfig.clients` при наявному `main.client.dart` не виявляється
+   (§4.4).
+5. `--release` без `.map` (§4.4).
+6. Правила `dev`: збірка на кожну зміну `.dart`, перезавантаження після
+   обох, падіння збірки не зупиняє сервер, одна відкладена перезбірка (§4.5).
+7. Гідратація приймається вручну, без автозапуску JS у CI (§6).
+8. Реекспорт `ClientComponents`/`ClientComponent` з `grund_jaspr.dart`
+   (§4.1).
+
