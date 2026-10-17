@@ -2,13 +2,14 @@ import '../error/site_declaration_error.dart';
 import '../jaspr_config.dart';
 import '../page/page_path.dart';
 import 'page_site.dart';
+import 'site_file_check.dart';
 
 /// Rejects a site declaration that contradicts the configuration.
 abstract final class SiteDeclarationCheck {
   /// Throws [InvalidSitePathError] when the path of [site] is not `''` or
   /// `/segment[/segment]` of literals, lies on the `staticPath` of [config]
   /// or is a `rootFiles` entry, [InvalidSiteBaseUrlError] for a bad
-  /// `baseUrl`, and [GuardedSiteSitemapError] (naming [siteType]) when the
+  /// `baseUrl`, [InvalidSiteFileError] for a file that cannot be served, and [GuardedSiteSitemapError] (naming [siteType]) when the
   /// site has hooks and a sitemap.
   static void check(
     PageSite site, {
@@ -30,6 +31,7 @@ abstract final class SiteDeclarationCheck {
       );
     }
     _checkBaseUrl(site, siteType);
+    SiteFileCheck.check(site, siteType: siteType, config: config);
     if (site.use.isNotEmpty && site.baseUrl != null) {
       throw GuardedSiteSitemapError(siteType);
     }

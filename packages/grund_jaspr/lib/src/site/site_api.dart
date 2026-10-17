@@ -5,6 +5,7 @@ import 'canonical_redirect.dart';
 import 'page_responder.dart';
 import 'page_site.dart';
 import 'site_declaration_check.dart';
+import 'site_file.dart';
 import 'site_services.dart';
 
 /// The fallback route of a site: everything below its path that no page
@@ -48,8 +49,19 @@ final class SiteApi<S extends PageSite> extends HttpApi {
             await _services.sitemap.chunk(site, c.path.string('chunk')),
       ),
     ],
+    for (final file in site.files)
+      Route.get(file.path, (c) => _serveFile(c, file), use: site.use),
     Route.get('/*', _notFound, use: site.use),
   ];
+
+  /// The full paths of the files of the site.
+  List<String> get filePaths => [
+    for (final file in site.files) '${site.path}${file.path}',
+  ];
+
+  Future<HttpResponse> _serveFile(HttpCtx c, SiteFile file) async =>
+      _redirect(c) ??
+      PageResponder.text(c, await file.build(c), file.mediaType);
 
   HttpResponse? _redirect(HttpCtx c) =>
       CanonicalRedirect.forFile(c.request.uri, site.trailingSlash);

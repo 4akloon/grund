@@ -9,7 +9,8 @@ import 'reserved_paths.dart';
 
 /// Rejects a page declaration that contradicts the site or the framework.
 abstract final class PageDeclarationCheck {
-  static final _mediaType = RegExp(
+  /// What a lower case `type/subtype` looks like.
+  static final mediaTypePattern = RegExp(
     r"^[!#$%&'+.^_`|~0-9a-z-]+/[!#$%&'+.^_`|~0-9a-z-]+$",
   );
   static final _suffix = RegExp(r'^(\.[a-z0-9]+)+$');
@@ -85,7 +86,7 @@ abstract final class PageDeclarationCheck {
     final type = alternate.mediaType;
     if (type.contains(';')) return 'a media type has no parameters';
     if (type.contains('*')) return 'a media type has no wildcards';
-    if (!_mediaType.hasMatch(type)) {
+    if (!mediaTypePattern.hasMatch(type)) {
       return 'a media type is "type/subtype" in lower case';
     }
     if (type == 'text/html') return 'text/html is the page itself';

@@ -2,6 +2,7 @@ import 'package:grund/grund.dart';
 import 'package:grund_http/grund_http.dart';
 import 'package:jaspr/server.dart';
 
+import 'site_file.dart';
 import 'trailing_slash.dart';
 
 /// A group of pages that share a path prefix, hooks and a page shell.
@@ -37,4 +38,8 @@ abstract base class PageSite {
   /// Media types every page of the site must have an alternate of
   /// (`text/markdown`); a page without one fails at startup.
   List<String> get requiredAlternates => const [];
+
+  /// Generated text files at fixed paths of the site, such as `/robots.txt`;
+  /// they run the hooks of the site.
+  List<SiteFile> get files => const [];
 }

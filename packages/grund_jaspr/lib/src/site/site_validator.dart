@@ -65,22 +65,27 @@ base class SiteValidator {
   ) {
     for (final d in declared) {
       for (final path in d.paths) {
-        _checkTerritory(sites, d.api, path);
+        _checkTerritory(sites, d.api.siteType, path);
+      }
+    }
+    for (final api in sites) {
+      for (final path in api.filePaths) {
+        _checkTerritory(sites, api.siteType, path);
       }
     }
   }
 
   void _checkTerritory(
     List<SiteApi<Object?>> sites,
-    PagesApi<Object?> api,
+    Type siteType,
     String path,
   ) {
     for (final owner in sites) {
-      if (owner.siteType == api.siteType || owner.path.isEmpty) continue;
+      if (owner.siteType == siteType || owner.path.isEmpty) continue;
       if (path == owner.path || _lies(path, under: owner.path)) {
         throw MisplacedPagePathError(
           path: path,
-          siteType: api.siteType,
+          siteType: siteType,
           owner: owner.siteType,
         );
       }

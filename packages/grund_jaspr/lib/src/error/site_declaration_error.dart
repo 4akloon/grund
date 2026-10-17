@@ -138,3 +138,26 @@ final class InvalidSiteBaseUrlError extends SiteDeclarationError {
       'The baseUrl "$url" of the site $siteType is invalid: $reason. Use an '
       'origin such as https://example.com.';
 }
+
+/// A `SiteFile` cannot be served.
+final class InvalidSiteFileError extends SiteDeclarationError {
+  /// Creates the error for the file at [path] of [siteType]; [reason] says
+  /// what is wrong.
+  const InvalidSiteFileError({
+    required this.siteType,
+    required this.path,
+    required this.reason,
+  });
+
+  /// The site that declares the file.
+  final Type siteType;
+
+  /// The path of the file, relative to the site.
+  final String path;
+
+  /// What is wrong with the file.
+  final String reason;
+
+  @override
+  String get message => 'Invalid file "$path" of the site $siteType: $reason';
+}
