@@ -397,7 +397,14 @@ List<String> get requiredAlternates => const [];
     тож до `pathOf` вони не доходять);
   - корінь — `/`;
   - за `always` до шляху, відмінного від `/`, додається `/`, якщо його
-    останній сегмент не має розширення (`p.extension`).
+    останній сегмент не має розширення (`p.extension`);
+  - **виняток (рішення №19).** Якщо останній сегмент без слеша був би
+    файловим запитом (розширення, якого немає серед `pageSuffixes`, наприклад
+    `v1.2`), слеш лишається за будь-якої політики. Перевірка та сама, що в
+    `NonPageRequests` (`NonPageRequests.isFileSegment`); `pathOf` отримує
+    `pageSuffixes` іменованим параметром, а `SitePage` несе їх з конфігурації.
+    Це стосується `PageMatch.path`/`url`, навігації, sitemap і `Link`;
+    `alternatePathOf` слеша не має ніколи.
 - `static String alternatePathOf(String pagePath, String suffix, {required
   bool isSiteRoot})` — URL альтернативи:
   - для кореня сайту — `<шлях сайту>/index<suffix>` (`/index.md`,
@@ -444,7 +451,8 @@ String? alternatePath(String mediaType);
 працює за `never` і `always` (за `ignore` нічого не робить).
 
 ```dart
-static HttpResponse? forPage(Uri uri, TrailingSlash policy);
+static HttpResponse? forPage(Uri uri, TrailingSlash policy,
+    {required List<String> pageSuffixes});
 static HttpResponse? forFile(Uri uri, TrailingSlash policy);
 ```
 
@@ -452,6 +460,9 @@ static HttpResponse? forFile(Uri uri, TrailingSlash policy);
   декодування й перекодування. Порожньому списку відповідає `/`.
   - `forPage`: за `always` додається `/`, якщо останній сегмент без
     розширення.
+  - `forPage` не знімає слеш з останнього сегмента, який без нього був би
+    файловим запитом (№19): `/v1.2/` віддається (200) за будь-якої політики,
+    а не переадресовується на `/v1.2` (404 `file_not_found`).
   - `forFile` (альтернативи, файли сайту, sitemap): слеша в кінці немає
     ніколи.
   - Якщо форма збігається з `uri.path`, відповідь `null`.
@@ -869,6 +880,10 @@ Spec і план гідратації не змінюються. Перетин�
 17. 404 сторінки на URL з `Accept` альтернативи не несе `link
     rel="alternate"` (§4.7).
 18. №8 і №10 відхилено, №12 — лише документація (§3).
+19. Канонічна адреса ніколи не веде на файловий запит; сторінки з крапкою в
+    параметрі (`v1.2`) мають канонічну адресу зі слешем за будь-якої політики
+    (§4.5, §4.6). Ціна помилки: канонічний URL такої сторінки містить слеш
+    навіть за `never`.
 
 ## 11. Для автора
 

@@ -21,8 +21,12 @@ final class PageMatch {
   ///
   /// Throws [ArgumentError] when [params] lacks a value for a path parameter
   /// or has an empty, `.` or `..` value.
-  String get path =>
-      PageAddress.pathOf(page.path, params, page.site.trailingSlash);
+  String get path => PageAddress.pathOf(
+    page.path,
+    params,
+    page.site.trailingSlash,
+    pageSuffixes: page.pageSuffixes,
+  );
 
   /// [path] on the `baseUrl` of the site; `null` when the site has none.
   Uri? get url => page.site.baseUrl?.resolve(path);

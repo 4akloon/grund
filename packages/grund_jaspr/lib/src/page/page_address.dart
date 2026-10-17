@@ -1,6 +1,7 @@
 import 'package:path/path.dart' as p;
 
 import '../site/trailing_slash.dart';
+import 'non_page_requests.dart';
 
 /// Builds the URL path of a page pattern.
 abstract final class PageAddress {
@@ -9,22 +10,22 @@ abstract final class PageAddress {
   ///
   /// Every segment is percent-encoded, so a value never adds a segment. Under
   /// [TrailingSlash.always] a slash ends every path but the root and one whose
-  /// last segment has an extension. Throws [ArgumentError] naming the
-  /// parameter when a value is missing, empty, `.` or `..`.
+  /// last segment has an extension. A last segment that would be a file
+  /// request without the slash (an extension that is not one of
+  /// [pageSuffixes], such as `v1.2`) keeps it under every policy. Throws
+  /// [ArgumentError] naming the parameter when a value is missing, empty, `.`
+  /// or `..`.
   static String pathOf(
     String fullPattern,
     Map<String, String> params,
-    TrailingSlash policy,
-  ) {
+    TrailingSlash policy, {
+    required List<String> pageSuffixes,
+  }) {
     if (fullPattern == '/') return '/';
-    final raw = [
-      for (final segment in fullPattern.substring(1).split('/'))
-        segment.startsWith(':')
-            ? _valueOf(segment.substring(1), params)
-            : segment,
-    ];
+    final raw = _segmentsOf(fullPattern, params);
     final slash =
-        policy == TrailingSlash.always && p.extension(raw.last).isEmpty;
+        NonPageRequests.isFileSegment(raw.last, pageSuffixes) ||
+        (policy == TrailingSlash.always && p.extension(raw.last).isEmpty);
     return '/${raw.map(Uri.encodeComponent).join('/')}${slash ? '/' : ''}';
   }
 
@@ -38,13 +39,24 @@ abstract final class PageAddress {
     String suffix,
   ) {
     final base = pagePath == '/' ? '$sitePath/index' : '$sitePath$pagePath';
-    return '${pathOf(base, params, TrailingSlash.never)}$suffix';
+    final raw = _segmentsOf(base, params);
+    return '/${raw.map(Uri.encodeComponent).join('/')}$suffix';
   }
 
   /// The route pattern of an alternate, relative to its site: `/index` plus
   /// [suffix] for the root page, else [pagePath] plus [suffix].
   static String alternatePatternOf(String pagePath, String suffix) =>
       pagePath == '/' ? '/index$suffix' : '$pagePath$suffix';
+
+  static List<String> _segmentsOf(
+    String fullPattern,
+    Map<String, String> params,
+  ) => [
+    for (final segment in fullPattern.substring(1).split('/'))
+      segment.startsWith(':')
+          ? _valueOf(segment.substring(1), params)
+          : segment,
+  ];
 
   static String _valueOf(String name, Map<String, String> params) {
     final value = params[name];

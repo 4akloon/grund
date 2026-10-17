@@ -419,6 +419,17 @@ match.url;         // https://example.com/projects/grund, or null without baseUr
 match.alternatePath('text/markdown'); // '/projects/grund.md', or null
 ```
 
+A canonical address never leads to a file request. A page whose last
+segment would have an extension that is not a page suffix without the slash
+(a `:slug` value such as `v1.2`) keeps the trailing slash under every
+policy, because `/v1.2` is a file request and answers 404: the page is at
+`/v1.2/`, which is also what `path`, `url`, the sitemap, the navigation and
+the canonical `Link` use, and `/v1.2/` is served instead of redirected.
+
+```dart
+PageMatch(page: sitePage, params: {'slug': 'v1.2'}).path; // '/projects/v1.2/'
+```
+
 `path` and `alternatePath` throw `ArgumentError` for a missing parameter
 and for a value that is empty, `.` or `..`. The same dot segments answer
 404 on the request side: `..` is normalized by URI parsing before routing

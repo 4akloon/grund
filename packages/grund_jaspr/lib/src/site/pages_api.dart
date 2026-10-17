@@ -95,7 +95,12 @@ final class PagesApi<S extends PageSite> extends HttpApi {
       _responder.page(c, site: site, page: page, match: _matchOf(c, page));
 
   PageMatch _matchOf(HttpCtx c, Page page) => PageMatch(
-    page: SitePage(site: site, page: page, path: fullPathOf(page)),
+    page: SitePage(
+      site: site,
+      page: page,
+      path: fullPathOf(page),
+      pageSuffixes: _services.config.pageSuffixes,
+    ),
     params: {
       for (final name in PagePath.parse(page.path).paramNames)
         name: c.path.string(name),

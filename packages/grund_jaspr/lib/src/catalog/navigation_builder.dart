@@ -41,6 +41,7 @@ abstract final class NavigationBuilder {
         sitePage.path,
         const {},
         sitePage.site.trailingSlash,
+        pageSuffixes: sitePage.pageSuffixes,
       ),
       group: nav.group,
       order: nav.order,

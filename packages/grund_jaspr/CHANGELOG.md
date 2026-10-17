@@ -19,6 +19,10 @@
 - New `SiteFile` and `PageSite.files`: generated text files such as
   `robots.txt` and `llms.txt`, served through the site's hooks.
 - New `PageMatch.path`, `url` and `alternatePath`.
+- Fixed: a canonical address never leads to a file request. Dotted parameter
+  values such as `v1.2` get a canonical address with a trailing slash
+  (`/v1.2/`) under every `trailingSlash` policy, in `PageMatch.path`, the
+  navigation, the sitemap and redirects.
 - Requires `grund_http` 0.3.0.
 - New `Fragments.respond(c, component, {status})`: a Jaspr component as an
   HTML fragment without a document, live reload script or client script,

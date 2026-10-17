@@ -75,10 +75,10 @@ void main() {
       expect(response.headers['location'], isNull);
     });
 
-    test('a slash after a file name redirects, then it is a 404', () async {
+    test('a slash after a file name is the page of that value', () async {
       final response = await client.get('/projects/logo.png/');
-      expect(response.status, 308);
-      expect(response.headers['location'], '/projects/logo.png');
+      expect(response.status, 200);
+      expect(response.headers['location'], isNull);
     });
   });
 
@@ -87,6 +87,7 @@ void main() {
         CanonicalRedirect.forPage(
           Uri.parse('http://h$path'),
           policy,
+          pageSuffixes: const ['html', 'xml'],
         )?.headers['location'];
 
     test('a leading empty segment is dropped', () {

@@ -80,7 +80,10 @@ final class SnapshotIndex {
 
   void _load(PageSnapshot snapshot) {
     if (identical(_indexed, snapshot)) return;
-    final declared = SnapshotPages.all(snapshot);
+    final declared = SnapshotPages.all(
+      snapshot,
+      pageSuffixes: _config.pageSuffixes,
+    );
     final pages = [for (final entry in declared) entry.page];
     _matcher = PageMatcher(
       pages,

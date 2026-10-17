@@ -33,7 +33,11 @@ final class PageResponder {
   }) async {
     final uri = c.request.uri;
     if (!_services.nonPage.isPageRequest(uri)) _services.nonPage.notFound(uri);
-    final redirect = CanonicalRedirect.forPage(uri, site.trailingSlash);
+    final redirect = CanonicalRedirect.forPage(
+      uri,
+      site.trailingSlash,
+      pageSuffixes: _services.config.pageSuffixes,
+    );
     if (redirect != null) return redirect;
     if (page.alternates.isEmpty) return _htmlOrNotFound(c, site, page, match);
     final accept = AcceptHeader.parse(

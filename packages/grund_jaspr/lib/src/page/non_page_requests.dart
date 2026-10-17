@@ -20,9 +20,18 @@ final class NonPageRequests {
   bool isPageRequest(Uri uri) {
     final segments = uri.pathSegments;
     if (segments.isEmpty) return true;
-    final extension = p.extension(segments.last);
-    return extension.isEmpty ||
-        _config.pageSuffixes.contains(extension.substring(1).toLowerCase());
+    return !isFileSegment(segments.last, _config.pageSuffixes);
+  }
+
+  /// Whether [segment] names a file: it has an extension that is not one of
+  /// [pageSuffixes] (compared in lower case, without the dot).
+  ///
+  /// The one test of what is a file request; the canonical addresses of
+  /// pages use it to never end in a spelling that would be one.
+  static bool isFileSegment(String segment, List<String> pageSuffixes) {
+    final extension = p.extension(segment);
+    return extension.isNotEmpty &&
+        !pageSuffixes.contains(extension.substring(1).toLowerCase());
   }
 
   /// Answers 404 `file_not_found` for the file [uri].

@@ -5,7 +5,7 @@ import '../jaspr_config.dart';
 import '../page/page_address.dart';
 import '../page/page_path.dart';
 import '../page/page_sitemap.dart';
-import '../site/page_site.dart';
+import '../page/site_page.dart';
 import '../sitemap/all_sitemap_entries.dart';
 import '../sitemap/sitemap_entries.dart';
 import '../sitemap/sitemap_entry.dart';
@@ -27,7 +27,7 @@ final class SitemapSource {
       final sitemap = declared.page.page.meta.sitemap;
       final path = PagePath.parse(declared.page.path);
       if (!path.hasParams) {
-        yield _urlOf(declared.page.site, declared.page.path, sitemap, null);
+        yield _urlOf(declared.page, declared.page.path, sitemap, null);
         continue;
       }
       yield* _entryUrls(declared, sitemap, path.paramNames);
@@ -88,7 +88,7 @@ final class SitemapSource {
     final sitemap = declared.page.page.meta.sitemap;
     final path = PagePath.parse(declared.page.path);
     if (!path.hasParams) {
-      return [_urlOf(declared.page.site, declared.page.path, sitemap, null)];
+      return [_urlOf(declared.page, declared.page.path, sitemap, null)];
     }
     final entries = sitemap.entries;
     if (entries == null) return const [];
@@ -117,7 +117,7 @@ final class SitemapSource {
   ) {
     final path = declared.page.path;
     _checkParams(path, paramNames, entry);
-    return _urlOf(declared.page.site, path, sitemap, entry);
+    return _urlOf(declared.page, path, sitemap, entry);
   }
 
   // The rules of the sitemap: an explicit `false` leaves a page out; a page
@@ -146,7 +146,7 @@ final class SitemapSource {
     }
     await for (final entry in chunks.expand((list) => list)) {
       _checkParams(path, paramNames, entry);
-      yield _urlOf(declared.page.site, path, sitemap, entry);
+      yield _urlOf(declared.page, path, sitemap, entry);
     }
   }
 
@@ -194,13 +194,18 @@ final class SitemapSource {
   }
 
   static SitemapUrl _urlOf(
-    PageSite site,
+    SitePage page,
     String path,
     PageSitemap sitemap,
     SitemapEntry? entry,
   ) => SitemapUrl(
-    location: site.baseUrl!.resolve(
-      PageAddress.pathOf(path, entry?.params ?? const {}, site.trailingSlash),
+    location: page.site.baseUrl!.resolve(
+      PageAddress.pathOf(
+        path,
+        entry?.params ?? const {},
+        page.site.trailingSlash,
+        pageSuffixes: page.pageSuffixes,
+      ),
     ),
     lastModified: entry?.lastModified ?? sitemap.lastModified,
     changeFrequency: sitemap.changeFrequency,

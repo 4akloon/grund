@@ -5,13 +5,16 @@ final class JasprConfig {
   /// Creates the configuration.
   const JasprConfig({
     this.staticDirectory = 'web',
-    this.pageSuffixes = const ['html', 'htm', 'xml'],
+    this.pageSuffixes = defaultPageSuffixes,
     this.liveReloadUrl,
     this.staticPath = '/static',
     this.rootFiles = const [],
     this.sitemapChunkSize = 50000,
     this.sitemapCacheLifetime = const Duration(seconds: 60),
   });
+
+  /// The default of [pageSuffixes]: `html`, `htm` and `xml`.
+  static const defaultPageSuffixes = ['html', 'htm', 'xml'];
 
   /// The directory of the static files; a relative path is resolved
   /// against the working directory (run the application from its package
