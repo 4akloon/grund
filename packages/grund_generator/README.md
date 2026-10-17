@@ -111,5 +111,5 @@ library and shares that library's imports, so a type the host imports with
 a prefix (`import 'x.dart' as x;`) is not resolved in it. Import such a type
 without a prefix in the library that declares the `@Api`.
 
-`analyzer` is accepted from 8.1.1 to 14.x, so the generator runs on Dart
-3.8 and on current SDKs.
+`analyzer` is accepted from 13.1.0 to 14.x, the first versions that parse
+Dart 3.13 sources (primary constructors, private named parameters).

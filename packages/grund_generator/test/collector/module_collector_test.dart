@@ -31,7 +31,7 @@ void main() {
   });
 
   test('modules come in library URI order', () {
-    expect(package.languageVersion.toString(), '3.8.0');
+    expect(package.languageVersion.toString(), '3.13.0');
     expect(
       [for (final m in package.modules) m.type.name],
       ['DbModule', 'AppModule', 'BrokenModule'],
