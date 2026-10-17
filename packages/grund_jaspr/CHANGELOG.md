@@ -1,6 +1,9 @@
 ## 0.3.0
 
 - **Breaking:** requires Dart 3.13 (`sdk: ^3.13.0`).
+- Static files answer `Accept-Encoding` with a precompressed `.br` or `.gz`
+  sibling when one exists and is not older than the file; every static
+  response carries `Vary: Accept-Encoding`.
 
 ## 0.2.0
 

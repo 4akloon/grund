@@ -4,6 +4,7 @@ import 'package:grund_http/grund_http.dart';
 import 'package:path/path.dart' as p;
 
 import '../content_types.dart';
+import 'static_encodings.dart';
 import 'static_validators.dart';
 
 /// The files of a directory, served as they are.
@@ -43,18 +44,29 @@ final class StaticFiles {
   /// The response for [file]: `304` without a body when [requestHeaders]
   /// show the client has it, otherwise `200` with its bytes and type.
   ///
-  /// Both carry `etag`, `last-modified`, `cache-control: no-cache` (the
-  /// browser revalidates every time) and `x-content-type-options: nosniff`
-  /// (the browser trusts the type, not the content).
+  /// A precompressed sibling (`app.js.br`, `app.js.gz`) is sent instead
+  /// when `accept-encoding` allows it (see [StaticEncodings.choose]), with
+  /// `content-encoding` and the type of [file]; its `etag` and
+  /// `last-modified` are its own, so a conditional request is answered
+  /// against the variant sent. Every response carries `etag`,
+  /// `last-modified`, `vary: accept-encoding`, `cache-control: no-cache`
+  /// (the browser revalidates every time) and `x-content-type-options:
+  /// nosniff` (the browser trusts the type, not the content).
   Future<HttpResponse> respond(
     String file, {
     required HeaderMap requestHeaders,
   }) async {
-    final stat = await File(file).stat();
-    final etag = StaticValidators.etag(stat);
+    final variant = StaticEncodings.choose(
+      file,
+      root: root,
+      acceptEncoding: requestHeaders['accept-encoding'],
+    );
+    final stat = await File(variant.path).stat();
+    final etag = StaticValidators.etag(stat, variant: variant.encoding ?? '');
     final headers = HeaderMap.of({
       'etag': etag,
       'last-modified': StaticValidators.lastModified(stat.modified),
+      'vary': 'accept-encoding',
       'cache-control': 'no-cache',
       'x-content-type-options': 'nosniff',
     });
@@ -66,7 +78,13 @@ final class StaticFiles {
       return HttpResponse(304, headers: headers);
     }
     headers.set('content-type', ContentTypes.forPath(file));
-    return HttpResponse.bytes(await File(file).readAsBytes(), headers: headers);
+    if (variant.encoding case final encoding?) {
+      headers.set('content-encoding', encoding);
+    }
+    return HttpResponse.bytes(
+      await File(variant.path).readAsBytes(),
+      headers: headers,
+    );
   }
 
   static bool _isPlainName(String segment) =>
