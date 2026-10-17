@@ -117,7 +117,8 @@ singleton that depends on a `Scoped` binding is a `CaptiveDependencyError`
   to pass their exports on.
 - `global => true` makes a module's exports visible everywhere without an
   import; use it for configuration and for adapters (`IoAdapterModule` is
-  global).
+  global). Reading configuration from environment variables is described in
+  [configuration.md](configuration.md).
 - A module is identified by its class and its `qualifier`. The same module
   imported from two places is built once; two instances with one class and
   different imports, keys or exports are a `ConflictingModuleError`. Give a

@@ -212,6 +212,7 @@ GraphQL, microservice transports, OpenAPI generation. See
 
 - [Getting started](docs/getting-started.md)
 - [Modules and dependency injection](docs/modules-and-di.md)
+- [Configuration and the environment](docs/configuration.md)
 - [HTTP APIs, hooks and errors](docs/http-and-hooks.md)
 - [Annotations and code generation](docs/annotations-and-codegen.md)
 - [Adapters: dart:io and shelf](docs/adapters.md)

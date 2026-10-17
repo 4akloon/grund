@@ -1,6 +1,8 @@
 ## 0.3.0
 
 - **Breaking:** requires Dart 3.13 (`sdk: ^3.13.0`).
+- `HttpConfig.fromEnvironment` and `HttpModule.fromEnvironment` read the
+  address from `HOST` and the port from `PORT`.
 
 ## 0.2.0
 

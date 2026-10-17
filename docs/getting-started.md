@@ -190,6 +190,7 @@ the browser to reload (never in a product build). See
 ## Next
 
 - [Modules and dependency injection](modules-and-di.md)
+- [Configuration and the environment](configuration.md)
 - [HTTP APIs, hooks and errors](http-and-hooks.md)
 - [The example application](../example/README.md): modules, hooks, a
   middleware and both adapters in a real API, written in both styles.

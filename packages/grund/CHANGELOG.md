@@ -1,6 +1,10 @@
 ## 0.2.0
 
 - **Breaking:** requires Dart 3.13 (`sdk: ^3.13.0`).
+- `Environment` reads environment variables with checks (`has`, `string`,
+  `integer`: a variable that is set must be valid, only an unset one falls
+  back), `EnvironmentModule` binds it globally, and `EnvironmentError`
+  (`MissingVariableError`, `InvalidVariableError`) never shows a value.
 
 ## 0.1.0
 

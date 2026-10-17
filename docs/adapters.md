@@ -79,9 +79,9 @@ it is never started. A request after `app.close()` gets a 503.
 - A start that fails to bind (the port is in use) throws and the application
   is closed again.
 
-To read the port from the environment, replace the `HttpConfig` binding with
-an override: `App(root: ..., overrides: [Singleton<HttpConfig>((_) =>
-HttpConfig(port: port), dependsOn: const [])])`.
+To read the address and the port from the environment, import
+`EnvironmentModule()` and use `HttpModule.fromEnvironment()`: it takes
+`HOST` and `PORT` (see [configuration.md](configuration.md)).
 
 ## Shutting down
 

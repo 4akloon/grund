@@ -27,7 +27,7 @@ pluggable HTTP adapters. It is a Dart pub workspace of pure-Dart packages.
   end on both adapters); releases:
   `docs/RELEASING.md`.
 - Packages (published, versioned independently): `grund` (core: modules, DI, runners,
-  logging, no HTTP), `grund_http` (HTTP values, hooks, routing, server
+  logging, environment, no HTTP), `grund_http` (HTTP values, hooks, routing, server
   runner, adapter contract, HTTP annotations), `grund_io` and `grund_shelf`
   (adapters), `grund_generator` (core generator, no HTTP),
   `grund_http_generator` (`@Api` generator), `grund_cli` (`gen`, `dev`,
@@ -205,7 +205,7 @@ only. It has not run yet.
 - **Prefer classes and static members to top-level helper functions** inside
   `lib/src`. Constants live in the class they belong to. Exception: functions
   that the spec defines as public API (dynamic-module factories such as
-  `Module databaseModule({...})`, `env(...)`, `describeKey`), builder
+  `Module databaseModule({...})`, `describeKey`), builder
   factories that `build.yaml` names (`grundBuilder`, in the
   `grund_build` library) and `main`.
 - Lints come from `analysis_options.yaml`; every public member has a `///`

@@ -29,7 +29,7 @@ From the repository root, once: `dart pub get`. Then in `example/`:
 ```sh
 dart run bin/main.dart                      # annotations, dart:io, port 8080
 dart run bin/main.dart --explicit --shelf   # the explicit graph on shelf
-PORT=9090 dart run bin/main.dart
+HOST=0.0.0.0 PORT=9090 dart run bin/main.dart
 ```
 
 `main` runs `App.run`, which attaches the console log (see
