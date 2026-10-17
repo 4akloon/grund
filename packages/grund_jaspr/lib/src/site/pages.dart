@@ -5,8 +5,10 @@ import '../page/non_page_requests.dart';
 import '../page/page.dart';
 import '../page/page_renderer.dart';
 import 'page_site.dart';
+import '../sitemap/sitemap_handlers.dart';
 import 'pages_api.dart';
 import 'site_api.dart';
+import 'site_services.dart';
 
 /// Bindings that declare sites and pages in a module.
 ///
@@ -33,15 +35,19 @@ abstract final class Pages {
       (i) => SiteApi<S>(
         i,
         i<S>(),
-        i<PageRenderer>(),
-        i<NonPageRequests>(),
-        i<JasprConfig>(),
+        SiteServices(
+          renderer: i<PageRenderer>(),
+          nonPage: i<NonPageRequests>(),
+          config: i<JasprConfig>(),
+          sitemap: i<SitemapHandlers>(),
+        ),
       ),
       dependsOn: [
         Key<S>(),
         Key<PageRenderer>(),
         Key<NonPageRequests>(),
         Key<JasprConfig>(),
+        Key<SitemapHandlers>(),
       ],
     ),
   ];

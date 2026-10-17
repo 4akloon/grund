@@ -21,10 +21,9 @@ final class SitemapSource {
   /// The addresses of [pages] (all of one site, sorted by path); empty when
   /// the site has no `sitemapBaseUrl`.
   Stream<SitemapUrl> urls(List<DeclaredPage> pages) async* {
-    for (final declared in pages) {
-      final base = declared.page.site.sitemapBaseUrl;
+    for (final declared in listed(pages)) {
+      final base = declared.page.site.sitemapBaseUrl!;
       final sitemap = declared.page.page.meta.sitemap;
-      if (base == null || !_isListed(declared, sitemap)) continue;
       final path = PagePath.parse(declared.page.path);
       if (!path.hasParams) {
         yield _urlOf(base, declared.page.path, sitemap, null);
@@ -32,6 +31,93 @@ final class SitemapSource {
       }
       yield* _entryUrls(base, declared, sitemap, path.paramNames);
     }
+  }
+
+  /// The pages of [pages] that appear in the sitemap, in the same order;
+  /// none when the site has no `sitemapBaseUrl`.
+  static List<DeclaredPage> listed(List<DeclaredPage> pages) => [
+    for (final declared in pages)
+      if (declared.page.site.sitemapBaseUrl != null &&
+          _isListed(declared, declared.page.page.meta.sitemap))
+        declared,
+  ];
+
+  /// How many addresses each of [listed] gives, in the same order: one for
+  /// a static page, the number of entries for a parameterised one.
+  Future<List<int>> plan(List<DeclaredPage> listed) async => [
+    for (final declared in listed) await _countOf(declared),
+  ];
+
+  Future<int> _countOf(DeclaredPage declared) async {
+    if (!PagePath.parse(declared.page.path).hasParams) return 1;
+    final entries = declared.page.page.meta.sitemap.entries;
+    return entries == null ? 0 : entries.count(declared.injector);
+  }
+
+  /// The addresses at the global positions [start] to [end] (exclusive) of
+  /// [listed], whose per-page counts are [counts] (from [plan]).
+  ///
+  /// Only the entries inside the range are asked of the sources: whole
+  /// pages before it are skipped by their count.
+  Future<List<SitemapUrl>> range(
+    List<DeclaredPage> listed,
+    List<int> counts,
+    int start,
+    int end,
+  ) async {
+    final urls = <SitemapUrl>[];
+    var first = 0;
+    for (var i = 0; i < listed.length && first < end; i++) {
+      final last = first + counts[i];
+      if (last > start) {
+        final from = start > first ? start - first : 0;
+        final to = (end < last ? end : last) - first;
+        urls.addAll(await _slice(listed[i], from, to));
+      }
+      first = last;
+    }
+    return urls;
+  }
+
+  Future<List<SitemapUrl>> _slice(
+    DeclaredPage declared,
+    int from,
+    int to,
+  ) async {
+    final base = declared.page.site.sitemapBaseUrl!;
+    final sitemap = declared.page.page.meta.sitemap;
+    final path = PagePath.parse(declared.page.path);
+    if (!path.hasParams) {
+      return [_urlOf(base, declared.page.path, sitemap, null)];
+    }
+    final entries = sitemap.entries;
+    if (entries == null) return const [];
+    final injector = declared.injector;
+    final List<SitemapEntry> loaded;
+    if (entries is AllSitemapEntries) {
+      final all = await entries.loadAll(injector);
+      loaded = all.sublist(
+        from < all.length ? from : all.length,
+        to < all.length ? to : all.length,
+      );
+    } else {
+      loaded = await entries.slice(injector, from, to - from);
+    }
+    return [
+      for (final entry in loaded.take(to - from))
+        _checkedUrl(base, declared.page.path, path.paramNames, sitemap, entry),
+    ];
+  }
+
+  SitemapUrl _checkedUrl(
+    Uri base,
+    String path,
+    List<String> paramNames,
+    PageSitemap sitemap,
+    SitemapEntry entry,
+  ) {
+    _checkParams(path, paramNames, entry);
+    return _urlOf(base, path, sitemap, entry);
   }
 
   // The rules of the sitemap: an explicit `false` leaves a page out; a page

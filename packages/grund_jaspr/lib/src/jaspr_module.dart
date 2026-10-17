@@ -6,6 +6,9 @@ import 'jaspr_config.dart';
 import 'jaspr_setup.dart';
 import 'live_reload_script.dart';
 import 'catalog/page_catalog.dart';
+import 'catalog/snapshot_index.dart';
+import 'sitemap/sitemap_chunk_cache.dart';
+import 'sitemap/sitemap_handlers.dart';
 import 'page/non_page_requests.dart';
 import 'page/page_renderer.dart';
 import 'site/page_registry.dart';
@@ -59,9 +62,44 @@ final class JasprModule extends Module {
       (i) => PagesRunner(i<PageRegistry>(), i<SiteValidator>()),
       dependsOn: const [Key<PageRegistry>(), Key<SiteValidator>()],
     ),
+    Singleton<SnapshotIndex>(
+      (i) => SnapshotIndex(i<JasprConfig>()),
+      dependsOn: const [Key<JasprConfig>()],
+    ),
+    Singleton<SitemapChunkCache>(
+      (i) => SitemapChunkCache(
+        i<JasprConfig>().sitemapCacheLifetime,
+        DateTime.now,
+      ),
+      dependsOn: const [Key<JasprConfig>()],
+    ),
+    Singleton<SitemapHandlers>(
+      (i) => SitemapHandlers(
+        i<PageRegistry>(),
+        i<SnapshotIndex>(),
+        i<SitemapChunkCache>(),
+        i<JasprConfig>(),
+      ),
+      dependsOn: const [
+        Key<PageRegistry>(),
+        Key<SnapshotIndex>(),
+        Key<SitemapChunkCache>(),
+        Key<JasprConfig>(),
+      ],
+    ),
     Singleton<PageCatalog>(
-      (i) => PageCatalog(i<PageRegistry>(), i<JasprConfig>()),
-      dependsOn: const [Key<PageRegistry>(), Key<JasprConfig>()],
+      (i) => PageCatalog(
+        i<PageRegistry>(),
+        i<JasprConfig>(),
+        index: i<SnapshotIndex>(),
+        sitemapCache: i<SitemapChunkCache>(),
+      ),
+      dependsOn: const [
+        Key<PageRegistry>(),
+        Key<JasprConfig>(),
+        Key<SnapshotIndex>(),
+        Key<SitemapChunkCache>(),
+      ],
     ),
     Singleton<StaticFiles>(
       (i) => StaticFiles(i<JasprConfig>().staticDirectory),
@@ -93,6 +131,8 @@ final class JasprModule extends Module {
     Key<PageRegistry>(),
     Key<PageCatalog>(),
     Key<NonPageRequests>(),
+    Key<SitemapHandlers>(),
+    Key<SitemapChunkCache>(),
   ];
 
   @override

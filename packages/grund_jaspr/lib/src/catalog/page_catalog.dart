@@ -6,6 +6,7 @@ import '../page/site_page.dart';
 import '../site/page_registry.dart';
 import '../site/page_site.dart';
 import '../site/page_snapshot.dart';
+import '../sitemap/sitemap_chunk_cache.dart';
 import '../sitemap/sitemap_url.dart';
 import 'nav_item.dart';
 import 'navigation_builder.dart';
@@ -21,13 +22,24 @@ import 'snapshot_index.dart';
 final class PageCatalog {
   /// Reads the snapshot held by [_registry]; [config] decides what is a
   /// file request and where the static files lie.
-  PageCatalog(this._registry, JasprConfig config)
-    : _index = SnapshotIndex(config),
-      _sitemap = SitemapSource(config);
+  ///
+  /// [index] and [sitemapCache] are shared with the sitemap routes when the
+  /// module makes the catalog; alone, it has its own.
+  PageCatalog(
+    this._registry,
+    JasprConfig config, {
+    SnapshotIndex? index,
+    SitemapChunkCache? sitemapCache,
+  }) : _index = index ?? SnapshotIndex(config),
+       _sitemap = SitemapSource(config),
+       _sitemapCache =
+           sitemapCache ??
+           SitemapChunkCache(config.sitemapCacheLifetime, DateTime.now);
 
   final PageRegistry _registry;
   final SnapshotIndex _index;
   final SitemapSource _sitemap;
+  final SitemapChunkCache _sitemapCache;
 
   PageSnapshot get _snapshot =>
       _registry.current ?? (throw const PageCatalogNotReadyError());
@@ -57,6 +69,10 @@ final class PageCatalog {
   /// not those of the page path.
   Stream<SitemapUrl> sitemapOf<S extends PageSite>() =>
       _sitemap.urls(_index.declaredOf(_snapshot, S));
+
+  /// Drops the cached sitemap plan and chunks, so the next sitemap request
+  /// reads the `entries` again.
+  void invalidateSitemap() => _sitemapCache.clear();
 
   /// The page that would serve [uri] and its path parameters, or `null`
   /// where no page would: a file request, a URL of the static files, or no

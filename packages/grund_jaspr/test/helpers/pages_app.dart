@@ -46,6 +46,19 @@ abstract final class StartedPagesApp {
     return app;
   }
 
+  /// Like [start] with the bindings [overrides] replacing the module's.
+  static Future<TestApp> startWith(
+    List<Module> modules, {
+    required List<Binding<Object>> overrides,
+  }) async {
+    final app = await TestApp.start(
+      root: _Root(modules, const []),
+      overrides: overrides,
+    );
+    addTearDown(app.close);
+    return app;
+  }
+
   /// Like [start] with the global site rules switched off, so a test can
   /// hand an invalid graph to a [PagesRunner] itself.
   static Future<TestApp> startUnchecked(List<Module> modules) async {
