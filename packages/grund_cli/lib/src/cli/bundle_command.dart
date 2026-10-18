@@ -20,7 +20,7 @@ final class BundleCommand extends Command<int> {
       )
       ..addOption(
         'output',
-        defaultsTo: 'web/client',
+        defaultsTo: ClientBundler.defaultOutputDirectory,
         valueHelp: 'dir',
         help: 'Where the bundle goes, relative to the package.',
       )
@@ -53,7 +53,8 @@ final class BundleCommand extends Command<int> {
     if (options.rest.isNotEmpty) {
       usageException('bundle takes no positional arguments.');
     }
-    final output = options.option('output') ?? 'web/client';
+    final output =
+        options.option('output') ?? ClientBundler.defaultOutputDirectory;
     final bundler = ClientBundler(
       PackageRoot.open(options.option('directory') ?? '.'),
       entry: options.option('entry') ?? ClientBundler.defaultEntry,
@@ -68,8 +69,11 @@ final class BundleCommand extends Command<int> {
         );
       case BundleSkipped():
         cli.out.writeln('No ${bundler.entry}: nothing to bundle.');
-      case BundleFailed(:final output):
-        throw CliFailure(CliExitCode.problems, 'bundle failed:\n$output');
+      case BundleFailed(output: final compilerOutput):
+        throw CliFailure(
+          CliExitCode.problems,
+          'bundle failed:\n$compilerOutput',
+        );
     }
     return CliExitCode.success.code;
   }

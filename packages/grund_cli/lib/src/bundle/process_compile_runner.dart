@@ -17,6 +17,28 @@ final class ProcessCompileRunner implements CompileRunner {
 
   final String? _executable;
 
+  /// The arguments of `dart` for compiling [entry] to [output].
+  ///
+  /// Release is `-O2` with the release define and no source maps; the
+  /// development build is `-O1` and keeps the maps. There is no `-O0`.
+  static List<String> arguments({
+    required String entry,
+    required String output,
+    required bool release,
+  }) => [
+    'compile',
+    'js',
+    if (release) ...[
+      '-O2',
+      '-Djaspr.flags.release=true',
+      '--no-source-maps',
+    ] else
+      '-O1',
+    '-o',
+    output,
+    entry,
+  ];
+
   @override
   Future<CompileOutcome> compileJs({
     required String entry,
@@ -35,14 +57,7 @@ final class ProcessCompileRunner implements CompileRunner {
     }
     final result = await Process.run(
       executable,
-      [
-        'compile',
-        'js',
-        if (release) ...['-O2', '-Djaspr.flags.release=true'] else '-O1',
-        '-o',
-        output,
-        entry,
-      ],
+      arguments(entry: entry, output: output, release: release),
       workingDirectory: workingDirectory,
       stdoutEncoding: utf8,
       stderrEncoding: utf8,

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:grund_cli/grund_cli.dart';
 import 'package:grund_cli/src/bundle/bundle_result.dart';
 import 'package:grund_cli/src/bundle/client_bundler.dart';
@@ -97,6 +99,34 @@ void main() {
     expect(runner.releases, isEmpty);
   });
 
+  test('the output directory is created when missing', () async {
+    final package = await TempPackage.create('site', {
+      'lib/main.client.dart': 'void main() {}',
+    });
+
+    await ClientBundler(
+      package.root,
+      outputDirectory: 'web/fresh',
+      runner: FakeCompileRunner(files: ['{output}']),
+    ).build(release: true);
+
+    expect(package.dir.exists('web/fresh/main.client.dart.js'), isTrue);
+  });
+
+  test('the staging directory is removed after success and failure', () async {
+    final package = await _package();
+
+    for (final exitCode in [0, 1]) {
+      await ClientBundler(
+        package.root,
+        runner: FakeCompileRunner(exitCode: exitCode),
+      ).build(release: true);
+
+      final staging = Directory(package.dir.resolve('.dart_tool/grund_bundle'));
+      expect(staging.listSync(), isEmpty, reason: 'exit $exitCode');
+    }
+  });
+
   test('the output name follows the entry', () async {
     final package = await TempPackage.create('site');
 
@@ -106,6 +136,36 @@ void main() {
     );
 
     expect(bundler.outputName, 'site.client.dart.js');
+  });
+
+  test('release arguments are -O2 with the define and no source maps', () {
+    expect(
+      ProcessCompileRunner.arguments(
+        entry: 'lib/main.client.dart',
+        output: 'out.js',
+        release: true,
+      ),
+      [
+        'compile',
+        'js',
+        '-O2',
+        '-Djaspr.flags.release=true',
+        '--no-source-maps',
+        '-o',
+        'out.js',
+        'lib/main.client.dart',
+      ],
+    );
+  });
+
+  test('development arguments are -O1 and keep the maps', () {
+    final arguments = ProcessCompileRunner.arguments(
+      entry: 'e.dart',
+      output: 'out.js',
+      release: false,
+    );
+
+    expect(arguments, ['compile', 'js', '-O1', '-o', 'out.js', 'e.dart']);
   });
 
   test('the process runner refuses an executable that is not dart', () {
