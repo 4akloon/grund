@@ -52,6 +52,9 @@ enum ProjectKind {
       'dart run grund_cli gen',
       'dart run bin/main.dart',
     ],
-    ProjectKind.fullstack => const ['dart run grund_cli dev'],
+    ProjectKind.fullstack => const [
+      'dart run grund_cli dev',
+      'dart run grund_cli bundle  # production bundle (-O2) for /static/client/',
+    ],
   };
 }

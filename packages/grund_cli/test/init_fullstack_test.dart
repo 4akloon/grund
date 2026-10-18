@@ -17,12 +17,35 @@ void main() {
     expect(init.exitCode, 0, reason: init.err);
     expect(init.out, contains('  lib/src/pages/home_page.dart\n'));
     expect(init.out, contains('  web/styles.css\n'));
-    expect(init.out, endsWith('  dart pub get\n  dart run grund_cli dev\n'));
+    expect(
+      init.out,
+      endsWith(
+        '  dart pub get\n'
+        '  dart run grund_cli dev\n'
+        '  dart run grund_cli bundle  # production bundle (-O2) for /static/client/\n',
+      ),
+    );
+    for (final file in [
+      'clients.dart',
+      'main.client.dart',
+      'src/pages/counter.dart',
+    ]) {
+      expect(init.out, contains('  lib/$file\n'));
+    }
+    expect(dir.read('my_site/.gitignore'), contains('web/client/\n'));
+    expect(
+      dir.read('my_site/lib/src/app_module.dart'),
+      contains('JasprModule(config: JasprConfig(clients: clients))'),
+    );
+    expect(
+      dir.read('my_site/lib/src/pages/home_page.dart'),
+      contains('const Counter('),
+    );
     final pubspec = dir.read('my_site/pubspec.yaml');
     expect(pubspec, contains('  grund_auth: ^0.2.0\n'));
-    expect(pubspec, contains('  grund_cli: ^0.2.0\n'));
+    expect(pubspec, contains('  grund_cli: ^0.2.1\n'));
     expect(pubspec, contains('  grund_http: ^0.3.0\n'));
-    expect(pubspec, contains('  grund_jaspr: ^0.3.0\n'));
+    expect(pubspec, contains('  grund_jaspr: ^0.3.1\n'));
     expect(pubspec, contains("  jaspr: '>=0.23.5 <0.24.0'\n"));
     expect(
       dir.read('my_site/lib/src/home_site_module.dart'),

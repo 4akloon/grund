@@ -1,3 +1,4 @@
+import 'fullstack_client_files.dart';
 import 'project_template.dart';
 
 /// The files of a new fullstack application (`init --template fullstack`):
@@ -15,7 +16,7 @@ abstract final class FullstackTemplate {
   /// [name] is interpolated into the files as is: it must be a valid Dart
   /// package name (`[a-z_][a-z0-9_]*`), which `ProjectScaffold` checks.
   static Map<String, String> files(String name) => {
-    '.gitignore': '.dart_tool/\n',
+    '.gitignore': '.dart_tool/\nweb/client/\n',
     'analysis_options.yaml': 'include: package:lints/recommended.yaml\n',
     'bin/main.dart': _main(name),
     'lib/src/account_api.dart': _accountApi,
@@ -27,15 +28,19 @@ abstract final class FullstackTemplate {
     'pubspec.yaml': _pubspec(name),
     'test/app_test.dart': _appTest(name),
     'web/styles.css': _styles,
+    ...FullstackClientFiles.files(name),
   };
 
   static const _grund = ProjectTemplate.grundVersion;
 
   static const _grundHttp = ProjectTemplate.grundHttpVersion;
 
-  /// The `grund_jaspr` release that goes with `grund` 0.2.0 and `grund_http`
-  /// 0.3.0, which have `HttpModule.fromEnvironment`.
-  static const _grundJaspr = '^0.3.0';
+  /// The `grund_jaspr` release with `JasprConfig(clients:)` (hydration); it
+  /// goes with `grund` 0.2.0 and `grund_http` 0.3.0.
+  static const _grundJaspr = '^0.3.1';
+
+  /// The `grund_cli` release with `bundle`, which builds the browser bundle.
+  static const _grundCli = '^0.2.1';
 
   static String _pubspec(String name) =>
       '''
@@ -56,7 +61,7 @@ dependencies:
   jaspr: '>=0.23.5 <0.24.0'
 
 dev_dependencies:
-  grund_cli: $_grund
+  grund_cli: $_grundCli
   lints: ^5.1.0
   test: ^1.25.0
 ''';
@@ -83,6 +88,7 @@ import 'package:grund_http/grund_http.dart';
 import 'package:grund_io/grund_io.dart';
 import 'package:grund_jaspr/grund_jaspr.dart';
 
+import '../clients.dart';
 import 'account_api.dart';
 import 'home_site_module.dart';
 
@@ -105,7 +111,7 @@ final class AppModule extends Module {
     IoAdapterModule(),
     SessionModule(config: SessionConfig(secure: _isProduct)),
     // Once, in the application: the sites of the modules below need it.
-    JasprModule(),
+    JasprModule(config: JasprConfig(clients: clients)),
     HomeSiteModule(),
   ];
 
@@ -218,6 +224,8 @@ import 'package:grund_jaspr/grund_jaspr.dart';
 import 'package:jaspr/dom.dart';
 import 'package:jaspr/server.dart';
 
+import 'counter.dart';
+
 /// The content of the start page: who is signed in, and how to sign in or out.
 final class HomePage extends StatelessComponent {
   /// Creates the page.
@@ -228,6 +236,8 @@ final class HomePage extends StatelessComponent {
     final user = context.maybe<CurrentUser>();
     return Component.fragment([
       h1([Component.text('Hello from grund and Jaspr')]),
+      // Rendered by the server, then hydrated in the browser by the bundle.
+      const Counter(start: 0, label: 'Clicks'),
       if (user == null)
         a(href: '/login', [Component.text('Sign in')])
       else
@@ -304,6 +314,7 @@ void main() {
     expect(page.status, 200);
     expect(page.headers['content-type'], 'text/html; charset=utf-8');
     expect(page.text, contains('Sign in'));
+    expect(page.text, contains('<!--@counter data='));
   });
 
   test('signing in sets the session cookie; the page sees the user', () async {
