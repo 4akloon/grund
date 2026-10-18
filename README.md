@@ -174,7 +174,7 @@ mode. See [docs/jaspr.md](docs/jaspr.md).
 | [`grund_shelf`](packages/grund_shelf) | `ShelfAdapterModule`, and `shelfHandler(app)` to mount an application in a shelf pipeline. |
 | [`grund_generator`](packages/grund_generator) | Turns `@Module`, `@Injectable`, `@Provides` and `Bind` into code and validates the module graph. Knows no HTTP; a library for the drivers below. |
 | [`grund_http_generator`](packages/grund_http_generator) | The `@Api` part of the generator: routes, parameters, hooks, validators, bodies. |
-| [`grund_cli`](packages/grund_cli) | The `grund` command: `gen`, `gen --watch`, `dev` (hot reload), `init`. |
+| [`grund_cli`](packages/grund_cli) | The `grund` command: `gen`, `gen --watch`, `dev` (hot reload), `bundle` (the browser bundle), `init`. |
 | [`grund_build`](packages/grund_build) | The same generation as a build_runner builder. |
 | [`grund_jaspr`](packages/grund_jaspr) | Sites and pages as module bindings: server-side rendered Jaspr pages, static files and sitemaps next to the API, with the call scope in every component. |
 | [`grund_auth`](packages/grund_auth) | Cookie sessions: `SessionModule`, `Sessions`, `SessionHook` (the `CurrentUser` of a request), `SameOriginHook`, `SetCookie`. |

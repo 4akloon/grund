@@ -24,6 +24,10 @@ entry, and a release of package `P` is made by pushing the tag `P-vX.Y.Z`.
 | `grund_cli` | `grund_generator`, `grund_http_generator` |
 | `grund_build` | `grund_generator`, `grund_http_generator` (dev: `grund_cli`) |
 
+The projects that `grund init` scaffolds name published versions of other
+packages (`grund_cli` names `grund_jaspr` for the `fullstack` template), so
+release the package a scaffold names before the `grund_cli` that names it.
+
 A constraint between workspace members is the lowest version that has what
 the dependent needs (`^0.1.0` stays valid when the dependency ships
 `0.1.1`; raise it to `^0.1.1` when the dependent needs that fix). The

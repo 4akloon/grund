@@ -63,6 +63,10 @@ abstract final class JasprSetup {
   /// Gives back the default options when [installed] (the result of
   /// [initialize]) is still what Jaspr uses; does nothing otherwise, as the
   /// options of a newer application stay.
+  ///
+  /// Jaspr keeps one set of options per process: while two applications are
+  /// alive, the one released first (when its options are still the current
+  /// ones) resets them, and the other loses its options.
   static void release(ServerOptions? installed) {
     if (installed == null || !identical(Jaspr.options, installed)) return;
     Jaspr.initializeApp(allowedPathSuffixes: Jaspr.allowedPathSuffixes);

@@ -381,7 +381,7 @@ dots out of page parameters, or add the extension to `pageSuffixes`.
 A client component (an island) is a Jaspr component that the server renders
 and the browser then takes over: it keeps its state and handles events
 without a request. Everything else on the page stays plain HTML. Use it by
-the rule in [Choosing the tool](#fragments-and-htmx): a server fragment
+the rule in [Fragments and htmx](#fragments-and-htmx): a server fragment
 when the truth lives on the server, local state for pure interface state,
 an island for typed or non-trivial client logic.
 
@@ -456,13 +456,18 @@ dart run grund_cli bundle        # web/client/main.client.dart.js
 -Djaspr.flags.release=true`, with no source maps (`/static` serves every
 file of `web/`, and a map would publish your sources). There is no
 `--release` flag and no `-O0`. Options: `--entry <file>` (default
-`lib/main.client.dart`; the output name is the entry's name plus `.js`),
+`lib/main.client.dart`; the output name is the entry's name plus `.js`, and
+with `JasprConfig.clients` the pages load `main.client.dart.js` only, so the
+entry file must be named `main.client.dart`: `--entry lib/app.client.dart`
+writes `app.client.dart.js`, which no script tag references and the startup
+warning reports; an explicit `--entry` that is not a file exits `64`),
 `--output <dir>` (default `web/client`; give the directory under your
 `JasprConfig.staticDirectory` plus `/client` when you changed it, because
 the CLI does not read the runtime configuration) and `--directory`/`-C`.
 It replaces the old `main.client.dart.js*` files of the output directory,
-including stale compressed siblings. Without the entry it prints a message
-and exits `0`. It needs the Dart VM: an AOT-compiled `grund` cannot run
+including stale compressed siblings; it compiles in
+`.dart_tool/grund_bundle/build_*` and moves only the bundle files. Without
+the default entry it prints a message and exits `0`. It needs the Dart VM: an AOT-compiled `grund` cannot run
 `dart compile js`, so use `dart run grund_cli` or `dart pub global run
 grund_cli`. Add `web/client/` to `.gitignore`; the scaffold of `grund init
 --template fullstack` does.
@@ -491,19 +496,21 @@ know](#things-to-know)).
 
 **Under `grund dev`.** `dev` builds the bundle before it serves (`-O1`
 with source maps, never `-O0`), and again, in parallel with the hot
-reload, after every change of a `.dart` file; changes during a build merge
-into one more build. A failed build is printed and the previous bundle
-stays; the live reload is still sent, because the page needs the server
-changes. Changing the browser entry is `--client-entry <file>` (default
+reload, after every change of a `.dart` file that generates cleanly;
+changes during a build merge into one more build. A failed build is printed
+and the previous bundle stays; the live reload is still sent, because the
+page needs the server changes. When you stop `dev`, a build in flight
+finishes without printing anything and no further build starts. Changing the browser entry is `--client-entry <file>` (default
 `lib/main.client.dart`; `dev --entry` is the server entry, an alias of
-`--target`); `--output` is as for `bundle`. Whether the package has a
+`--target`); `--output` is as for `bundle`. A `--client-entry` that is not a
+file stops `dev` with exit code 64. Whether the package has a
 browser entry is decided once, when `dev` starts: add `main.client.dart`
 and restart `dev`.
 
 A hot reload of a component's body (and of its `encode`/`decode`) works.
 It does not run `onInit` again and keeps the module's singletons, so a
 change of `JasprConfig` or of the `clients` list is not picked up: restart
-`grund dev` (`R` for a hot restart).
+`grund dev`, or hot restart it with `R`.
 
 **A missing bundle** is a `WARNING` on the logger `grund.jaspr` at
 startup: `JasprConfig.clients` is set and
@@ -512,7 +519,8 @@ example `bundle` was not run). The server starts anyway, since tests and
 deployments that serve the bundle from a CDN do not keep it beside the
 server, and the pages are served without hydration. The reverse is not
 detected: a `lib/main.client.dart` with no `JasprConfig.clients` hydrates
-nothing.
+nothing. An empty `ClientComponents([])` counts as no clients: the pages get
+no script and the warning is not logged.
 
 **One Jaspr state per process.** Jaspr keeps its server options in
 process-wide state. `JasprModule` installs the client options there itself
@@ -530,7 +538,7 @@ different `clients` lists are not detected: the later one wins.
   example's counter sits next to the task list, and adding a task does not
   reset it).
 - There is no lazy loading of components; the bundle holds all of them.
-- The scripts are the whole bundle (about 35 KB with brotli for a
+- The script is the whole bundle (about 35 KB with brotli for a
   counter); a page with no island does not load it.
 
 **Check it in a browser.** The automatic tests check the markup and the
@@ -955,7 +963,8 @@ build.
   (`[WARNING] ...`) when no client components are configured. A page that
   uses `Document` without a client script makes Jaspr print this one
   harmless notice at the first render of each process; it cannot be
-  silenced. With `JasprConfig(clients:)` the notice does not appear.
+  silenced. With `JasprConfig(clients:)` holding at least one client component the
+  notice does not appear.
 - **Read cookies with `GrundScope.of(context).cookies`**, not with Jaspr's
   `context.cookies`, which throws on a malformed `cookie` header.
 - **A component that throws** is a 500 `application/problem+json`

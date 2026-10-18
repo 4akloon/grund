@@ -65,6 +65,10 @@ dart analyze                          # repo root; must print "No issues found!"
 cd packages/grund && dart test     # same for every package
 dart format packages example          # a second run must change 0 files
 cd example && dart test               # the example: e2e on both adapters, golden check
+# the example's client bundle: compiles package:grund_jaspr/client.dart and
+# the shared clients.dart with dart compile js (not part of `dart test`;
+# `grund_jaspr`'s client boundary test is, and runs in plain `dart test`):
+cd example && dart test integration
 # the example, after changing its annotations (commit the result):
 cd example && dart run grund_cli gen
 # every published package must print "0 warnings":
@@ -230,7 +234,8 @@ only. It has not run yet.
   `grund_cli` tests build packages in a `TempDir` and resolve them
   against this workspace with `WorkspacePackageConfig` (no `pub get`); they
   run the command line in-process (`CliRun`, `GrundCli(out:, err:,
-  host: CliHost(interruption:, keys:, compileRunner:))`), never as a child process. The exceptions are
+  host: CliHost(interruption:, keys:, compileRunner:))`), never as a child
+  process. The exceptions are
   `dev`'s: its tests start the user's application as a child process with
   the VM service on loopback (`AppProcess`, `DevSession`), and
   `integration/` (run with `dart test integration`, not part of `dart

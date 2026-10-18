@@ -11,7 +11,9 @@
 - A missing bundle is a `WARNING` on `grund.jaspr` at startup.
 - `JasprSetupError` for client options of your own when `clients` is set;
   the module puts Jaspr's options back on shutdown.
-- With `clients`, Jaspr's `.client.dart` notice is no longer printed.
+- With at least one client component in `clients`, Jaspr's `.client.dart`
+  notice is no longer printed. An empty `ClientComponents([])` adds no
+  script and logs no missing-bundle warning, and the notice stays.
 
 ## 0.3.0
 

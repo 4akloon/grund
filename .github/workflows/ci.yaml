@@ -50,10 +50,11 @@ jobs:
           done
           exit $failed
 
-      - name: Integration tests (dev, build_runner)
+      - name: Integration tests (dev, build_runner, client bundle)
         run: |
           (cd packages/grund_cli && dart test integration)
           (cd packages/grund_build && dart test integration)
+          (cd example && dart test integration)
 
       - name: Generation benchmark
         run: cd packages/grund_cli && dart test benchmark

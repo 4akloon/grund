@@ -1,8 +1,8 @@
 name: grund_cli
 description: >-
   Command line tool of grund: generates the code of annotated packages
-  (gen, gen --watch), runs them with hot reload (dev) and scaffolds new
-  applications (init).
+  (gen, gen --watch), runs them with hot reload (dev), compiles the browser
+  bundle of client components (bundle) and scaffolds new applications (init).
 version: 0.2.0
 repository: https://github.com/4akLoon/grund/tree/master/packages/grund_cli
 issue_tracker: https://github.com/4akLoon/grund/issues

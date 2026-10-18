@@ -180,11 +180,15 @@ the URL by hand.
 - Without `JasprConfig(clients:)`, the first render prints a `[WARNING]`
   about a missing `.client.dart` file to stdout. A page that uses `Document`
   without a client script makes Jaspr print this one harmless notice at the
-  first render of each process; it cannot be silenced.
+  first render of each process; it cannot be silenced. With at least one
+  client component in `JasprConfig(clients:)` the notice is not printed (an
+  empty `ClientComponents([])` counts as none).
 - Client components: a page with an island needs a `<base>` that is absent or
   `/`; a change of `JasprConfig` or of the `clients` list during `grund dev`
-  needs a restart of `dev` (a reassemble keeps the module's singletons); a
-  missing bundle is a `WARNING` on `grund.jaspr`, not an error; Jaspr's
+  needs a hot restart (`R`) or a restart of `dev` (a reassemble keeps the
+  module's singletons); a missing bundle is a `WARNING` on `grund.jaspr`,
+  not an error (not logged for an empty `clients` list, which adds no
+  script); Jaspr's
   state is one per process, so two live applications with different
   `clients` lists are not detected. See `docs/jaspr.md`, "Client
   components".

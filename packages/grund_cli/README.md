@@ -154,14 +154,17 @@ Restarting bin/main.dart: lib/src/greeter.dart changed a field, a constructor or
   else changes for an application that ignores the variable.
 - With a browser entry (`lib/main.client.dart`, or `--client-entry <file>`;
   found once, when `dev` starts) `dev` also keeps the client bundle up to
-  date: it builds it before serving and after every change of a `.dart` file,
-  next to the hot reload (`dart compile js -O1` with source maps, never
+  date: it builds it before serving and after every change of a `.dart` file
+  that generates cleanly, next to the hot reload (`dart compile js -O1` with source maps, never
   `-O0`; changes during a build merge into one more build). A failed build
   is printed and the previous bundle stays; the page still reloads.
   `--output <dir>` (default `web/client`) is where the bundle goes. Here
-  `--entry` is still the server entry, an alias of `--target`. A change of
-  `JasprConfig` or of the `clients` list is not applied by a hot reload
-  (singletons are kept): restart with `R`.
+  `--entry` is still the server entry, an alias of `--target`. A
+  `--client-entry` that is not a file stops `dev` with exit code 64 (the
+  default entry, when missing, only means there is no bundle). When you stop
+  `dev`, a build in flight finishes without printing anything and no
+  further build starts. A change of `JasprConfig` or of the `clients` list
+  is not applied by a hot reload (singletons are kept): restart with `R`.
 - `dev` runs the target with `dart <target>`, not `dart run`: no implicit
   `pub get` on every restart, and one process whose `pid` is the
   application's. Run `dart pub get` after editing `pubspec.yaml`, then
@@ -180,16 +183,23 @@ components to it.
   flag; only `dev` builds `-O1` with maps.
 - `--entry` names another entry: the output is its name plus `.js`
   (`site.client.dart` gives `site.client.dart.js`), so a script written on
-  `package:web` can be bundled without a registry. `--output` (`-C` is
-  `--directory`) names the directory under your `JasprConfig.staticDirectory`;
-  the CLI does not read the runtime configuration.
-- The compiler runs in `.dart_tool/grund_bundle/` and only the bundle files
-  move to the output, replacing the old `<entry>.js*` files (stale `.map`
+  `package:web` can be bundled without a registry. With
+  `JasprConfig.clients` the pages load `main.client.dart.js` only, so the
+  entry file must be named `main.client.dart`: `--entry lib/app.client.dart`
+  writes `app.client.dart.js`, which no script tag references (the server
+  warns at startup). An `--entry` that is not a file fails with exit code
+  64. `--output` (`-C` is `--directory`) names the directory under your
+  `JasprConfig.staticDirectory`; the CLI does not read the runtime
+  configuration.
+- The compiler runs in `.dart_tool/grund_bundle/build_*` and only the
+  bundle files move to the output, replacing the old `<entry>.js*` files (stale `.map`
   and compressed siblings go). Compress afterwards (`gzip -9k`,
   `brotli -k`): `/static` serves a `.br` or `.gz` only if it is not older
   than the bundle.
 - Without the entry it prints `No lib/main.client.dart: nothing to bundle.`
-  and exits 0; a compiler error exits 1 with the compiler's output; a
+  and exits 0 (only for the default entry); a compiler error exits 1 with
+  the compiler's output; a bundle file that cannot be moved exits 73; a
+  compiler that cannot be started exits 70; a
   `grund` that is not run by the Dart VM (AOT-compiled) exits 70, because
   it cannot run `dart compile js`.
 
@@ -226,9 +236,12 @@ runs it without `--target`.
 `AccountApi` that signs in and out through forms),
 `lib/src/home_site_module.dart` (the site and its pages), the pages in
 `lib/src/pages/` (`public_site.dart`, the site with its shell; a home page
-that greets the signed-in user; a sign-in page), `web/styles.css`,
-`bin/main.dart` and `test/app_test.dart` (the
-home page and a sign-in through `TestApp`). It needs no `gen`:
+that greets the signed-in user; a sign-in page; `counter.dart`, a hydrated
+client component), `lib/clients.dart` (the list of client components shared
+by the server and the browser), `lib/main.client.dart` (the browser entry),
+`web/styles.css`, `bin/main.dart` and `test/app_test.dart` (the home page
+and a sign-in through `TestApp`); `.gitignore` also ignores `web/client/`,
+where `bundle` writes. It needs no `gen`:
 
 ```sh
 cd my_site
@@ -265,10 +278,10 @@ way).
 | --- | --- |
 | 0 | done (also when there is nothing to generate, when no command is given, and after `--watch` or `dev` stops) |
 | 1 | problems in the sources: diagnostics or syntax errors; `bundle` when `dart compile js` fails |
-| 64 | wrong command line (unknown command or option, `init` without exactly one directory, or with a name that is not a valid package name, a `dev` target outside a directory of the package) |
+| 64 | wrong command line (unknown command or option, `init` without exactly one directory, or with a name that is not a valid package name, a `dev` target outside a directory of the package, an explicit `bundle --entry` or `dev --client-entry` that is not a file) |
 | 66 | no `pubspec.yaml` with a valid `name`, no `lib/`, or no `dev` target |
-| 70 | `dev` stopped by a failure of a generation run, of starting the application or of a key action; `bundle` run by an AOT-compiled `grund` |
-| 73 | a file cannot be written, a foreign file is in the way of the output, or `init` into a directory that is not empty |
+| 70 | `dev` stopped by a failure of a generation run, of starting the application or of a key action; `bundle` run by an AOT-compiled `grund`, or when the compiler cannot be started |
+| 73 | a file cannot be written (also the bundle files of `bundle`), a foreign file is in the way of the output, or `init` into a directory that is not empty |
 | 130 | a second interrupt while `dev` was stopping |
 
 ## Own constructs
