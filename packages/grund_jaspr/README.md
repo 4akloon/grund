@@ -177,16 +177,31 @@ the URL by hand.
   `Jaspr.initializeApp(useIsolates: true)` of your own is a
   `JasprSetupError`: a page reads the call scope of its request, which
   another isolate cannot reach.
-- The first render prints a `[WARNING]` about a missing `.client.dart`
-  file to stdout. A page that uses `Document` without a client script makes
-  Jaspr print this one harmless notice at the first render of each process;
-  it cannot be silenced, and there are no client components in this
-  release.
+- Without `JasprConfig(clients:)`, the first render prints a `[WARNING]`
+  about a missing `.client.dart` file to stdout. A page that uses `Document`
+  without a client script makes Jaspr print this one harmless notice at the
+  first render of each process; it cannot be silenced.
+- Client components: a page with an island needs a `<base>` that is absent or
+  `/`; a change of `JasprConfig` or of the `clients` list during `grund dev`
+  needs a restart of `dev` (a reassemble keeps the module's singletons); a
+  missing bundle is a `WARNING` on `grund.jaspr`, not an error; Jaspr's
+  state is one per process, so two live applications with different
+  `clients` lists are not detected. See `docs/jaspr.md`, "Client
+  components".
 - Interactivity: `Fragments.respond` answers a request with an HTML fragment
   that htmx swaps into the page (see `docs/jaspr.md`, "Fragments and
   htmx"). A fragment request that is not swapped (`401`, `403`, `404` with
   the default htmx 2 settings) shows the user nothing: swap the codes you
   want shown or handle `htmx:responseError`.
 - Do not run the application under `jaspr serve`; use `grund dev`.
-- Not in this release: Markdown pages, hydration (`@client`; server
-  fragments exist), `jaspr_builder`, HTML error pages.
+- Hydration: `JasprConfig(clients: ClientComponents([...]))` lists the
+  components that are hydrated in the browser. The list lives in a file that
+  imports only `package:grund_jaspr/client_components.dart` (no `dart:io`),
+  and `lib/main.client.dart` runs it with `GrundClient.run(clients)` from
+  `package:grund_jaspr/client.dart`. `grund bundle` (`grund_cli`) compiles
+  the entry to `web/client/main.client.dart.js`, which `/static` serves; the
+  script tag is only on pages that contain an island, never in a fragment.
+  An island inside a fragment swapped in later is not hydrated. See
+  `docs/jaspr.md`, "Client components".
+- Not in this release: an `@client` annotation, `jaspr_builder`, HTML error
+  pages.

@@ -13,7 +13,9 @@ Yes, server-side rendered with Jaspr in the same process as the API:
 `grund_jaspr` serves the sites, pages, static files and sitemaps,
 `grund_auth` adds a cookie session that pages and handlers share.
 Interactivity comes from server-rendered HTML fragments swapped in by htmx
-(`Fragments.respond`); hydration (`@client`) is not supported yet. See [jaspr.md](jaspr.md).
+(`Fragments.respond`), or from hydrated Jaspr components registered in
+`JasprConfig(clients:)` and compiled by `grund bundle`; there is no
+`@client` annotation yet. See [jaspr.md](jaspr.md).
 
 **Where is the controller, the guard, the pipe, the interceptor, the filter?**
 An `HttpApi` (`@Api`) is the controller. One type, `HttpHook`, replaces the

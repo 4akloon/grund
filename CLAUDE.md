@@ -31,13 +31,18 @@ pluggable HTTP adapters. It is a Dart pub workspace of pure-Dart packages.
   runner, adapter contract, HTTP annotations), `grund_io` and `grund_shelf`
   (adapters), `grund_generator` (core generator, no HTTP),
   `grund_http_generator` (`@Api` generator), `grund_cli` (`gen`, `dev`,
-  `init`), `grund_build` (build_runner builder), `grund_jaspr`
+  `init`, `bundle`), `grund_build` (build_runner builder), `grund_jaspr`
   (server-side rendered Jaspr sites and pages declared as module bindings,
   static files under `/static` with `ETag`/`304` and precompressed
   siblings, HTML fragments for htmx, sitemaps, canonical page addresses
   with a trailing slash policy, alternate representations such as Markdown
   chosen by `Accept` or by their own URL, generated site files such as
-  `robots.txt`), `grund_auth`
+  `robots.txt`; hydrated client components: the registry
+  `ClientComponents` in the neutral library
+  `package:grund_jaspr/client_components.dart` shared by the server and
+  the browser, the browser runner `GrundClient.run` in
+  `package:grund_jaspr/client.dart`, the bundle built by `grund bundle`),
+  `grund_auth`
   (cookie sessions). Unpublished:
   `grund_conformance` (adapter test suite), the fixture packages
   `cases_app`, `http_cases_app`, `users_app`, and `example`.
@@ -144,6 +149,13 @@ only. It has not run yet.
   other way round. `packages/grund_generator/test/boundary_test.dart`
   fails when a file of its `lib/` mentions `grund_http`, `HttpApi`,
   `HttpCtx`, `HookRef`, `Route` or an HTTP annotation name.
+- **One generator package per layer, not per feature.** There are no new
+  `*_generator` packages. With the first new construct (a WebSocket
+  `@Channel`, or `@client` sugar) `grund_http_generator` is merged into
+  `grund_generator` (`src/core`, `src/http`, `src/<feature>`), and the
+  `boundary_test` becomes a test of imports between those directories: the
+  rule above then reads as a rule about directories, as the core design
+  already puts it. Until then it is only recorded here.
 - **Logging goes through `package:logging`.** The framework logs on named
   loggers `Logger('grund.<area>')` and never configures `Logger.root` itself;
   output is attached explicitly with `LogOutput` (`App.run(log:)`). `App.start`
@@ -218,7 +230,7 @@ only. It has not run yet.
   `grund_cli` tests build packages in a `TempDir` and resolve them
   against this workspace with `WorkspacePackageConfig` (no `pub get`); they
   run the command line in-process (`CliRun`, `GrundCli(out:, err:,
-  interruption:, keys:)`), never as a child process. The exceptions are
+  host: CliHost(interruption:, keys:, compileRunner:))`), never as a child process. The exceptions are
   `dev`'s: its tests start the user's application as a child process with
   the VM service on loopback (`AppProcess`, `DevSession`), and
   `integration/` (run with `dart test integration`, not part of `dart
@@ -336,6 +348,11 @@ producing a response):
   failure into a `CliFailure` with the software exit code and a
   `dev stopped:` message, after stopping the process and closing the
   session;
+- the dev bundle boundary (`grund_cli`): `DevBundle` catches `on
+  IOException` around one bundle build (the compiler process cannot start,
+  files cannot be moved) and prints it as a failed build, keeping the
+  previous bundle; a `CliFailure` (a deterministic refusal, such as a
+  `grund` that is not run by the Dart VM) and an `Error` propagate;
 - adapter boundaries: `IoAdapter` reports a failure of the request handler
   (unexpected: the server answers every error itself) to its `onError` and
   answers 500 without a body, and reports a failure while writing the

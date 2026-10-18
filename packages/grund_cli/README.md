@@ -3,7 +3,8 @@
 The command line tool of grund. `gen` writes the generated files
 (`X.g.dart` for `x.dart`) next to the sources from the annotations
 of a package, `gen --watch` keeps it up to date while
-you edit, `dev` runs the application and hot reloads it on every change, and
+you edit, `dev` runs the application and hot reloads it on every change,
+`bundle` compiles the browser bundle of hydrated Jaspr components, and
 `init` scaffolds a new application.
 
 ```sh
@@ -12,6 +13,7 @@ dart run grund_cli gen --watch            # regenerate on every change, Ctrl+C s
 dart run grund_cli gen --directory packages/shop
 dart run grund_cli dev                    # run bin/main.dart, hot reload on every change
 dart run grund_cli dev -t bin/server.dart -- --port 8080
+dart run grund_cli bundle                 # lib/main.client.dart -> web/client/main.client.dart.js
 dart run grund_cli init my_app            # a new package in ./my_app
 dart run grund_cli init --template fullstack my_site   # pages and sessions
 ```
@@ -19,7 +21,7 @@ dart run grund_cli init --template fullstack my_site   # pages and sessions
 `--directory` is `-C`, `--watch` is `-w` and `--target` is `-t`. Installed as
 an executable (the package declares `grund`, for example
 `dart pub global activate --source path packages/grund_cli`), the same
-commands are `grund gen`, `grund dev` and `grund init`. Without a
+commands are `grund gen`, `grund dev`, `grund bundle` and `grund init`. Without a
 command the tool prints its usage and exits with 0.
 
 ## gen
@@ -150,10 +152,46 @@ Restarting bin/main.dart: lib/src/greeter.dart changed a field, a constructor or
   restarted application serves (the reassemble extension answers). A
   `grund_jaspr` application adds the listening script to its pages; nothing
   else changes for an application that ignores the variable.
+- With a browser entry (`lib/main.client.dart`, or `--client-entry <file>`;
+  found once, when `dev` starts) `dev` also keeps the client bundle up to
+  date: it builds it before serving and after every change of a `.dart` file,
+  next to the hot reload (`dart compile js -O1` with source maps, never
+  `-O0`; changes during a build merge into one more build). A failed build
+  is printed and the previous bundle stays; the page still reloads.
+  `--output <dir>` (default `web/client`) is where the bundle goes. Here
+  `--entry` is still the server entry, an alias of `--target`. A change of
+  `JasprConfig` or of the `clients` list is not applied by a hot reload
+  (singletons are kept): restart with `R`.
 - `dev` runs the target with `dart <target>`, not `dart run`: no implicit
   `pub get` on every restart, and one process whose `pid` is the
   application's. Run `dart pub get` after editing `pubspec.yaml`, then
   restart with `R`.
+
+## bundle
+
+`bundle [--entry <file>] [--output <dir>] [--directory <dir>]` compiles the
+browser entry point of a package (`lib/main.client.dart` by default) to
+`<output>/<entry name>.js`, `web/client/main.client.dart.js` by default, where
+`grund_jaspr` serves it under `/static` and points the pages with client
+components to it.
+
+- It always makes the production build: `dart compile js -O2
+  -Djaspr.flags.release=true`, with no source map. There is no `--release`
+  flag; only `dev` builds `-O1` with maps.
+- `--entry` names another entry: the output is its name plus `.js`
+  (`site.client.dart` gives `site.client.dart.js`), so a script written on
+  `package:web` can be bundled without a registry. `--output` (`-C` is
+  `--directory`) names the directory under your `JasprConfig.staticDirectory`;
+  the CLI does not read the runtime configuration.
+- The compiler runs in `.dart_tool/grund_bundle/` and only the bundle files
+  move to the output, replacing the old `<entry>.js*` files (stale `.map`
+  and compressed siblings go). Compress afterwards (`gzip -9k`,
+  `brotli -k`): `/static` serves a `.br` or `.gz` only if it is not older
+  than the bundle.
+- Without the entry it prints `No lib/main.client.dart: nothing to bundle.`
+  and exits 0; a compiler error exits 1 with the compiler's output; a
+  `grund` that is not run by the Dart VM (AOT-compiled) exits 70, because
+  it cannot run `dart compile js`.
 
 ## init
 
@@ -203,7 +241,8 @@ over plain `http` under `dev`; serve a product build behind HTTPS.
 
 The api scaffold depends on `grund`, `grund_io` and `grund_cli` at
 `^0.2.0` and on `grund_http` at `^0.3.0`; the fullstack one also on
-`grund_auth` at `^0.2.0`, on `grund_jaspr` at `^0.3.0` and on `jaspr`
+`grund_auth` at `^0.2.0`, on `grund_jaspr` at `^0.3.1`, on `grund_cli` at
+`^0.2.1` and on `jaspr`
 `>=0.23.5 <0.24.0`. To try a scaffold against a checkout of the
 repository instead of pub.dev, add to its `pubspec.yaml` (with your path):
 
@@ -225,10 +264,10 @@ way).
 | Code | When |
 | --- | --- |
 | 0 | done (also when there is nothing to generate, when no command is given, and after `--watch` or `dev` stops) |
-| 1 | problems in the sources: diagnostics or syntax errors |
+| 1 | problems in the sources: diagnostics or syntax errors; `bundle` when `dart compile js` fails |
 | 64 | wrong command line (unknown command or option, `init` without exactly one directory, or with a name that is not a valid package name, a `dev` target outside a directory of the package) |
 | 66 | no `pubspec.yaml` with a valid `name`, no `lib/`, or no `dev` target |
-| 70 | `dev` stopped by a failure of a generation run, of starting the application or of a key action |
+| 70 | `dev` stopped by a failure of a generation run, of starting the application or of a key action; `bundle` run by an AOT-compiled `grund` |
 | 73 | a file cannot be written, a foreign file is in the way of the output, or `init` into a directory that is not empty |
 | 130 | a second interrupt while `dev` was stopping |
 

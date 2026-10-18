@@ -1,3 +1,18 @@
+## 0.3.1
+
+- Client components (hydration). New libraries
+  `package:grund_jaspr/client_components.dart` (`ClientComponents`,
+  `ClientComponent`: the list shared by the server and the browser, with no
+  `dart:io`) and `package:grund_jaspr/client.dart` (`GrundClient.run`, the
+  browser entry). `JasprConfig(clients:)` makes the server write island
+  markers into pages and the script of `static/client/main.client.dart.js`;
+  the script is only on pages that contain an island, never in a fragment.
+  `grund_cli bundle` builds the bundle.
+- A missing bundle is a `WARNING` on `grund.jaspr` at startup.
+- `JasprSetupError` for client options of your own when `clients` is set;
+  the module puts Jaspr's options back on shutdown.
+- With `clients`, Jaspr's `.client.dart` notice is no longer printed.
+
 ## 0.3.0
 
 - **Breaking:** requires Dart 3.13 (`sdk: ^3.13.0`).

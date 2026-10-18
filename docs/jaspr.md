@@ -15,8 +15,10 @@ injection, one lifecycle and one cookie session:
 
 Pages are rendered on the server. Interactivity comes from HTML fragments
 that the server sends and htmx swaps in (see
-[Fragments and htmx](#fragments-and-htmx)); there is no hydration
-(`@client`), no client bundle and no `jaspr_builder` yet.
+[Fragments and htmx](#fragments-and-htmx)); where typed logic must run in
+the browser, a Jaspr component can be hydrated (see
+[Client components](#client-components)). There is no `@client` annotation
+and no `jaspr_builder` yet.
 
 ```sh
 grund init --template fullstack my_site   # `--template api` is the default
@@ -320,10 +322,11 @@ a delete button, and guests getting `401`.
 - Local state (a few lines of JS, or Alpine) for pure interface state, such
   as tabs, menus and dialogs, that must react within about 50 ms or work
   without the network.
-- A Jaspr island (hydration, when it ships) for typed logic that is shared
-  with the server or is not trivial. An island inside a fragment that is
-  swapped in later is not hydrated: the client reads the island markers
-  once, at start.
+- A Jaspr island (see [Client components](#client-components)) for typed
+  logic that is shared with the server or is not trivial. An island inside a
+  fragment that is swapped in later is not hydrated: the client reads the
+  island markers once, at start. Put islands on the page and let the
+  fragment update the server-rendered content around them.
 
 ## Static files
 
@@ -372,6 +375,180 @@ the JSON 404 `file_not_found`, and the page builder is never called. This
 means a slug with a dot, such as `/projects/v1.2` or `/projects/node.js`,
 is **not** a page request (unless its extension is a page suffix); keep
 dots out of page parameters, or add the extension to `pageSuffixes`.
+
+## Client components
+
+A client component (an island) is a Jaspr component that the server renders
+and the browser then takes over: it keeps its state and handles events
+without a request. Everything else on the page stays plain HTML. Use it by
+the rule in [Choosing the tool](#fragments-and-htmx): a server fragment
+when the truth lives on the server, local state for pure interface state,
+an island for typed or non-trivial client logic.
+
+**Register the components.** One file, shared by the server and the
+browser, lists them. It imports only
+`package:grund_jaspr/client_components.dart`, which depends on nothing but
+`package:jaspr/jaspr.dart` (the main library pulls in `dart:io`, which the
+browser cannot compile):
+
+```dart
+// lib/clients.dart
+import 'package:grund_jaspr/client_components.dart';
+import 'src/web/counter.dart';
+
+const clients = ClientComponents([
+  ClientComponent<Counter>(
+    'counter',
+    encode: Counter.toParams,
+    decode: Counter.fromParams,
+  ),
+]);
+```
+
+- The name matches `[a-z0-9_-]+` and is written into the page. `decode`
+  builds the component in the browser from the parameters; `encode` gives
+  the parameters on the server. Without `encode` the component has no
+  parameters.
+- Write the type argument (`ClientComponent<Counter>`); without it the type
+  is inferred as `Component` and the list has a problem. A duplicate name,
+  two entries for one type and an unusable name are problems too: the
+  server refuses to start with a `JasprSetupError` that lists them, and the
+  browser throws a `StateError`.
+- The registered type is the exact runtime type: a subclass of `Counter` is
+  not an island and renders as ordinary HTML.
+- The parameters travel as JSON in the page, so they must be JSON values
+  (numbers, strings, booleans, lists and maps of them). Anything else makes
+  the render fail with a `500` problem response.
+- The component is compiled for the web: its imports (and theirs) must not
+  reach `dart:io`, `package:jaspr/server.dart` or the server side of your
+  application. A violation shows as a compiler error from `grund bundle`.
+
+**Turn it on.** Give the list to the module, and remove any
+`Jaspr.initializeApp(options: ...)` call of your own from `main`:
+
+```dart
+const JasprModule(config: JasprConfig(clients: clients))
+```
+
+Then use the component in a page like any other (`const Counter(start: 5,
+label: 'Tasks')`). The server writes a marker `<!--@counter data=...-->`
+around its HTML, and the page gets the script of the bundle.
+
+**The browser entry.** `lib/main.client.dart` is the file `grund bundle`
+compiles:
+
+```dart
+import 'package:grund_jaspr/client.dart';
+import 'clients.dart';
+
+void main() => GrundClient.run(clients);
+```
+
+`GrundClient.run` hydrates every marker it finds once, at start.
+
+**Build the bundle.**
+
+```sh
+dart run grund_cli bundle        # web/client/main.client.dart.js
+```
+
+`bundle` always makes the production build: `dart compile js -O2
+-Djaspr.flags.release=true`, with no source maps (`/static` serves every
+file of `web/`, and a map would publish your sources). There is no
+`--release` flag and no `-O0`. Options: `--entry <file>` (default
+`lib/main.client.dart`; the output name is the entry's name plus `.js`),
+`--output <dir>` (default `web/client`; give the directory under your
+`JasprConfig.staticDirectory` plus `/client` when you changed it, because
+the CLI does not read the runtime configuration) and `--directory`/`-C`.
+It replaces the old `main.client.dart.js*` files of the output directory,
+including stale compressed siblings. Without the entry it prints a message
+and exits `0`. It needs the Dart VM: an AOT-compiled `grund` cannot run
+`dart compile js`, so use `dart run grund_cli` or `dart pub global run
+grund_cli`. Add `web/client/` to `.gitignore`; the scaffold of `grund init
+--template fullstack` does.
+
+`bundle` does not compress. `/static` serves precompressed siblings (see
+[Static files](#static-files)), so compress after building:
+
+```sh
+gzip -9k web/client/main.client.dart.js
+brotli -k web/client/main.client.dart.js
+```
+
+A sibling older than the bundle is ignored, so run these after every
+`bundle`.
+
+**The script is on pages with islands only.** The bundle's script tag is
+`<script src="static/client/main.client.dart.js" defer>`, a relative
+address built from `staticPath`. A page without a marker gets no script,
+and a fragment never does. Jaspr renders the `src` relative to the base of
+the document: with Jaspr's default `<base href="/">` it stays
+`static/client/main.client.dart.js` and resolves to `/static/...` from any
+page; with no `<base>` tag it renders `/static/client/main.client.dart.js`.
+Either works. A `<base>` with another value breaks the address, so a page
+with islands needs a `<base>` that is absent or `/` (see [Things to
+know](#things-to-know)).
+
+**Under `grund dev`.** `dev` builds the bundle before it serves (`-O1`
+with source maps, never `-O0`), and again, in parallel with the hot
+reload, after every change of a `.dart` file; changes during a build merge
+into one more build. A failed build is printed and the previous bundle
+stays; the live reload is still sent, because the page needs the server
+changes. Changing the browser entry is `--client-entry <file>` (default
+`lib/main.client.dart`; `dev --entry` is the server entry, an alias of
+`--target`); `--output` is as for `bundle`. Whether the package has a
+browser entry is decided once, when `dev` starts: add `main.client.dart`
+and restart `dev`.
+
+A hot reload of a component's body (and of its `encode`/`decode`) works.
+It does not run `onInit` again and keeps the module's singletons, so a
+change of `JasprConfig` or of the `clients` list is not picked up: restart
+`grund dev` (`R` for a hot restart).
+
+**A missing bundle** is a `WARNING` on the logger `grund.jaspr` at
+startup: `JasprConfig.clients` is set and
+`<staticDirectory>/client/main.client.dart.js` is not a file there (for
+example `bundle` was not run). The server starts anyway, since tests and
+deployments that serve the bundle from a CDN do not keep it beside the
+server, and the pages are served without hydration. The reverse is not
+detected: a `lib/main.client.dart` with no `JasprConfig.clients` hydrates
+nothing.
+
+**One Jaspr state per process.** Jaspr keeps its server options in
+process-wide state. `JasprModule` installs the client options there itself
+and refuses (with a `JasprSetupError`) `useIsolates: true` and options that
+you installed yourself with clients or styles. A hot reload and the next
+`TestApp` replace its own options; the options are put back when the module
+shuts down. Two applications alive in one process at the same time with
+different `clients` lists are not detected: the later one wins.
+
+**Limits.**
+
+- An island inside a fragment that htmx swaps in after the page loaded is not
+  hydrated: the client looks for markers once, at start. Put islands on the
+  page and let the fragment update the server content around them (the
+  example's counter sits next to the task list, and adding a task does not
+  reset it).
+- There is no lazy loading of components; the bundle holds all of them.
+- The scripts are the whole bundle (about 35 KB with brotli for a
+  counter); a page with no island does not load it.
+
+**Check it in a browser.** The automatic tests check the markup and the
+compilation, not the running script. By hand, with the scaffold or the
+example:
+
+1. `dart run grund_cli bundle` in the package (`example/` or a package made
+   by `grund init --template fullstack`).
+2. Run the server (`dart run grund_cli dev`, or the application as in its
+   README) and open the home page.
+3. Press the counter's buttons: the number changes and the network panel
+   shows no request.
+4. View the page source: the island is wrapped in a `<!--@counter ...-->`
+   marker, and the `<script src="...main.client.dart.js">` tag is there.
+   Open a page without islands (or the 404 page) and a fragment response:
+   neither has the script tag.
+5. Add a task through the htmx form: the list updates and the counter keeps
+   its value.
 
 ## Addresses: base URL and trailing slash
 
@@ -775,10 +952,10 @@ build.
 ## Things to know
 
 - **The first render prints a warning about `.client.dart`** to stdout
-  (`[WARNING] ...`). A page that uses `Document` without a client script
-  makes Jaspr print this one harmless notice at the first render of each
-  process; it cannot be silenced and this release has no client
-  components.
+  (`[WARNING] ...`) when no client components are configured. A page that
+  uses `Document` without a client script makes Jaspr print this one
+  harmless notice at the first render of each process; it cannot be
+  silenced. With `JasprConfig(clients:)` the notice does not appear.
 - **Read cookies with `GrundScope.of(context).cookies`**, not with Jaspr's
   `context.cookies`, which throws on a malformed `cookie` header.
 - **A component that throws** is a 500 `application/problem+json`
@@ -794,9 +971,10 @@ build.
 - **`<base href="/">`.** Jaspr's `Document` adds `<base href="/">` by
   default, so a link `#section` leads to the home page, not to the
   current one. Write the full `/current/path#section`, or pass
-  `Document(base: null)`; `null` is also what client hydration needs
-  (a `<base>` that is absent or `/`). The framework does not own the
-  `Document`: your shell does.
+  `Document(base: null)`. A page with [client components](#client-components)
+  needs a `<base>` that is absent or `/`, because the bundle's script
+  address is relative. The framework does not own the `Document`: your shell
+  does.
 - **Dotted last segments** (`/projects/v1.2`) are still file requests, but
   a declared alternate suffix (`/projects/grund.md`) and a declared site file
   are matched first; the page of such a value is at `/projects/v1.2/`.
@@ -809,6 +987,8 @@ build.
   `grund dev` signs everyone out) and are not shared between processes.
 - **Jaspr is initialized once per process**, without isolates. Calling
   `Jaspr.initializeApp(useIsolates: true)` yourself is a
-  `JasprSetupError`.
+  `JasprSetupError`, and so are options of your own with client components
+  when `JasprConfig.clients` is set (see
+  [Client components](#client-components)).
 - **`grund_jaspr` does not depend on `grund_auth`**: pages see
   `CurrentUser` only because `SessionHook` sets it in the call scope.
