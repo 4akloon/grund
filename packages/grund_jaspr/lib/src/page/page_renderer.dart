@@ -1,6 +1,7 @@
 import 'package:grund_http/grund_http.dart';
 import 'package:jaspr/jaspr.dart' show Component;
 
+import '../client_script_removal.dart';
 import '../live_reload_script.dart';
 import 'component_rendering.dart';
 import 'page_match.dart';
@@ -28,11 +29,8 @@ final class PageRenderer {
     int status = 200,
     PageMatch? match,
   }) async {
-    final response = await ComponentRendering.render(
-      c,
-      page,
-      status: status,
-      match: match,
+    final response = ClientScriptRemoval.unlessIslands(
+      await ComponentRendering.render(c, page, status: status, match: match),
     );
     final url = liveReloadUrl;
     return url == null ? response : LiveReloadScript.addTo(response, url);

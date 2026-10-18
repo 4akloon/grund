@@ -3,6 +3,8 @@
 /// lifecycle.
 library;
 
+export 'src/client/client_component.dart';
+export 'src/client/client_components.dart';
 export 'src/grund_context.dart';
 export 'src/fragments.dart';
 export 'src/grund_scope.dart';

@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:grund/grund.dart';
 
+import 'client/client_bundle_check.dart';
+import 'client/client_options_lease.dart';
 import 'jaspr_config.dart';
 import 'jaspr_setup.dart';
 import 'live_reload_script.dart';
@@ -52,6 +54,10 @@ final class JasprModule extends Module {
   @override
   List<Binding<Object>> get bindings => [
     Singleton<JasprConfig>((_) => _withEnvironment(), dependsOn: const []),
+    Singleton<ClientOptionsLease>(
+      (_) => ClientOptionsLease(),
+      dependsOn: const [],
+    ),
     Singleton<PageRenderer>(
       (i) => PageRenderer(liveReloadUrl: i<JasprConfig>().liveReloadUrl),
       dependsOn: const [Key<JasprConfig>()],
@@ -137,8 +143,15 @@ final class JasprModule extends Module {
   @override
   void onInit(Injector injector) {
     config.validate();
-    JasprSetup.ensureInitialized();
+    injector<ClientOptionsLease>().installed = JasprSetup.initialize(config);
+    if (config.clients != null) {
+      ClientBundleCheck.warnIfMissing(config, injector<StaticFiles>());
+    }
   }
+
+  @override
+  void onShutdown(Injector injector) =>
+      JasprSetup.release(injector<ClientOptionsLease>().installed);
 
   JasprConfig _withEnvironment() => config.liveReloadUrl != null
       ? config

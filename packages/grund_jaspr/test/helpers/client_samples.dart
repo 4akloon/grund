@@ -33,3 +33,9 @@ class Plain extends StatelessComponent {
   @override
   Component build(BuildContext context) => const Component.text('plain');
 }
+
+/// A subclass of [Counter], which the registry does not know.
+class LoudCounter extends Counter {
+  /// Creates the component.
+  const LoudCounter(super.start, super.label, {super.key});
+}

@@ -6,7 +6,7 @@ import 'package:jaspr/dom.dart';
 import 'package:jaspr/server.dart' hide Key;
 import 'package:test/test.dart';
 
-import 'helpers/pages.dart';
+import 'helpers/client_samples.dart';
 import 'helpers/sites.dart';
 
 const _clientId = 'static/client/main.client.dart.js';
@@ -40,22 +40,30 @@ final class _FragmentModule extends Module {
 // its own for a configured clientId.
 void main() {
   setUpAll(() {
-    Jaspr.initializeApp(options: const ServerOptions(clientId: _clientId));
+    Jaspr.initializeApp(
+      options: ServerOptions(
+        clientId: _clientId,
+        clients: {Counter: ClientTarget<Counter>('counter')},
+      ),
+    );
     JasprSetup.ensureInitialized();
   });
 
-  test('a page has the client script, a fragment has none', () async {
-    final client = await startPublic(
-      [homePage(const UrlPage())],
-      modules: [const _FragmentModule()],
-    );
+  test(
+    'a page with an island has the client script, a fragment has none',
+    () async {
+      final client = await startPublic(
+        [homePage(const Counter(1, 'n'))],
+        modules: [const _FragmentModule()],
+      );
 
-    final page = await client.get('/');
-    final fragment = await client.get('/frag');
+      final page = await client.get('/');
+      final fragment = await client.get('/frag');
 
-    expect(page.text, contains('main.client.dart.js'));
-    expect(fragment.text, contains('<p>item</p>'));
-    expect(fragment.text, isNot(contains('main.client.dart.js')));
-    expect(fragment.text, isNot(contains('<head')));
-  });
+      expect(page.text, contains('main.client.dart.js'));
+      expect(fragment.text, contains('<p>item</p>'));
+      expect(fragment.text, isNot(contains('main.client.dart.js')));
+      expect(fragment.text, isNot(contains('<head')));
+    },
+  );
 }

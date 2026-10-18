@@ -1,4 +1,3 @@
-import 'package:grund_jaspr/client_components.dart';
 import 'package:grund_jaspr/grund_jaspr.dart';
 import 'package:grund_jaspr/src/jaspr_setup.dart';
 import 'package:jaspr/server.dart';
