@@ -1,4 +1,4 @@
-import '../client_components.dart';
+import 'client/client_components.dart';
 import 'error/jaspr_error.dart';
 
 /// How `JasprModule` serves pages and static files.
@@ -65,7 +65,7 @@ final class JasprConfig {
 
   /// The path of the client script relative to the site root (no leading
   /// `/`), derived from [staticPath]; `null` when [clients] is `null` or
-  /// empty.
+  /// empty. Read it after [validate]: it assumes a valid [staticPath].
   String? get clientId => switch (clients) {
     ClientComponents(components: final list) when list.isNotEmpty =>
       '${staticPath.substring(1)}/$clientDirectory/$clientScript',
@@ -73,11 +73,10 @@ final class JasprConfig {
   };
 
   /// Throws [JasprSetupError] for a [pageSuffixes] entry that starts with
-  /// `.`, a malformed [staticPath] (also one with `*` or `:`), a
-  /// [rootFiles] entry that is not a plain file name (empty, `.`, `..`, or
-  /// with `/`, `*` or `:`), a [sitemapChunkSize] below 1 or any of the
-  /// [clients] `problems`; `JasprModule`
-  /// calls it when the application starts.
+  /// `.`, a malformed [staticPath] (also one with `*` or `:`), a [rootFiles]
+  /// entry that is not a plain file name (empty, `.`, `..`, or with `/`, `*`
+  /// or `:`), a [sitemapChunkSize] below 1 or any of the [clients] `problems`;
+  /// `JasprModule` calls it when the application starts.
   void validate() {
     if (!staticPath.startsWith('/') ||
         staticPath.endsWith('/') ||

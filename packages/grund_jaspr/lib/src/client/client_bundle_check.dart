@@ -7,11 +7,11 @@ import '../site/static_files.dart';
 abstract final class ClientBundleCheck {
   static final Logger _log = Logger('grund.jaspr');
 
-  /// Logs a `WARNING` on `grund.jaspr` when `config.clients` is set and the
-  /// bundle file is not in [files]; starting goes on, since the bundle may be
+  /// Logs a `WARNING` on `grund.jaspr` when `config` has a client script
+  /// (`clientId`, so at least one client component) and the bundle file is not in [files]; starting goes on, since the bundle may be
   /// built while the application runs.
   static void warnIfMissing(JasprConfig config, StaticFiles files) {
-    if (config.clients == null) return;
+    if (config.clientId == null) return;
     const directory = JasprConfig.clientDirectory;
     const script = JasprConfig.clientScript;
     if (files.find([directory, script]) != null) return;

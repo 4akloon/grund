@@ -144,9 +144,7 @@ final class JasprModule extends Module {
   void onInit(Injector injector) {
     config.validate();
     injector<ClientOptionsLease>().installed = JasprSetup.initialize(config);
-    if (config.clients != null) {
-      ClientBundleCheck.warnIfMissing(config, injector<StaticFiles>());
-    }
+    ClientBundleCheck.warnIfMissing(config, injector<StaticFiles>());
   }
 
   @override

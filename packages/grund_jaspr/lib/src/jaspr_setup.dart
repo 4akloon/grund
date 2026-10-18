@@ -33,8 +33,7 @@ abstract final class JasprSetup {
   ///
   /// Throws [JasprSetupError] when Jaspr was initialized by someone else with
   /// client options or styles (anything but the default options), or to
-  /// render in other isolates. Pass the result to
-  /// [release] on shutdown.
+  /// render in other isolates. Pass the result to [release] on shutdown.
   static ServerOptions? initialize(JasprConfig config) {
     ensureInitialized();
     if (config.clients == null) return null;
@@ -48,8 +47,8 @@ abstract final class JasprSetup {
     if (!ours && !bare) {
       throw const JasprSetupError(
         'Jaspr was initialized with options of its own (client components, a '
-        'client script or styles). A JasprModule '
-        'with JasprConfig.clients installs them itself; remove the '
+        'client script or styles). A JasprModule with JasprConfig.clients '
+        'installs them itself; remove the '
         'Jaspr.initializeApp(options: ServerOptions(...)) call from main.',
       );
     }

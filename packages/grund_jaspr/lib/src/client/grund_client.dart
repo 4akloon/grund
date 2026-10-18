@@ -17,14 +17,16 @@ abstract final class GrundClient {
     Jaspr.initializeApp(
       options: ClientOptions(
         clients: {
-          for (final component in clients.components) ..._loader(component),
+          for (final component in clients.components) ..._loadersOf(component),
         },
       ),
     );
     runApp(const ClientApp());
   }
 
-  static Map<String, ClientLoader> _loader(
+  // A map, not a [ClientLoader], so that the type-erased entry can be
+  // returned from the generic callback of [ClientComponent.withType].
+  static Map<String, ClientLoader> _loadersOf(
     ClientComponent<Component> component,
   ) => component.withType(
     <C extends Component>(entry) => {

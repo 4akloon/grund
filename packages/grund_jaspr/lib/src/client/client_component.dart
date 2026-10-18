@@ -4,9 +4,9 @@ import 'client_entry.dart';
 
 /// A component that hydrates in the browser, registered under a [name].
 ///
-/// Write the type argument explicitly (the counter example takes the type
-/// `Counter`). The server matches that type against the rendered components,
-/// and it is inferred as `Component` when left out.
+/// Write the type argument explicitly, as in `ClientComponent<Counter>`: the
+/// server matches that type against the rendered components, and without it
+/// the type is inferred as `Component`, which matches nothing useful.
 final class ClientComponent<T extends Component> {
   /// Registers a component under [name] (`[a-z0-9_-]+`).
   ///

@@ -7,6 +7,13 @@ import 'client_component.dart';
 abstract final class ServerClientOptions {
   /// The options that make Jaspr mark the components of `config.clients` and
   /// add the `clientId` script to the pages that contain one.
+  ///
+  /// An island's parameters are written into an HTML comment (`data=`) and
+  /// cannot end it with `-->`: Jaspr guarantees that (`ClientTarget(params:)`
+  /// goes through `jsonEncode` and `DomValidator.escapeMarkerText`, which
+  /// escapes `&`, `<` and `>`), so nothing is escaped here. Check this again
+  /// on a Jaspr upgrade; `test/hydration_markup_test.dart` (a parameter
+  /// holding `-->`) is the guard.
   static ServerOptions of(JasprConfig config) => ServerOptions(
     clientId: config.clientId,
     clients: {
