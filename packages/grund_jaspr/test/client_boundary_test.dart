@@ -35,8 +35,11 @@ void main() {
   for (final path in _neutral) {
     test('$path imports only jaspr.dart and the neutral library', () {
       final allowed = {'package:jaspr/jaspr.dart', ..._neutral};
+      final targets = _targets(path);
 
-      expect(_targets(path).where((uri) => !allowed.contains(uri)), isEmpty);
+      // An empty list would mean the directive pattern stopped matching.
+      expect(targets, isNotEmpty);
+      expect(targets.where((uri) => !allowed.contains(uri)), isEmpty);
     });
   }
 
@@ -48,8 +51,10 @@ void main() {
         ..._neutral,
         'lib/src/client/grund_client.dart',
       };
+      final targets = _targets(path);
 
-      expect(_targets(path).where((uri) => !allowed.contains(uri)), isEmpty);
+      expect(targets, isNotEmpty);
+      expect(targets.where((uri) => !allowed.contains(uri)), isEmpty);
     });
   }
 }

@@ -5,8 +5,8 @@ import 'package:args/command_runner.dart';
 import 'package:path/path.dart' as p;
 import 'package:watcher/watcher.dart';
 
-import '../dev/dev_bundle.dart';
 import '../bundle/client_bundler.dart';
+import '../dev/dev_bundle.dart';
 import '../dev/dev_session.dart';
 import '../dev/dev_target.dart';
 import '../dev/live_reload_hub.dart';
