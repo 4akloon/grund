@@ -1,27 +1,24 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:args/args.dart';
 import 'package:args/command_runner.dart';
 import 'package:path/path.dart' as p;
 import 'package:watcher/watcher.dart';
 
-import '../bundle/client_bundler.dart';
 import '../dev/dev_bundle.dart';
-import '../dev/dev_printer.dart';
+import '../bundle/client_bundler.dart';
 import '../dev/dev_session.dart';
 import '../dev/dev_target.dart';
 import '../dev/live_reload_hub.dart';
 import '../dev/live_reload_start.dart';
-import '../dev/merged_watcher.dart';
 import '../dev/terminal_keys.dart';
 import '../generate/generation_session.dart';
 import '../package/package_root.dart';
 import '../watch/watch_loop.dart';
 import 'cli_exit_code.dart';
 import 'cli_failure.dart';
+import 'dev_wiring.dart';
 import 'grund_cli.dart';
-import 'report_printer.dart';
 
 /// `dev`: runs the application and, on every change of `lib/` or of the
 /// directory of its entry point, generates the package and hot reloads the
@@ -95,7 +92,7 @@ final class DevCommand extends Command<int> {
         target,
         options.rest,
         liveReload,
-        _bundle(package, options),
+        DevWiring(cli).bundle(package, options),
       );
     } finally {
       await liveReload.close();
@@ -110,8 +107,9 @@ final class DevCommand extends Command<int> {
     LiveReloadHub liveReload,
     DevBundle? bundle,
   ) async {
+    final wiring = DevWiring(cli);
     final session = GenerationSession(package, generator: cli.generator);
-    final dev = _session(
+    final dev = wiring.session(
       DevTarget(
         package,
         entry: target,
@@ -132,7 +130,13 @@ final class DevCommand extends Command<int> {
     final stop = Future.any([stopped.whenComplete(dev.stop), failure.future]);
     try {
       await bundle?.initial();
-      final (watcher, loop) = _watchLoop(package, target, session, dev, bundle);
+      final (watcher, loop) = wiring.watchLoop(
+        package,
+        target,
+        session,
+        dev,
+        bundle,
+      );
       await _run(loop, watcher, session, dev, stop);
     } finally {
       try {
@@ -167,71 +171,6 @@ final class DevCommand extends Command<int> {
     }
   }
 
-  DevSession _session(
-    DevTarget target,
-    LiveReloadHub liveReload,
-    DevBundle? bundle,
-  ) {
-    if (TerminalKeys.isInteractive) {
-      cli.out.writeln('Press r to hot reload, R to hot restart.');
-    }
-    return DevSession(
-      target,
-      printer: DevPrinter(
-        target.package.display(target.entry),
-        cli.out,
-        cli.err,
-      ),
-      out: cli.out,
-      // Open pages reload once the bundle is built too, also a failed build.
-      onServing: bundle == null
-          ? liveReload.broadcastReload
-          : () => unawaited(
-              bundle.settled.then((_) => liveReload.broadcastReload()),
-            ),
-    );
-  }
-
-  /// The bundle of the browser entry, or `null` when the package has none.
-  DevBundle? _bundle(PackageRoot package, ArgResults options) {
-    final bundler = ClientBundler(
-      package,
-      entry: options.option('client-entry') ?? ClientBundler.defaultEntry,
-      outputDirectory:
-          options.option('output') ?? ClientBundler.defaultOutputDirectory,
-      runner: cli.host.compileRunner,
-    );
-    return bundler.hasEntry ? DevBundle(bundler, out: cli.out) : null;
-  }
-
-  (Watcher, WatchLoop) _watchLoop(
-    PackageRoot package,
-    String target,
-    GenerationSession session,
-    DevSession dev,
-    DevBundle? bundle,
-  ) {
-    final (watcher, watched) = _watch(package, target);
-    return (watcher, _loop(session, dev, bundle, watched));
-  }
-
-  WatchLoop _loop(
-    GenerationSession session,
-    DevSession dev,
-    DevBundle? bundle,
-    String watched,
-  ) => WatchLoop.custom(
-    generate: (changed) => session.run(changed: changed),
-    watched: watched,
-    printer: ReportPrinter(cli.out, cli.err),
-    afterRun: (changed, report) {
-      // In parallel with the reload; only sources that generate cleanly. The
-      // first run (no changes) is covered by the initial build.
-      if (changed.isNotEmpty && !report.hasProblems) bundle?.request();
-      return dev.apply(changed, report);
-    },
-  );
-
   /// What `dev` does with the interrupt number `received`: the first stops
   /// it (through [Interruption.listen]'s `stopped`) and takes `SIGINT`'s
   /// default away, so that a second one, while the application is still
@@ -263,18 +202,6 @@ final class DevCommand extends Command<int> {
     throw CliFailure(
       CliExitCode.noInput,
       'No $relative in ${package.path}; pass the entry point with --target.',
-    );
-  }
-
-  /// The watcher of `lib/` and of the directory of [target], and how the
-  /// watched directories are printed.
-  static (Watcher, String) _watch(PackageRoot package, String target) {
-    final lib = DirectoryWatcher(package.libPath);
-    if (p.isWithin(package.libPath, target)) return (lib, 'lib');
-    final directory = p.dirname(target);
-    return (
-      MergedWatcher(package.path, [lib, DirectoryWatcher(directory)]),
-      'lib/ and ${package.display(directory)}',
     );
   }
 
