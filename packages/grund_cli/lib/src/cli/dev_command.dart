@@ -97,8 +97,8 @@ final class DevCommand extends Command<int> {
       liveReload,
     );
     final failure = Completer<void>();
-    final keys = cli.keys().listen((key) => _press(dev, key, failure));
-    final (:stopped, :subscription) = cli.interruption.listen(
+    final keys = cli.host.keys().listen((key) => _press(dev, key, failure));
+    final (:stopped, :subscription) = cli.host.interruption.listen(
       _forceOnSecond(dev, failure.future),
     );
     // Stopping the session at the interrupt itself, not after the watch
@@ -179,7 +179,7 @@ final class DevCommand extends Command<int> {
       if (received < 2 && !failed) return;
       dev.kill();
       TerminalKeys.restore();
-      cli.interruption.forceExit(CliExitCode.interrupted.code);
+      cli.host.interruption.forceExit(CliExitCode.interrupted.code);
     };
   }
 

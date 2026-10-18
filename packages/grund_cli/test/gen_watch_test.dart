@@ -20,7 +20,9 @@ void main() {
     final exitCode = GrundCli(
       out: lines,
       err: lines,
-      interruption: Interruption(untilStopped: () => stop.future),
+      host: CliHost(
+        interruption: Interruption(untilStopped: () => stop.future),
+      ),
     ).run(['gen', '--watch', '--directory', package.dir.path]);
 
     expect(await lines.next(), startsWith('Generated 2 files'));

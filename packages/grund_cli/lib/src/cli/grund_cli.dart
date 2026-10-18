@@ -5,16 +5,13 @@ import 'package:args/command_runner.dart';
 import 'package:grund_generator/grund_generator.dart';
 import 'package:grund_http_generator/grund_http_generator.dart';
 
-import '../bundle/compile_runner.dart';
-import '../bundle/process_compile_runner.dart';
-import '../dev/terminal_keys.dart';
 import 'bundle_command.dart';
 import 'cli_exit_code.dart';
 import 'cli_failure.dart';
+import 'cli_host.dart';
 import 'dev_command.dart';
 import 'gen_command.dart';
 import 'init_command.dart';
-import 'interruption.dart';
 
 /// The `grund_cli` command line.
 ///
@@ -23,22 +20,16 @@ import 'interruption.dart';
 /// `GrundCli(generator: GrundGenerator([...])).run(arguments)`.
 final class GrundCli {
   /// Creates the command line; output goes to [out] and [err] (stdout and
-  /// stderr by default), `gen` runs [generator], `gen --watch` and `dev`
-  /// stop on the first interrupt of [interruption] (Ctrl+C, or `SIGTERM`
-  /// outside Windows, by default) and `dev` reads its `r` and `R` from
-  /// [keys] (the terminal by default); `bundle` compiles with
-  /// [compileRunner] (`dart compile js` by default).
+  /// stderr by default), `gen` runs [generator], and [host] holds the
+  /// process-level seams (interruption, keys, the JavaScript compiler).
   GrundCli({
     StringSink? out,
     StringSink? err,
     this.generator = StandardGenerator.instance,
-    Interruption? interruption,
-    Stream<String> Function()? keys,
-    this.compileRunner = const ProcessCompileRunner(),
+    CliHost? host,
   }) : out = out ?? stdout,
        err = err ?? stderr,
-       interruption = interruption ?? Interruption(),
-       keys = keys ?? TerminalKeys.read;
+       host = host ?? CliHost();
 
   /// Where results and usage go.
   final StringSink out;
@@ -49,14 +40,8 @@ final class GrundCli {
   /// The constructs `gen` runs.
   final GrundGenerator generator;
 
-  /// How `gen --watch` and `dev` are stopped.
-  final Interruption interruption;
-
-  /// Called when `dev` starts: the keys pressed while it runs.
-  final Stream<String> Function() keys;
-
-  /// What `bundle` compiles with.
-  final CompileRunner compileRunner;
+  /// The process-level seams.
+  final CliHost host;
 
   /// Runs the command in [arguments] and returns the process exit code
   /// (see [CliExitCode]).

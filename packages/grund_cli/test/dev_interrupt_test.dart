@@ -22,11 +22,13 @@ void main() {
     final done = GrundCli(
       out: lines,
       err: lines,
-      interruption: Interruption(
-        signals: () => signals.stream,
-        forceExit: exits.add,
+      host: CliHost(
+        interruption: Interruption(
+          signals: () => signals.stream,
+          forceExit: exits.add,
+        ),
+        keys: () => const Stream<String>.empty(),
       ),
-      keys: () => const Stream<String>.empty(),
     ).run(['dev', '-C', app.package.dir.path]);
     final started = await lines.nextWhere((line) => _pidIn(line) != null);
     final pid = _pidIn(started) ?? 0;
@@ -49,11 +51,13 @@ void main() {
     final done = GrundCli(
       out: lines,
       err: lines,
-      interruption: Interruption(
-        signals: () => signals.stream,
-        forceExit: exits.add,
+      host: CliHost(
+        interruption: Interruption(
+          signals: () => signals.stream,
+          forceExit: exits.add,
+        ),
+        keys: () => const Stream<String>.empty(),
       ),
-      keys: () => const Stream<String>.empty(),
     ).run(['dev', '-C', app.package.dir.path]);
     await lines.nextWhere((line) => _pidIn(line) != null);
 

@@ -27,8 +27,10 @@ void main() {
     final done = GrundCli(
       out: out,
       err: out,
-      interruption: Interruption(untilStopped: () => stop.future),
-      keys: () => keys.stream,
+      host: CliHost(
+        interruption: Interruption(untilStopped: () => stop.future),
+        keys: () => keys.stream,
+      ),
     ).run(['dev', '-C', package.dir.path]);
     final line = await out.nextWhere((line) => line.startsWith('live reload '));
     final events = await EventClient.connect(

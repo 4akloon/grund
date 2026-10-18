@@ -84,8 +84,10 @@ void main() {
       out: out,
       err: err,
       generator: const GrundGenerator([ExplodingConstruct()]),
-      interruption: Interruption(signals: () => signals.stream),
-      keys: () => const Stream<String>.empty(),
+      host: CliHost(
+        interruption: Interruption(signals: () => signals.stream),
+        keys: () => const Stream<String>.empty(),
+      ),
     ).run(['dev', '-C', package.dir.path]);
 
     expect(code, CliExitCode.software.code);
@@ -105,8 +107,10 @@ void main() {
     final done = GrundCli(
       out: out,
       err: out,
-      interruption: Interruption(untilStopped: () => stop.future),
-      keys: () => const Stream<String>.empty(),
+      host: CliHost(
+        interruption: Interruption(untilStopped: () => stop.future),
+        keys: () => const Stream<String>.empty(),
+      ),
     ).run(['dev', '-C', package.dir.path, '-t', 'lib/main.dart']);
 
     await out.nextWhere((line) => line.startsWith('Watching '));

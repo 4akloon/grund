@@ -59,7 +59,7 @@ final class BundleCommand extends Command<int> {
       PackageRoot.open(options.option('directory') ?? '.'),
       entry: options.option('entry') ?? ClientBundler.defaultEntry,
       outputDirectory: output,
-      runner: cli.compileRunner,
+      runner: cli.host.compileRunner,
     );
     switch (await bundler.build(release: true)) {
       case BundleBuilt(:final elapsed):

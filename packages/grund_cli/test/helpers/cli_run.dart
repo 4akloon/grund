@@ -16,7 +16,9 @@ final class CliRun {
     final code = await GrundCli(
       out: out,
       err: err,
-      compileRunner: compileRunner ?? const ProcessCompileRunner(),
+      host: CliHost(
+        compileRunner: compileRunner ?? const ProcessCompileRunner(),
+      ),
     ).run(arguments);
     return CliRun._(code, '$out', '$err');
   }

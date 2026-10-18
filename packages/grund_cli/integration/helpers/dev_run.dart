@@ -66,8 +66,10 @@ final class DevRun {
     final exit = GrundCli(
       out: lines,
       err: lines,
-      interruption: Interruption(untilStopped: () => stop.future),
-      keys: () => keys.stream,
+      host: CliHost(
+        interruption: Interruption(untilStopped: () => stop.future),
+        keys: () => keys.stream,
+      ),
     ).run(['dev', '-C', directory, '--', '$port']);
     final run = DevRun._(port, lines, keys, stop, exit);
     addTearDown(() => killStrays(lines));
