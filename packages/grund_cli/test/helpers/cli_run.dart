@@ -5,10 +5,19 @@ final class CliRun {
   CliRun._(this.exitCode, this.out, this.err);
 
   /// Runs `grund_cli` with [arguments].
-  static Future<CliRun> run(List<String> arguments) async {
+  ///
+  /// `bundle` compiles with [compileRunner] when given.
+  static Future<CliRun> run(
+    List<String> arguments, {
+    CompileRunner? compileRunner,
+  }) async {
     final out = StringBuffer();
     final err = StringBuffer();
-    final code = await GrundCli(out: out, err: err).run(arguments);
+    final code = await GrundCli(
+      out: out,
+      err: err,
+      compileRunner: compileRunner ?? const ProcessCompileRunner(),
+    ).run(arguments);
     return CliRun._(code, '$out', '$err');
   }
 

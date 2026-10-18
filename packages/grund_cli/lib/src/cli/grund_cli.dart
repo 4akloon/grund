@@ -5,7 +5,10 @@ import 'package:args/command_runner.dart';
 import 'package:grund_generator/grund_generator.dart';
 import 'package:grund_http_generator/grund_http_generator.dart';
 
+import '../bundle/compile_runner.dart';
+import '../bundle/process_compile_runner.dart';
 import '../dev/terminal_keys.dart';
+import 'bundle_command.dart';
 import 'cli_exit_code.dart';
 import 'cli_failure.dart';
 import 'dev_command.dart';
@@ -23,13 +26,15 @@ final class GrundCli {
   /// stderr by default), `gen` runs [generator], `gen --watch` and `dev`
   /// stop on the first interrupt of [interruption] (Ctrl+C, or `SIGTERM`
   /// outside Windows, by default) and `dev` reads its `r` and `R` from
-  /// [keys] (the terminal by default).
+  /// [keys] (the terminal by default); `bundle` compiles with
+  /// [compileRunner] (`dart compile js` by default).
   GrundCli({
     StringSink? out,
     StringSink? err,
     this.generator = StandardGenerator.instance,
     Interruption? interruption,
     Stream<String> Function()? keys,
+    this.compileRunner = const ProcessCompileRunner(),
   }) : out = out ?? stdout,
        err = err ?? stderr,
        interruption = interruption ?? Interruption(),
@@ -50,10 +55,14 @@ final class GrundCli {
   /// Called when `dev` starts: the keys pressed while it runs.
   final Stream<String> Function() keys;
 
+  /// What `bundle` compiles with.
+  final CompileRunner compileRunner;
+
   /// Runs the command in [arguments] and returns the process exit code
   /// (see [CliExitCode]).
   Future<int> run(List<String> arguments) async {
     final runner = _Runner(out)
+      ..addCommand(BundleCommand(this))
       ..addCommand(DevCommand(this))
       ..addCommand(GenCommand(this))
       ..addCommand(InitCommand(this));

@@ -9,6 +9,9 @@ library;
 
 export 'package:grund_generator/grund_generator.dart' show SyntaxProblem;
 
+export 'src/bundle/compile_outcome.dart';
+export 'src/bundle/compile_runner.dart';
+export 'src/bundle/process_compile_runner.dart';
 export 'src/cli/cli_exit_code.dart';
 export 'src/cli/cli_failure.dart';
 export 'src/cli/grund_cli.dart';
