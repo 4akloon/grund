@@ -60,13 +60,22 @@ void main() {
   }
 
   test('the options survive a reassemble', () async {
-    var config = _withClients;
-    final app = await start(() => config);
+    final app = await start(() => _withClients);
     expect(await page(app), contains('main.client.dart.js'));
 
     await app.reassemble();
 
     expect(await page(app), contains('main.client.dart.js'));
+  });
+
+  test('close after a reassemble releases the adopted options', () async {
+    final app = await start(() => _withClients);
+    await app.reassemble();
+
+    await app.close();
+
+    expect(Jaspr.options.clientId, isNull);
+    expect(Jaspr.options.clients, anyOf(isNull, isEmpty));
   });
 
   test('the options of the newer application outlive the older one', () async {

@@ -70,6 +70,20 @@ void main() {
       expect(html, contains('<title>Hello</title>'));
     });
 
+    test(
+      'a page with no head content has no script and no empty head',
+      () async {
+        final client = await startPublic([
+          homePage(const LoudCounter(1, 'x')),
+        ], config: const JasprConfig(clients: _clients));
+
+        final html = (await client.get('/')).text;
+
+        expect(html, isNot(contains('<script')));
+        expect(html, isNot(contains('<head></head>')));
+      },
+    );
+
     test('an island without parameters keeps the script', () async {
       final client = await startPublic([
         homePage(const Plain()),
@@ -139,7 +153,6 @@ void main() {
       records = [];
       final subscription = Logger('grund.jaspr').onRecord.listen(records.add);
       addTearDown(subscription.cancel);
-      hierarchicalLoggingEnabled = true;
     });
 
     List<LogRecord> warnings() =>
@@ -170,6 +183,20 @@ void main() {
 
     test('is not checked without clients', () async {
       await startPublic([homePage(const Plain())]);
+
+      expect(warnings(), isEmpty);
+    });
+
+    test('is not checked for an empty list of clients', () async {
+      final temp = TempDir.create();
+
+      await startPublic(
+        [homePage(const Plain())],
+        config: JasprConfig(
+          staticDirectory: temp.path,
+          clients: const ClientComponents([]),
+        ),
+      );
 
       expect(warnings(), isEmpty);
     });

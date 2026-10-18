@@ -110,6 +110,16 @@ void main() {
     expect(Jaspr.options, same(b));
   });
 
+  test('releasing an old owner again after a newer one installed keeps it', () {
+    final a = JasprSetup.initialize(_withCounter);
+    JasprSetup.release(a);
+    final c = JasprSetup.initialize(_otherStatic);
+
+    JasprSetup.release(a);
+
+    expect(Jaspr.options, same(c));
+  });
+
   test('without clients leaves our options alone', () {
     final installed = JasprSetup.initialize(_withCounter);
 

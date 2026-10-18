@@ -103,6 +103,7 @@ void main() {
           clients: ClientComponents([
             counter,
             ClientComponent<Plain>('counter', decode: _plain),
+            ClientComponent<LoudCounter>('Bad Name', decode: _loud),
           ]),
         );
         expect(
@@ -111,7 +112,10 @@ void main() {
             isA<JasprSetupError>().having(
               (e) => e.reason,
               'reason',
-              allOf(contains("'counter' is registered twice")),
+              allOf(
+                contains("'counter' is registered twice"),
+                contains("'Bad Name'"),
+              ),
             ),
           ),
         );
@@ -125,3 +129,5 @@ void main() {
 }
 
 Plain _plain(Map<String, Object?> _) => const Plain();
+
+LoudCounter _loud(Map<String, Object?> _) => const LoudCounter(0, '');

@@ -6,6 +6,7 @@ library;
 
 import 'dart:io';
 
+import 'package:grund_cli/grund_cli.dart' show ProcessCompileRunner;
 import 'package:tasks_api/tasks_api.dart';
 import 'package:test/test.dart';
 
@@ -16,6 +17,8 @@ void main() {
   // package root when the tests run as `dart test integration`.
   final packageRoot = Directory.current.path;
   final output = Directory('$packageRoot/web/client');
+  // An existing output directory (ignored, regenerable) stays after the run.
+  final outputExisted = output.existsSync();
   LoopbackServer? server; // Null until a test's setUp has started it.
 
   setUpAll(() async {
@@ -24,15 +27,15 @@ void main() {
       isTrue,
       reason: 'run from the example package root: $packageRoot',
     );
-    final compiled = await Process.run(Platform.resolvedExecutable, [
-      'compile',
-      'js',
-      '-O2',
-      '-Djaspr.flags.release=true',
-      '-o',
-      'web/client/main.client.dart.js',
-      'lib/main.client.dart',
-    ], workingDirectory: packageRoot);
+    final compiled = await Process.run(
+      Platform.resolvedExecutable,
+      ProcessCompileRunner.arguments(
+        entry: 'lib/main.client.dart',
+        output: 'web/client/main.client.dart.js',
+        release: true,
+      ),
+      workingDirectory: packageRoot,
+    );
     expect(
       compiled.exitCode,
       0,
@@ -41,7 +44,8 @@ void main() {
   });
 
   tearDownAll(() {
-    if (output.existsSync()) output.deleteSync(recursive: true);
+    if (outputExisted || !output.existsSync()) return;
+    output.deleteSync(recursive: true);
   });
 
   setUp(() async {

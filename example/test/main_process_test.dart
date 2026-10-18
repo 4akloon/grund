@@ -54,7 +54,8 @@ void main() {
       expect(
         lines.where(
           (line) =>
-              !line.contains('[grund.app]') && !line.contains('[grund.jaspr]'),
+              !line.contains('[grund.app]') &&
+              !line.contains('The client bundle'),
         ),
         hasLength(1),
         reason: lines.join('\n'),

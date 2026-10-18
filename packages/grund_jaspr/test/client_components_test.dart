@@ -49,9 +49,25 @@ void main() {
     ]);
     expect(list.problems, [
       contains("'Bad Name'"),
-      contains("''"),
+      contains("name '' must"),
       contains("'a/b'"),
     ]);
+  });
+
+  test('two entries typed Component are each named, without a type clash', () {
+    const list = ClientComponents([
+      ClientComponent<Component>('first', decode: _plain),
+      ClientComponent<Component>('second', decode: _plain),
+    ]);
+    expect(list.problems, [
+      contains("'first' has no explicit type"),
+      contains("'second' has no explicit type"),
+    ]);
+  });
+
+  test('an entry without encode has no encoder in its typed view', () {
+    const entry = ClientComponent<Plain>('plain', decode: _plain);
+    expect(entry.withType(<C extends Component>(e) => e.encode), isNull);
   });
 
   test('valid names are accepted', () {

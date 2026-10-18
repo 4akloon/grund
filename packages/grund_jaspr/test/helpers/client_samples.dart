@@ -6,13 +6,13 @@ class Counter extends StatelessComponent {
   const Counter(this.start, this.label, {super.key});
 
   /// Reads the parameters of a marker.
-  static Counter fromParams(Map<String, Object?> p) =>
-      Counter(p['start']! as int, p['label']! as String);
+  static Counter fromParams(Map<String, Object?> params) =>
+      Counter(params['start']! as int, params['label']! as String);
 
-  /// Gives the parameters of [c] for a marker.
-  static Map<String, Object?> toParams(Counter c) => {
-    'start': c.start,
-    'label': c.label,
+  /// Gives the parameters of [counter] for a marker.
+  static Map<String, Object?> toParams(Counter counter) => {
+    'start': counter.start,
+    'label': counter.label,
   };
 
   /// The initial value.
