@@ -42,6 +42,23 @@ void _pages(LoopbackServer Function() server) {
     expect(page.body, contains('href="/static/styles.css"'));
   });
 
+  test('GET / marks the counter island and loads the client bundle', () async {
+    final page = await server().send('GET', '/');
+
+    expect(page.body, contains('<!--@counter data='));
+    expect(
+      page.body,
+      contains('<script src="static/client/main.client.dart.js" defer>'),
+    );
+    expect(page.body, contains('<section id="tasks">'));
+  });
+
+  test('a page without an island does not load the client bundle', () async {
+    final page = await server().send('GET', '/login');
+
+    expect(page.body, isNot(contains('main.client.dart.js')));
+  });
+
   test('the stylesheet is served from web/', () async {
     final css = await server().send('GET', '/static/styles.css');
 

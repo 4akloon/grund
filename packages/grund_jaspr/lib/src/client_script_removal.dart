@@ -16,12 +16,13 @@ abstract final class ClientScriptRemoval {
     final body = response.body;
     if (clientId == null || body is! BytesBody) return response;
     final html = utf8.decode(body.bytes);
-    final cleaned = html.replaceFirst(_script(clientId), '');
-    if (cleaned == html) return response;
+    final alone = html.replaceFirst(_script(clientId), '');
+    if (alone == html) return response;
+    // The removed `<head>` leaves the line break that followed it.
     return HttpResponse(
       response.status,
       headers: response.headers,
-      body: BytesBody(utf8.encode(cleaned)),
+      body: BytesBody(utf8.encode(alone.trimLeft())),
     );
   }
 

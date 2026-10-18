@@ -58,6 +58,18 @@ void _suite(ModuleStyle style, AdapterKind kind) {
     expect(page.body, contains('422'));
   });
 
+  test('a fragment answer carries no client script', () async {
+    final answer = await server.send(
+      'POST',
+      '/fragments/tasks',
+      form: 'title=Buy+milk',
+      headers: await member(),
+    );
+
+    expect(answer.body, isNot(contains('<script')));
+    expect(answer.body, isNot(contains('<!--@')));
+  });
+
   test('POST creates a task and answers the panel only (201)', () async {
     final answer = await server.send(
       'POST',

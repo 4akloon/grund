@@ -4,6 +4,7 @@ import 'package:jaspr/dom.dart';
 import 'package:jaspr/server.dart';
 
 import '../tasks/tasks_service.dart';
+import 'counter.dart';
 import 'task_panel.dart';
 
 /// The content of the `/` page: the task list, who is signed in, and the form
@@ -21,6 +22,7 @@ final class HomePage extends StatelessComponent {
       if (_takeFlash(context))
         p(classes: 'flash', [Component.text('Signed in.')]),
       h1([Component.text('Tasks')]),
+      const Counter(start: 5, label: 'Tasks'),
       TaskPanel(tasks: tasks, editable: user != null),
       if (user == null)
         a(href: '/login', [Component.text('Sign in')])

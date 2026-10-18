@@ -43,7 +43,8 @@ void main() {
 
       expect(await process.exitCode.timeout(const Duration(seconds: 60)), 1);
       // The application logs the rollback as one WARNING line (grund.app);
-      // main adds exactly one line of its own, the last.
+      // main adds exactly one line of its own, the last. The missing client
+      // bundle warning (grund.jaspr) is expected: the test does not build it.
       final lines = (await err).trim().split('\n');
       expect(
         lines.last,
@@ -51,7 +52,10 @@ void main() {
         reason: lines.join('\n'),
       );
       expect(
-        lines.where((line) => !line.contains('[grund.app]')),
+        lines.where(
+          (line) =>
+              !line.contains('[grund.app]') && !line.contains('[grund.jaspr]'),
+        ),
         hasLength(1),
         reason: lines.join('\n'),
       );

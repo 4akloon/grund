@@ -22,11 +22,14 @@ final class LoopbackServer {
   ) async {
     final errors = <Object>[];
     // An unexpected failure is logged (`SEVERE` on `grund.http`); the
-    // adapters also report to `onError`. Both end up in [errors].
+    // adapters also report to `onError`. Both end up in [errors]. The
+    // warning about the client bundle is expected: the tests do not build it.
     final logOutput = LogOutput.console(
       level: Level.WARNING,
       color: false,
-      sink: errors.add,
+      sink: (line) {
+        if (!line.contains('The client bundle')) errors.add(line);
+      },
     ).attach();
     final app = App(
       root: ServingModule(

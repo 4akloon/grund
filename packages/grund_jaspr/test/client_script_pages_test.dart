@@ -107,6 +107,7 @@ void main() {
 
       expect(html, contains('<!--@counter'));
       expect(html, isNot(contains(_bundle)));
+      expect(html, startsWith('<'), reason: 'no blank line where the head was');
     });
   });
 

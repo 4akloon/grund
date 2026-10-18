@@ -2,6 +2,7 @@ import 'package:grund/grund.dart';
 import 'package:grund_auth/grund_auth.dart';
 import 'package:grund_jaspr/grund_jaspr.dart';
 
+import '../../clients.dart';
 import '../tasks/tasks_service.dart';
 
 import 'home_markdown.dart';
@@ -31,7 +32,7 @@ final class WebModule extends Module {
     const SessionModule(config: SessionConfig(secure: false)),
     // Imported once here: this web part is shared by both roots, AppModule
     // and ExplicitAppModule.
-    const JasprModule(),
+    const JasprModule(config: JasprConfig(clients: clients)),
     tasks,
   ];
 
