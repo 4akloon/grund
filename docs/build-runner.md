@@ -11,7 +11,7 @@ otherwise `grund gen` and `grund dev` are faster and need no configuration.
 # pubspec.yaml
 dev_dependencies:
   build_runner: ^2.16.0
-  grund_build: ^0.1.0
+  grund_build: ^0.2.0
 ```
 
 No `build.yaml` is needed: the builder applies to every package that depends

@@ -9,11 +9,11 @@ name: shop
 environment:
   sdk: ^3.13.0
 dependencies:
-  grund: ^0.1.0
-  grund_http: ^0.2.0
+  grund: ^0.2.0
+  grund_http: ^0.3.0
 dev_dependencies:
   build_runner: ^2.16.0
-  grund_build: ^0.1.0
+  grund_build: ^0.2.0
 ```
 
 No `build.yaml` is needed.

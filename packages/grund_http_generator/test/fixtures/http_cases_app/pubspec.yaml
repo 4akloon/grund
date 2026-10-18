@@ -6,5 +6,5 @@ environment:
   sdk: ^3.13.0
 resolution: workspace
 dependencies:
-  grund: ^0.1.0
-  grund_http: ^0.2.0
+  grund: ^0.2.0
+  grund_http: ^0.3.0

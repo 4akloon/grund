@@ -2,7 +2,7 @@ name: grund_generator
 description: >-
   Turns grund annotations into ordinary code on the explicit grund API,
   with static validation of the module graph.
-version: 0.1.1
+version: 0.2.0
 repository: https://github.com/4akLoon/grund/tree/master/packages/grund_generator
 issue_tracker: https://github.com/4akLoon/grund/issues
 topics: [codegen, analyzer, server, framework]
@@ -17,7 +17,7 @@ dependencies:
   pub_semver: ^2.1.4
 dev_dependencies:
   cases_app: ^0.1.0
-  grund: ^0.1.0
+  grund: ^0.2.0
   # The fixture packages under test/fixtures import the annotations.
   lints: ^5.1.0
   test: ^1.25.0

@@ -201,9 +201,9 @@ dart run grund_cli dev    # http://localhost:8080
 The session cookie is `Secure` only in product builds, so sign-in works
 over plain `http` under `dev`; serve a product build behind HTTPS.
 
-The api scaffold depends on `grund`, `grund_http`, `grund_io` and
-`grund_cli` at `^0.1.0`; the fullstack one also on `grund_auth` and
-`grund_jaspr` at `^0.2.0`, on `grund_http` at `^0.2.0` and on `jaspr`
+The api scaffold depends on `grund`, `grund_io` and `grund_cli` at
+`^0.2.0` and on `grund_http` at `^0.3.0`; the fullstack one also on
+`grund_auth` at `^0.2.0`, on `grund_jaspr` at `^0.3.0` and on `jaspr`
 `>=0.23.5 <0.24.0`. To try a scaffold against a checkout of the
 repository instead of pub.dev, add to its `pubspec.yaml` (with your path):
 
