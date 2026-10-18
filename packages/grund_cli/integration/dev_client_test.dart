@@ -53,10 +53,8 @@ void main() {
 
     expect(await events.nextEvent(), 'reload');
     expect(package.dir.read(_bundle), contains('client-one'));
-    expect(
-      dev.lines.lines.where((l) => l.contains('Client bundle failed')),
-      isNotEmpty,
-    );
+    // The child's stdout and the event stream are different channels.
+    await until(dev.lines, (line) => line.contains('Client bundle failed'));
     await dev.stop();
   });
 
@@ -65,10 +63,8 @@ void main() {
     final dev = await DevRun.start(package.dir.path, port: await freePort());
 
     expect(await page(dev.port), contains('page v1'));
-    expect(
-      dev.lines.lines.where((l) => l.contains('Client bundle failed')),
-      isNotEmpty,
-    );
+    // The child's stdout and the event stream are different channels.
+    await until(dev.lines, (line) => line.contains('Client bundle failed'));
     await dev.stop();
   });
 }

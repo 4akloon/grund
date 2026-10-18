@@ -65,7 +65,7 @@ final class DevBundle {
             'Client bundle failed; the previous one stays:\n$output',
           );
       }
-    } on FileSystemException catch (error) {
+    } on IOException catch (error) {
       _out.writeln('Client bundle failed; the previous one stays:\n$error');
     }
   }

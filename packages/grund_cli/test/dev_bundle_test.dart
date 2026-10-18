@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:grund_cli/grund_cli.dart';
 import 'package:grund_cli/src/bundle/client_bundler.dart';
@@ -7,6 +8,17 @@ import 'package:test/test.dart';
 
 import 'helpers/fake_compile_runner.dart';
 import 'helpers/temp_package.dart';
+
+/// A runner whose compilation cannot even start.
+final class _ThrowingRunner implements CompileRunner {
+  @override
+  Future<CompileOutcome> compileJs({
+    required String entry,
+    required String output,
+    required bool release,
+    required String workingDirectory,
+  }) => throw const ProcessException('dart', ['compile'], 'not found', 2);
+}
 
 /// A runner whose compilations end when the test completes them.
 final class _GatedRunner implements CompileRunner {
@@ -28,8 +40,6 @@ final class _GatedRunner implements CompileRunner {
   }
 }
 
-Future<void> _spin() => Future<void>.delayed(const Duration(milliseconds: 20));
-
 Future<TempPackage> _package({bool withEntry = true}) => TempPackage.create(
   'site',
   {if (withEntry) 'lib/main.client.dart': 'void main() {}'},
@@ -48,10 +58,10 @@ void main() {
       ..request()
       ..request()
       ..request();
-    await _spin();
+    await pumpEventQueue();
     expect(runner.gates, hasLength(1));
     runner.gates[0].complete();
-    await _spin();
+    await pumpEventQueue();
     expect(runner.gates, hasLength(2));
     runner.gates[1].complete();
     await bundle.settled;
@@ -73,12 +83,12 @@ void main() {
     var settled = false;
     unawaited(bundle.settled.then((_) => settled = true));
 
-    await _spin();
+    await pumpEventQueue();
     runner.gates[0].complete();
-    await _spin();
+    await pumpEventQueue();
     expect(settled, isFalse);
     runner.gates[1].complete();
-    await _spin();
+    await pumpEventQueue();
 
     expect(settled, isTrue);
   });
@@ -144,4 +154,23 @@ void main() {
     expect(runner.releases, isEmpty);
     expect(out.toString(), isEmpty);
   });
+
+  test(
+    'a runner that cannot start is a failed build; settled completes',
+    () async {
+      final package = await _package();
+      final out = StringBuffer();
+      final bundle = DevBundle(
+        ClientBundler(package.root, runner: _ThrowingRunner()),
+        out: out,
+      );
+
+      bundle.request();
+      await bundle.settled;
+      await bundle.initial();
+
+      expect(out.toString(), contains('Client bundle failed'));
+      expect(out.toString(), contains('not found'));
+    },
+  );
 }
