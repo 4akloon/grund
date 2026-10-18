@@ -40,11 +40,6 @@ void main() {
     expect(Jaspr.options.clients![Counter]!.name, 'counter');
   });
 
-  test('replaces the default options', () {
-    Jaspr.initializeApp();
-    expect(JasprSetup.initialize(_withCounter), isNotNull);
-  });
-
   test('replaces the options of an earlier initialize', () {
     JasprSetup.initialize(_withCounter);
     final second = JasprSetup.initialize(_otherStatic);
@@ -77,6 +72,43 @@ void main() {
       () => JasprSetup.initialize(_withCounter),
       throwsA(isA<JasprSetupError>()),
     );
+  });
+
+  test('refuses foreign options with styles and leaves them untouched', () {
+    final foreign = ServerOptions(stylesId: 'styles.css', styles: () => []);
+    Jaspr.initializeApp(options: foreign);
+
+    expect(
+      () => JasprSetup.initialize(_withCounter),
+      throwsA(
+        isA<JasprSetupError>().having(
+          (e) => e.toString(),
+          'message',
+          contains('styles'),
+        ),
+      ),
+    );
+    expect(Jaspr.options, same(foreign));
+  });
+
+  test('refuses options that replaced ours', () {
+    JasprSetup.initialize(_withCounter);
+    Jaspr.initializeApp(options: const ServerOptions(clientId: 'x.js'));
+
+    expect(
+      () => JasprSetup.initialize(_withCounter),
+      throwsA(isA<JasprSetupError>()),
+    );
+  });
+
+  test('releasing twice does not reset a newer owner', () {
+    final a = JasprSetup.initialize(_withCounter);
+    final b = JasprSetup.initialize(_otherStatic);
+
+    JasprSetup.release(a);
+    JasprSetup.release(a);
+
+    expect(Jaspr.options, same(b));
   });
 
   test('without clients leaves our options alone', () {
