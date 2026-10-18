@@ -44,7 +44,7 @@ abstract final class FullstackTemplate {
   static const _grundJaspr = '^0.3.1';
 
   /// The `grund_cli` release with `bundle`, which builds the browser bundle.
-  static const _grundCli = '^0.2.1';
+  static const _grundCli = '^0.3.0';
 
   static String _pubspec(String name) =>
       '''
