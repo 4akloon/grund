@@ -1,3 +1,4 @@
+import '../client_components.dart';
 import 'error/jaspr_error.dart';
 
 /// How `JasprModule` serves pages and static files.
@@ -11,7 +12,14 @@ final class JasprConfig {
     this.rootFiles = const [],
     this.sitemapChunkSize = 50000,
     this.sitemapCacheLifetime = const Duration(seconds: 60),
+    this.clients,
   });
+
+  /// The directory under [staticPath] that holds the client bundle.
+  static const String clientDirectory = 'client';
+
+  /// The file name of the compiled client bundle in [clientDirectory].
+  static const String clientScript = 'main.client.dart.js';
 
   /// The default of [pageSuffixes]: `html`, `htm` and `xml`.
   static const defaultPageSuffixes = ['html', 'htm', 'xml'];
@@ -51,10 +59,24 @@ final class JasprConfig {
   /// How long a generated sitemap chunk is reused.
   final Duration sitemapCacheLifetime;
 
+  /// The components that hydrate in the browser; `null` serves pages with
+  /// no client script.
+  final ClientComponents? clients;
+
+  /// The path of the client script relative to the site root (no leading
+  /// `/`), derived from [staticPath]; `null` when [clients] is `null` or
+  /// empty.
+  String? get clientId => switch (clients) {
+    ClientComponents(components: final list) when list.isNotEmpty =>
+      '${staticPath.substring(1)}/$clientDirectory/$clientScript',
+    _ => null,
+  };
+
   /// Throws [JasprSetupError] for a [pageSuffixes] entry that starts with
   /// `.`, a malformed [staticPath] (also one with `*` or `:`), a
   /// [rootFiles] entry that is not a plain file name (empty, `.`, `..`, or
-  /// with `/`, `*` or `:`) or a [sitemapChunkSize] below 1; `JasprModule`
+  /// with `/`, `*` or `:`), a [sitemapChunkSize] below 1 or any of the
+  /// [clients] `problems`; `JasprModule`
   /// calls it when the application starts.
   void validate() {
     if (!staticPath.startsWith('/') ||
@@ -90,6 +112,14 @@ final class JasprConfig {
         );
       }
     }
+    _validateClients();
+  }
+
+  void _validateClients() {
+    final problems = clients?.problems ?? const <String>[];
+    if (problems.isNotEmpty) {
+      throw JasprSetupError('clients has problems: ${problems.join('; ')}.');
+    }
   }
 
   static bool _isRoutePattern(String path) =>
@@ -104,5 +134,6 @@ final class JasprConfig {
     rootFiles: rootFiles,
     sitemapChunkSize: sitemapChunkSize,
     sitemapCacheLifetime: sitemapCacheLifetime,
+    clients: clients,
   );
 }

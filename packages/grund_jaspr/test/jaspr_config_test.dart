@@ -1,5 +1,8 @@
+import 'package:grund_jaspr/client_components.dart';
 import 'package:grund_jaspr/grund_jaspr.dart';
 import 'package:test/test.dart';
+
+import 'helpers/client_samples.dart';
 
 void main() {
   group('JasprConfig', () {
@@ -56,5 +59,70 @@ void main() {
       expect(copy.sitemapCacheLifetime, const Duration(seconds: 5));
       expect(copy.liveReloadUrl, Uri.parse('http://localhost:1/'));
     });
+
+    group('clients', () {
+      const counter = ClientComponent<Counter>(
+        'counter',
+        decode: Counter.fromParams,
+        encode: Counter.toParams,
+      );
+      const clients = ClientComponents([counter]);
+
+      test('clientId is derived from the default staticPath', () {
+        expect(
+          const JasprConfig(clients: clients).clientId,
+          'static/client/main.client.dart.js',
+        );
+      });
+
+      test('clientId follows a custom staticPath', () {
+        expect(
+          const JasprConfig(staticPath: '/assets', clients: clients).clientId,
+          'assets/client/main.client.dart.js',
+        );
+      });
+
+      test('clientId is null without clients', () {
+        expect(const JasprConfig().clientId, isNull);
+      });
+
+      test('clientId is null for an empty list', () {
+        expect(
+          const JasprConfig(clients: ClientComponents([])).clientId,
+          isNull,
+        );
+      });
+
+      test('withLiveReloadUrl keeps the same clients object', () {
+        final copy = const JasprConfig(clients: clients)
+            .withLiveReloadUrl(Uri.parse('http://localhost:1/'));
+        expect(copy.clients, same(clients));
+      });
+
+      test('validate reports every problem of the list', () {
+        const config = JasprConfig(
+          clients: ClientComponents([
+            counter,
+            ClientComponent<Plain>('counter', decode: _plain),
+          ]),
+        );
+        expect(
+          config.validate,
+          throwsA(
+            isA<JasprSetupError>().having(
+              (e) => e.reason,
+              'reason',
+              allOf(contains("'counter' is registered twice")),
+            ),
+          ),
+        );
+      });
+
+      test('validate accepts a correct list', () {
+        expect(const JasprConfig(clients: clients).validate, returnsNormally);
+      });
+    });
   });
 }
+
+Plain _plain(Map<String, Object?> _) => const Plain();
