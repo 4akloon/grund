@@ -59,7 +59,14 @@ final class DevRun {
 
   /// Starts `dev` of the package in [directory], passing [port] to `main`,
   /// and waits until the application prints `listening on <port>`.
-  static Future<DevRun> start(String directory, {required int port}) async {
+  ///
+  /// [whileStarting] runs once `dev` watches and before the wait for the
+  /// application, with what `dev` and the application printed so far.
+  static Future<DevRun> start(
+    String directory, {
+    required int port,
+    Future<void> Function(LineSink lines)? whileStarting,
+  }) async {
     final lines = LineSink();
     final keys = StreamController<String>();
     final stop = Completer<void>();
@@ -75,6 +82,7 @@ final class DevRun {
     addTearDown(() => killStrays(lines));
     addTearDown(run.stop);
     await until(lines, (line) => line.startsWith('Watching lib/ and bin/'));
+    await whileStarting?.call(lines);
     await until(lines, isListening);
     return run;
   }
