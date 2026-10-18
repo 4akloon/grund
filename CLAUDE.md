@@ -227,6 +227,10 @@ only. It has not run yet.
   runs the tests of a fresh `init --template fullstack` package with the
   VM directly against this workspace (`init_fullstack_test.dart`, no `pub
   get`).
+  The `integration/` of `grund_cli` and `example` run `dart compile js` as
+  a child process (the example's with the production flags,
+  `client_bundle_test.dart`); the framework itself spawns the compiler only
+  in the bundle build of `grund_cli`.
   `grund_build` tests build in memory with `build_test`
   (`TestReaderWriter` + `loadIsolateSources()`, no `pub get`), and compare
   with the CLI through `GenerationSession` on a `TempDir` package;
