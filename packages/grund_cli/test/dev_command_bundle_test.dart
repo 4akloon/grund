@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:grund_cli/grund_cli.dart';
 import 'package:test/test.dart';
 
+import 'helpers/cli_run.dart';
 import 'helpers/dev_sources.dart';
 import 'helpers/fake_compile_runner.dart';
 import 'helpers/line_sink.dart';
@@ -83,4 +84,22 @@ void main() {
     expect(runner.entries, isEmpty);
     expect(out.lines.where((line) => line.contains('undle')), isEmpty);
   });
+
+  test(
+    'an explicit --client-entry that does not exist is a usage error',
+    () async {
+      final package = await TempPackage.create('hello', DevSources.files);
+
+      final run = await CliRun.run([
+        'dev',
+        '-C',
+        package.dir.path,
+        '--client-entry',
+        'lib/nope.client.dart',
+      ], compileRunner: FakeCompileRunner());
+
+      expect(run.exitCode, CliExitCode.usage.code);
+      expect(run.err, 'No lib/nope.client.dart.\n');
+    },
+  );
 }

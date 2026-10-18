@@ -1,11 +1,9 @@
 /// The files of the hydrated counter that `init --template fullstack` adds
 /// to the pages: the island, its registry and the browser entry point.
 abstract final class FullstackClientFiles {
-  /// The client files of application [name] (relative path to content).
-  ///
-  /// [name] is interpolated into the files as is; `ProjectScaffold` checks
-  /// that it is a valid Dart package name.
-  static Map<String, String> files(String name) => {
+  /// The client files (relative path to content); they do not depend on the
+  /// application's name.
+  static const Map<String, String> files = {
     'lib/clients.dart': _clients,
     'lib/main.client.dart': _mainClient,
     'lib/src/pages/counter.dart': _counter,

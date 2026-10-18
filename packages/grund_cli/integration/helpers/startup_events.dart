@@ -30,12 +30,16 @@ abstract final class StartupEvents {
   static Future<({DevRun dev, EventClient events})> start(
     String directory,
   ) async {
+    // Set by `whileStarting`, which `DevRun.start` awaits before it returns.
     late EventClient events;
     final dev = await DevRun.start(
       directory,
       port: await freePort(),
       whileStarting: (lines) async {
-        final line = await lines.nextWhere((l) => l.startsWith('live reload '));
+        bool isUrl(String line) => line.startsWith('live reload ');
+        // Not from a read cursor: `DevRun.start` may have consumed it.
+        await until(lines, isUrl);
+        final line = lines.lines.firstWhere(isUrl);
         events = await EventClient.connect(
           Uri.parse(line.substring('live reload '.length)),
         );

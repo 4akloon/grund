@@ -15,6 +15,8 @@ import '../dev/terminal_keys.dart';
 import '../generate/generation_session.dart';
 import '../package/package_root.dart';
 import '../watch/watch_loop.dart';
+import 'cli_exit_code.dart';
+import 'cli_failure.dart';
 import 'grund_cli.dart';
 import 'report_printer.dart';
 
@@ -62,7 +64,11 @@ final class DevWiring {
           options.option('output') ?? ClientBundler.defaultOutputDirectory,
       runner: cli.host.compileRunner,
     );
-    return bundler.hasEntry ? DevBundle(bundler, out: cli.out) : null;
+    if (bundler.hasEntry) return DevBundle(bundler, out: cli.out);
+    if (options.wasParsed('client-entry')) {
+      throw CliFailure(CliExitCode.usage, 'No ${bundler.entry}.');
+    }
+    return null;
   }
 
   /// The watcher and the loop that generates on a change and applies it.

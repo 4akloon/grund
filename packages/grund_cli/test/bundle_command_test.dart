@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:grund_cli/grund_cli.dart';
 import 'package:test/test.dart';
 
@@ -85,5 +87,52 @@ void main() {
 
     expect(run.exitCode, CliExitCode.problems.code);
     expect(run.err, 'bundle failed:\nError: broken\n');
+  });
+
+  test('an explicit --entry that does not exist is a usage error', () async {
+    final package = await TempPackage.create('site');
+
+    final run = await CliRun.run([
+      'bundle',
+      '--entry',
+      'lib/nope.client.dart',
+      '-C',
+      package.dir.path,
+    ], compileRunner: FakeCompileRunner());
+
+    expect(run.exitCode, CliExitCode.usage.code);
+    expect(run.err, 'No lib/nope.client.dart.\n');
+  });
+
+  test('a file system failure of the build exits with 73', () async {
+    final package = await TempPackage.create('site', {
+      'lib/main.client.dart': 'void main() {}',
+    });
+
+    final run = await CliRun.run(
+      ['bundle', '-C', package.dir.path],
+      compileRunner: FakeCompileRunner(
+        error: const FileSystemException('cannot move', 'web/client'),
+      ),
+    );
+
+    expect(run.exitCode, CliExitCode.cannotCreate.code);
+    expect(run.err, startsWith('bundle failed: FileSystemException'));
+  });
+
+  test('a compiler that cannot start exits with 70', () async {
+    final package = await TempPackage.create('site', {
+      'lib/main.client.dart': 'void main() {}',
+    });
+
+    final run = await CliRun.run(
+      ['bundle', '-C', package.dir.path],
+      compileRunner: FakeCompileRunner(
+        error: const ProcessException('dart', ['compile'], 'not found', 2),
+      ),
+    );
+
+    expect(run.exitCode, CliExitCode.software.code);
+    expect(run.err, startsWith('bundle failed: ProcessException'));
   });
 }

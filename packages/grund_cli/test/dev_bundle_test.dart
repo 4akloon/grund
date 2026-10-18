@@ -169,8 +169,34 @@ void main() {
       await bundle.settled;
       await bundle.initial();
 
-      expect(out.toString(), contains('Client bundle failed'));
+      expect('Client bundle failed'.allMatches('$out'), hasLength(2));
       expect(out.toString(), contains('not found'));
+    },
+  );
+
+  test(
+    'after close a running build finishes silently and no more start',
+    () async {
+      final package = await _package();
+      final runner = _GatedRunner();
+      final out = StringBuffer();
+      final bundle = DevBundle(
+        ClientBundler(package.root, runner: runner),
+        out: out,
+      );
+
+      bundle.request();
+      await pumpEventQueue();
+      bundle
+        ..request()
+        ..close();
+      runner.gates.single.complete();
+      await bundle.settled;
+      bundle.request();
+      await bundle.settled;
+
+      expect(runner.gates, hasLength(1));
+      expect(out.toString(), isEmpty);
     },
   );
 }

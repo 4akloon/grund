@@ -127,7 +127,13 @@ final class DevCommand extends Command<int> {
     // Stopping the session at the interrupt itself, not after the watch
     // loop ended: the terminal's Ctrl+C reaches the application too, and its
     // exit must not be reported as a crash.
-    final stop = Future.any([stopped.whenComplete(dev.stop), failure.future]);
+    final stop = Future.any([
+      stopped.whenComplete(() {
+        bundle?.close();
+        return dev.stop();
+      }),
+      failure.future,
+    ]);
     try {
       await bundle?.initial();
       final (watcher, loop) = wiring.watchLoop(
@@ -139,6 +145,10 @@ final class DevCommand extends Command<int> {
       );
       await _run(loop, watcher, session, dev, stop);
     } finally {
+      // A build in flight finishes silently: its compiler child cannot be
+      // stopped, and it would keep the process alive anyway.
+      bundle?.close();
+      await bundle?.settled;
       try {
         await keys.cancel();
       } finally {

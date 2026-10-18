@@ -15,7 +15,7 @@ abstract final class FullstackTemplate {
   ///
   /// [name] is interpolated into the files as is: it must be a valid Dart
   /// package name (`[a-z_][a-z0-9_]*`), which `ProjectScaffold` checks.
-  static Map<String, String> files(String name) => {
+  static Map<String, String> files(String name) => _sorted({
     '.gitignore': '.dart_tool/\nweb/client/\n',
     'analysis_options.yaml': 'include: package:lints/recommended.yaml\n',
     'bin/main.dart': _main(name),
@@ -28,7 +28,11 @@ abstract final class FullstackTemplate {
     'pubspec.yaml': _pubspec(name),
     'test/app_test.dart': _appTest(name),
     'web/styles.css': _styles,
-    ...FullstackClientFiles.files(name),
+    ...FullstackClientFiles.files,
+  });
+
+  static Map<String, String> _sorted(Map<String, String> files) => {
+    for (final path in files.keys.toList()..sort()) path: files[path]!,
   };
 
   static const _grund = ProjectTemplate.grundVersion;

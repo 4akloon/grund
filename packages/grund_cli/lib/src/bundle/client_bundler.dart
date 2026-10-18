@@ -86,11 +86,23 @@ final class ClientBundler {
       if (name.endsWith('.deps') || (release && name.endsWith('.map'))) {
         continue;
       }
-      file.renameSync(p.join(output.path, name));
+      _move(file, p.join(output.path, name));
       moved.add(name);
     }
     for (final file in _bundleFiles(output)) {
       if (!moved.contains(p.basename(file.path))) file.deleteSync();
+    }
+  }
+
+  // The staging directory is under `.dart_tool/`, the output may be on
+  // another filesystem, where a rename fails.
+  void _move(File file, String target) {
+    try {
+      file.renameSync(target);
+    } on FileSystemException {
+      file
+        ..copySync(target)
+        ..deleteSync();
     }
   }
 

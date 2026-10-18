@@ -14,8 +14,15 @@ Future<void> until(
   bool Function(String line) test, {
   int count = 1,
 }) async {
-  while (lines.lines.where(test).length < count) {
-    await lines.next();
+  try {
+    while (lines.lines.where(test).length < count) {
+      await lines.next();
+    }
+  } on TimeoutException {
+    throw TimeoutException(
+      'No ${count == 1 ? 'line' : '$count lines'} matching the awaited one; '
+      'printed so far:\n${lines.lines.join('\n')}',
+    );
   }
 }
 

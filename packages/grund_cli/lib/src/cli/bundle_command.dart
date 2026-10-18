@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:args/command_runner.dart';
 
 import '../bundle/bundle_result.dart';
@@ -61,7 +63,10 @@ final class BundleCommand extends Command<int> {
       outputDirectory: output,
       runner: cli.host.compileRunner,
     );
-    switch (await bundler.build(release: true)) {
+    if (!bundler.hasEntry && options.wasParsed('entry')) {
+      throw CliFailure(CliExitCode.usage, 'No ${bundler.entry}.');
+    }
+    switch (await _build(bundler)) {
       case BundleBuilt(:final elapsed):
         cli.out.writeln(
           'Bundled $output/${bundler.outputName} in '
@@ -76,5 +81,15 @@ final class BundleCommand extends Command<int> {
         );
     }
     return CliExitCode.success.code;
+  }
+
+  static Future<BundleResult> _build(ClientBundler bundler) async {
+    try {
+      return await bundler.build(release: true);
+    } on FileSystemException catch (error) {
+      throw CliFailure(CliExitCode.cannotCreate, 'bundle failed: $error');
+    } on ProcessException catch (error) {
+      throw CliFailure(CliExitCode.software, 'bundle failed: $error');
+    }
   }
 }

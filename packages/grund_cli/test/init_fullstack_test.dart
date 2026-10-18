@@ -6,55 +6,107 @@ import 'helpers/dart_diagnostics.dart';
 import 'helpers/temp_dir.dart';
 import 'helpers/workspace_package_config.dart';
 
+/// `init --template fullstack` into `my_site`, resolved against the
+/// workspace so the package can be analyzed without `pub get`.
+Future<({TempDir dir, String target, CliRun run})> _scaffold() async {
+  final dir = TempDir.create();
+  final target = dir.resolve('my_site');
+  final run = await CliRun.run(['init', '--template', 'fullstack', target]);
+  expect(run.exitCode, 0, reason: run.err);
+  await WorkspacePackageConfig.write(target, 'my_site');
+  return (dir: dir, target: target, run: run);
+}
+
 void main() {
   test('init --template fullstack writes pages that analyze', () async {
-    final dir = TempDir.create();
-    final target = dir.resolve('my_site');
+    final scaffold = await _scaffold();
 
-    final init = await CliRun.run(['init', '--template', 'fullstack', target]);
-    await WorkspacePackageConfig.write(target, 'my_site');
+    expect(await DartDiagnostics.of(scaffold.target), isEmpty);
+  });
 
-    expect(init.exitCode, 0, reason: init.err);
-    expect(init.out, contains('  lib/src/pages/home_page.dart\n'));
-    expect(init.out, contains('  web/styles.css\n'));
+  test('the printed file list is sorted by path', () async {
+    final scaffold = await _scaffold();
+
+    final listed = RegExp(
+      r'^  ((?:[\w.]+/)*[\w.]+)$',
+      multiLine: true,
+    ).allMatches(scaffold.run.out.split('Next').first);
+    final paths = [for (final match in listed) match.group(1)!];
+
+    expect(paths, hasLength(greaterThan(10)));
+    expect(paths, [...paths]..sort());
+  });
+
+  test('the next steps end with the production bundle', () async {
+    final scaffold = await _scaffold();
+
     expect(
-      init.out,
+      scaffold.run.out,
       endsWith(
         '  dart pub get\n'
         '  dart run grund_cli dev\n'
         '  dart run grund_cli bundle  # production bundle (-O2) for /static/client/\n',
       ),
     );
+  });
+
+  test('the client files are listed', () async {
+    final scaffold = await _scaffold();
+
     for (final file in [
       'clients.dart',
       'main.client.dart',
       'src/pages/counter.dart',
     ]) {
-      expect(init.out, contains('  lib/$file\n'));
+      expect(scaffold.run.out, contains('  lib/$file\n'));
     }
-    expect(dir.read('my_site/.gitignore'), contains('web/client/\n'));
+  });
+
+  test('the client bundle is ignored by git', () async {
+    final scaffold = await _scaffold();
+
+    expect(scaffold.dir.read('my_site/.gitignore'), contains('web/client/\n'));
+  });
+
+  test('the module and the home page use the counter island', () async {
+    final scaffold = await _scaffold();
+
     expect(
-      dir.read('my_site/lib/src/app_module.dart'),
+      scaffold.dir.read('my_site/lib/src/app_module.dart'),
       contains('JasprModule(config: JasprConfig(clients: clients))'),
     );
     expect(
-      dir.read('my_site/lib/src/pages/home_page.dart'),
+      scaffold.dir.read('my_site/lib/src/pages/home_page.dart'),
       contains('const Counter('),
     );
-    final pubspec = dir.read('my_site/pubspec.yaml');
+  });
+
+  test('the pubspec pins the released packages', () async {
+    final scaffold = await _scaffold();
+
+    final pubspec = scaffold.dir.read('my_site/pubspec.yaml');
     expect(pubspec, contains('  grund_auth: ^0.2.0\n'));
     expect(pubspec, contains('  grund_cli: ^0.2.1\n'));
     expect(pubspec, contains('  grund_http: ^0.3.0\n'));
     expect(pubspec, contains('  grund_jaspr: ^0.3.1\n'));
     expect(pubspec, contains("  jaspr: '>=0.23.5 <0.24.0'\n"));
+  });
+
+  test('the site module declares its pages under PublicSite', () async {
+    final scaffold = await _scaffold();
+
     expect(
-      dir.read('my_site/lib/src/home_site_module.dart'),
+      scaffold.dir.read('my_site/lib/src/home_site_module.dart'),
       contains('Pages.under<PublicSite>'),
     );
-    final module = dir.read('my_site/lib/src/app_module.dart');
+  });
+
+  test('the app module wires the environment and the HTTP module', () async {
+    final scaffold = await _scaffold();
+
+    final module = scaffold.dir.read('my_site/lib/src/app_module.dart');
     expect(module, contains('    EnvironmentModule(),\n'));
     expect(module, contains('HttpModule.fromEnvironment(use: ['));
-    expect(await DartDiagnostics.of(target), isEmpty);
   });
 
   test(

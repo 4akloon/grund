@@ -10,6 +10,7 @@ final class FakeCompileRunner implements CompileRunner {
   FakeCompileRunner({
     this.files = const ['{output}', '{output}.deps', '{output}.map'],
     this.exitCode = 0,
+    this.error,
   });
 
   /// File names to write; `{output}` stands for the output's own name.
@@ -17,6 +18,9 @@ final class FakeCompileRunner implements CompileRunner {
 
   /// The exit code reported.
   final int exitCode;
+
+  /// What a call throws instead of compiling, when set.
+  final Object? error;
 
   /// The `release` argument of each call.
   final List<bool> releases = [];
@@ -31,6 +35,7 @@ final class FakeCompileRunner implements CompileRunner {
     required bool release,
     required String workingDirectory,
   }) async {
+    if (error case final error?) throw error;
     releases.add(release);
     entries.add(entry);
     if (exitCode != 0) return CompileOutcome(exitCode, 'Error: broken');
